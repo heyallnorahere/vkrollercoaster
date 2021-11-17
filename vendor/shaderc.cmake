@@ -1,0 +1,8 @@
+if(NOT SHADERC_DEPENDENCIES_SYNCED)
+    find_package(Python3 REQUIRED)
+    message(STATUS "Syncing shaderc dependencies...")
+    execute_process(COMMAND ${Python_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/shaderc/utils/git-sync-deps")
+    message(STATUS "Synced shaderc dependencies!")
+    set(SHADERC_DEPENDENCIES_SYNCED ON CACHE BOOL "Have the shaderc dependencies been synced?" FORCE)
+endif()
+add_subdirectory("shaderc")
