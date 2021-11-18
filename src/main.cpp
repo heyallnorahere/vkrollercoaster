@@ -15,7 +15,11 @@
 */
 
 #include "pch.h"
+#include "renderer.h"
+using namespace vkrollercoaster;
 int32_t main(int32_t argc, const char** argv) {
+    renderer::init();
     spdlog::info("set up the damn thing");
+    renderer::shutdown();
     return 0;
 }

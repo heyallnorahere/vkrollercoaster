@@ -15,16 +15,12 @@
 */
 
 #pragma once
-#include <cstdint>
-#include <stddef.h>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
-#include <spdlog/spdlog.h>
-#include <entt/entt.hpp>
-#include <imgui.h>
-#include <misc/cpp/imgui_stdlib.h>
+namespace vkrollercoaster {
+    class renderer {
+    public:
+        static void init();
+        static void shutdown();
+    private:
+        renderer() = default;
+    };
+}

@@ -15,16 +15,13 @@
 */
 
 #pragma once
-#include <cstdint>
-#include <stddef.h>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
-#include <spdlog/spdlog.h>
-#include <entt/entt.hpp>
-#include <imgui.h>
-#include <misc/cpp/imgui_stdlib.h>
+namespace vkrollercoaster {
+    namespace util {
+        inline void zero(void* address, size_t size) {
+            memset(address, 0, size);
+        }
+        template<typename T> inline void zero(T& data) {
+            zero(&data, sizeof(T));
+        }
+    }
+}
