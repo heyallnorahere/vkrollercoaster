@@ -7,8 +7,7 @@ def main():
     if platform != "win32":
         print("This script must only be run on Windows!")
         return 1
-    response = get("https://vulkan.lunarg.com/sdk/latest/windows.txt", allow_redirects=True)
-    vulkan_sdk_version = response.content.decode("utf-8")
+    vulkan_sdk_version = "1.2.182.0"
     installer_url = f"https://sdk.lunarg.com/sdk/download/{vulkan_sdk_version}/windows/VulkanSDK-{vulkan_sdk_version}-Installer.exe"
     response = get(installer_url, allow_redirects=True)
     mkdir("build")
