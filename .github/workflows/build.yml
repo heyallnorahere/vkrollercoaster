@@ -1,0 +1,36 @@
+name: build
+on: [ push ]
+jobs:
+  build:
+    runs-on: ${{ matrix.os-name }}-latest
+    strategy:
+      matrix:
+        os-name: [ ubuntu, windows ]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.x
+      - name: install dependencies (ubuntu)
+        if: ${{ matrix.os-name == 'ubuntu' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-common-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev cmake libvulkan-dev
+      - name: install vulkan (windows)
+        if: ${{ matrix.os-name == 'windows' }}
+        shell: bash
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        run: |
+          python -m pip install requests
+          python scripts/install_vulkan_sdk.py --gh-actions
+      - name: build
+        shell: bash
+        run: |
+          cmake . -B build -DCMAKE_BUILD_TYPE=Release $(python scripts/cmake_options.py)
+          cmake --build build -j 8
