@@ -1,4 +1,4 @@
-from shutil import rmtree
+from os import unlink
 from requests import get
 from tempfile import TemporaryDirectory
 from sys import platform, argv
@@ -19,7 +19,8 @@ def main():
         stream.close()
     if call([ installer_path, "/S" ], shell=True) != 0:
         return 1
-    rmtree(tempdir.name)
+    unlink(installer_url)
+    tempdir.cleanup()
     if len(argv) > 1:
         if argv[1] == "--gh-actions":
             print(f"::set-env name=VULKAN_SDK::C:\\VulkanSDK\\{vulkan_sdk_version}")
