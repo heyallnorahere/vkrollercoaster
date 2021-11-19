@@ -26,6 +26,8 @@
 #include <memory>
 #include <stdexcept>
 #include <functional>
+#include <limits>
+#include <algorithm>
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>

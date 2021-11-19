@@ -23,7 +23,23 @@ namespace vkrollercoaster {
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> present_modes;
     };
+    struct queue_family_indices {
+        std::optional<uint32_t> graphics_family, present_family;
+        bool complete() const {
+            const std::vector<bool> families_found {
+                this->graphics_family.has_value(),
+                this->present_family.has_value(),
+            };
+            for (bool found : families_found) {
+                if (!found) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
     swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
+    queue_family_indices find_queue_families(VkPhysicalDevice device);
 #endif
     class renderer {
     public:

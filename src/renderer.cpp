@@ -98,22 +98,7 @@ namespace vkrollercoaster {
         }
         return true;
     }
-    struct queue_family_indices {
-        std::optional<uint32_t> graphics_family, present_family;
-        bool complete() const {
-            const std::vector<bool> families_found {
-                this->graphics_family.has_value(),
-                this->present_family.has_value(),
-            };
-            for (bool found : families_found) {
-                if (!found) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    };
-    static queue_family_indices find_queue_families(VkPhysicalDevice device) {
+    queue_family_indices find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
         uint32_t queue_family_count = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
