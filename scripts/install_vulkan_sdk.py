@@ -11,7 +11,7 @@ def main():
     vulkan_sdk_version = response.content.decode("utf-8")
     installer_url = f"https://sdk.lunarg.com/sdk/download/{vulkan_sdk_version}/windows/VulkanSDK-{vulkan_sdk_version}-Installer.exe"
     response = get(installer_url, allow_redirects=True)
-    installer_path = path.join(path.curdir, "vulkan-installer.exe")
+    installer_path = "vulkan-installer.exe"
     with open(installer_path, "wb") as stream:
         stream.write(response.content)
         stream.close()
