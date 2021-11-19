@@ -19,10 +19,11 @@
 #include "util.h"
 namespace vkrollercoaster {
     static struct {
-        std::vector<const char*> instance_extensions, layer_names;
+        std::vector<const char*> instance_extensions, device_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
         VkPhysicalDevice physical_device = nullptr;
+        VkDevice device = nullptr;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -74,6 +75,43 @@ namespace vkrollercoaster {
             }
         }
         return true;
+    }
+    struct queue_family_indices {
+        std::optional<uint32_t> graphics_family, present_family;
+        bool complete() const {
+            const std::vector<bool> families_found {
+                this->graphics_family.has_value(),
+                //this->present_family.has_value(),
+            };
+            for (bool found : families_found) {
+                if (!found) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+    static queue_family_indices find_queue_families(VkPhysicalDevice device) {
+        queue_family_indices indices;
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
+        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
+        for (uint32_t i = 0; i < queue_families.size(); i++) {
+            const auto& queue_family = queue_families[i];
+            if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphics_family = i;
+            }
+            /*VkBool32 present_support = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, nullptr, &present_support);
+            if (present_support) {
+                indices.present_family = i;
+            }*/
+            if (indices.complete()) {
+                break;
+            }
+        }
+        return indices;
     }
     static void choose_extensions() {
         uint32_t glfw_extension_count = 0;
@@ -143,7 +181,7 @@ namespace vkrollercoaster {
         vkGetPhysicalDeviceProperties(device, &properties);
         vkGetPhysicalDeviceFeatures(device, &features);
         std::vector<bool> requirements_met = {
-            // todo: device requirements
+            find_queue_families(device).complete()
         };
         for (bool met : requirements_met) {
             if (!met) {
@@ -176,13 +214,49 @@ namespace vkrollercoaster {
         }
         throw std::runtime_error("no suitable GPU was found!");
     }
+    static void create_logical_device() {
+        auto indices = find_queue_families(renderer_data.physical_device);
+        std::vector<VkDeviceQueueCreateInfo> queue_create_info;
+        float queue_priority = 1.f;
+        std::set<uint32_t> unique_queue_families = { *indices.graphics_family };
+        for (uint32_t queue_family : unique_queue_families) {
+            VkDeviceQueueCreateInfo create_info;
+            util::zero(create_info);
+            create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            create_info.queueFamilyIndex = queue_family;
+            create_info.queueCount = 1;
+            create_info.pQueuePriorities = &queue_priority;
+            queue_create_info.push_back(create_info);
+        }
+        VkDeviceCreateInfo create_info;
+        util::zero(create_info);
+        create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        create_info.queueCreateInfoCount = queue_create_info.size();
+        create_info.pQueueCreateInfos = queue_create_info.data();
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(renderer_data.physical_device, &features);
+        create_info.pEnabledFeatures = &features;
+        if (!renderer_data.layer_names.empty()) {
+            create_info.enabledLayerCount = renderer_data.layer_names.size();
+            create_info.ppEnabledLayerNames = renderer_data.layer_names.data();
+        }
+        if (!renderer_data.device_extensions.empty()) {
+            create_info.enabledExtensionCount = renderer_data.device_extensions.size();
+            create_info.ppEnabledExtensionNames = renderer_data.device_extensions.data();
+        }
+        if (vkCreateDevice(renderer_data.physical_device, &create_info, nullptr, &renderer_data.device) != VK_SUCCESS) {
+            throw std::runtime_error("could not create a logical device!");
+        }
+    }
     void renderer::init() {
         choose_extensions();
         create_instance();
         create_debug_messenger();
         pick_physical_device();
+        create_logical_device();
     }
     void renderer::shutdown() {
+        vkDestroyDevice(renderer_data.device, nullptr);
         if (renderer_data.debug_messenger != nullptr) {
             auto fpDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(renderer_data.instance, "vkDestroyDebugUtilsMessengerEXT");
             if (fpDestroyDebugUtilsMessengerEXT != nullptr) {
