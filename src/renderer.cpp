@@ -22,6 +22,7 @@ namespace vkrollercoaster {
         std::vector<const char*> instance_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
+        VkPhysicalDevice physical_device = nullptr;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -47,6 +48,14 @@ namespace vkrollercoaster {
 #else
     constexpr bool enable_validation_layers = true;
 #endif
+    template<typename T> static void parse_vulkan_version(T version, T& major, T& minor, T& patch) {
+        // bit twiddling bullshit
+        constexpr T major_offset = 22;
+        constexpr T minor_offset = 12;
+        major = version >> major_offset;
+        minor = (version >> minor_offset) & util::create_mask<T>(major_offset - minor_offset);
+        patch = version & util::create_mask<T>(minor_offset);
+    }
     static bool check_layer_availability(const std::vector<const char*>& required_layers) {
         uint32_t layer_count;
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -128,10 +137,50 @@ namespace vkrollercoaster {
             spdlog::warn("could not get vkCreateDebugUtilsMessengerEXT function address");
         }
     }
+    static bool is_device_suitable(VkPhysicalDevice device) {
+        VkPhysicalDeviceProperties properties;
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceProperties(device, &properties);
+        vkGetPhysicalDeviceFeatures(device, &features);
+        std::vector<bool> requirements_met = {
+            // todo: device requirements
+        };
+        for (bool met : requirements_met) {
+            if (!met) {
+                return false;
+            }
+        }
+        return true;
+    }
+    static void pick_physical_device() {
+        uint32_t device_count = 0;
+        vkEnumeratePhysicalDevices(renderer_data.instance, &device_count, nullptr);
+        if (device_count == 0) {
+            throw std::runtime_error("no GPUs are installed on this system with Vulkan support!");
+        }
+        std::vector<VkPhysicalDevice> physical_devices(device_count);
+        vkEnumeratePhysicalDevices(renderer_data.instance, &device_count, physical_devices.data());
+        for (auto device : physical_devices) {
+            if (is_device_suitable(device)) {
+                VkPhysicalDeviceProperties properties;
+                vkGetPhysicalDeviceProperties(device, &properties);
+                spdlog::info("chose physical device: {0}", properties.deviceName);
+                uint32_t major, minor, patch;
+                parse_vulkan_version(properties.driverVersion, major, minor, patch);
+                spdlog::info("\tdriver version: {0}.{1}.{2}", major, minor, patch);
+                parse_vulkan_version(properties.apiVersion, major, minor, patch);
+                spdlog::info("\tapi version: {0}.{1}.{2}", major, minor, patch);
+                renderer_data.physical_device = device;
+                return;
+            }
+        }
+        throw std::runtime_error("no suitable GPU was found!");
+    }
     void renderer::init() {
         choose_extensions();
         create_instance();
         create_debug_messenger();
+        pick_physical_device();
     }
     void renderer::shutdown() {
         if (renderer_data.debug_messenger != nullptr) {

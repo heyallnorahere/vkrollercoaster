@@ -23,5 +23,13 @@ namespace vkrollercoaster {
         template<typename T> inline void zero(T& data) {
             zero(&data, sizeof(T));
         }
+        template<typename T> inline T create_mask(T bits) {
+            static_assert(std::is_integral_v<T>, "must pass an integer type!");
+            T mask = (T)0;
+            for (T i = (T)0; i < bits; i++) {
+                mask |= 1 << i;
+            }
+            return mask;
+        }
     }
 }
