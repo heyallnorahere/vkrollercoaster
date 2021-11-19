@@ -14,19 +14,21 @@
    limitations under the License.
 */
 
-#include "pch.h"
-#include "renderer.h"
-#include "window.h"
-using namespace vkrollercoaster;
-int32_t main(int32_t argc, const char** argv) {
-    window::init();
-    auto application_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
-    renderer::init(application_window);
-    while (!application_window->should_close()) {
-        // todo: render
-        window::poll();
-    }
-    renderer::shutdown();
-    window::shutdown();
-    return 0;
+#pragma once
+namespace vkrollercoaster {
+    class window {
+    public:
+        static void init();
+        static void shutdown();
+        static void poll();
+        window(int32_t width, int32_t height, const std::string& title);
+        ~window();
+        window(const window&) = delete;
+        window& operator=(const window&) = delete;
+        bool should_close() const;
+        GLFWwindow* get() const { return this->m_window; }
+        void get_size(int32_t* width, int32_t* height) { glfwGetFramebufferSize(this->m_window, width, height); }
+    private:
+        GLFWwindow* m_window;
+    };
 }

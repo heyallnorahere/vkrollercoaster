@@ -19,11 +19,13 @@
 #include "util.h"
 namespace vkrollercoaster {
     static struct {
+        std::shared_ptr<window> application_window;
         std::vector<const char*> instance_extensions, device_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
         VkPhysicalDevice physical_device = nullptr;
         VkDevice device = nullptr;
+        VkQueue graphics_queue = nullptr;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -247,8 +249,10 @@ namespace vkrollercoaster {
         if (vkCreateDevice(renderer_data.physical_device, &create_info, nullptr, &renderer_data.device) != VK_SUCCESS) {
             throw std::runtime_error("could not create a logical device!");
         }
+        vkGetDeviceQueue(renderer_data.device, *indices.graphics_family, 0, &renderer_data.graphics_queue);
     }
-    void renderer::init() {
+    void renderer::init(std::shared_ptr<window> _window) {
+        renderer_data.application_window = _window;
         choose_extensions();
         create_instance();
         create_debug_messenger();
@@ -266,5 +270,18 @@ namespace vkrollercoaster {
             }
         }
         vkDestroyInstance(renderer_data.instance, nullptr);
+        renderer_data.application_window.reset();
+    }
+    VkInstance renderer::get_instance() {
+        return renderer_data.instance;
+    }
+    VkPhysicalDevice renderer::get_physical_device() {
+        return renderer_data.physical_device;
+    }
+    VkDevice renderer::get_device() {
+        return renderer_data.device;
+    }
+    VkQueue renderer::get_graphics_queue() {
+        return renderer_data.graphics_queue;
     }
 };

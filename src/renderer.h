@@ -15,11 +15,16 @@
 */
 
 #pragma once
+#include "window.h"
 namespace vkrollercoaster {
     class renderer {
     public:
-        static void init();
+        static void init(std::shared_ptr<window> _window);
         static void shutdown();
+        static VkInstance get_instance();
+        static VkPhysicalDevice get_physical_device();
+        static VkDevice get_device();
+        static VkQueue get_graphics_queue();
     private:
         renderer() = default;
     };
