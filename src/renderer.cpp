@@ -20,7 +20,7 @@
 namespace vkrollercoaster {
     static struct {
         std::shared_ptr<window> application_window;
-        std::vector<const char*> instance_extensions, device_extensions, layer_names;
+        std::set<std::string> instance_extensions, device_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
         VkSurfaceKHR window_surface = nullptr;
@@ -61,22 +61,20 @@ namespace vkrollercoaster {
         minor = (version >> minor_offset) & util::create_mask<T>(major_offset - minor_offset);
         patch = version & util::create_mask<T>(minor_offset);
     }
-    static bool check_layer_availability(const std::vector<const char*>& required_layers) {
+    static bool check_layer_availability(const std::string& layer_name) {
         uint32_t layer_count;
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
         std::vector<VkLayerProperties> available_layers(layer_count);
         vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
-        for (const char* layer_name : required_layers) {
-            bool layer_found = false;
-            for (const auto& layer : available_layers) {
-                if (strcmp(layer.layerName, layer_name) == 0) {
-                    layer_found = true;
-                    break;
-                }
+        bool layer_found = false;
+        for (const auto& layer : available_layers) {
+            if (layer_name == layer.layerName) {
+                layer_found = true;
+                break;
             }
-            if (!layer_found) {
-                return false;
-            }
+        }
+        if (!layer_found) {
+            return false;
         }
         return true;
     }
@@ -117,23 +115,58 @@ namespace vkrollercoaster {
         }
         return indices;
     }
+    void renderer::add_layer(const std::string& name) {
+        if (!check_layer_availability(name)) {
+            throw std::runtime_error("attempted to add unsupported layer!");
+        }
+        renderer_data.layer_names.insert(name);
+    }
+    void renderer::add_instance_extension(const std::string& name) {
+        uint32_t extension_count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
+        std::vector<VkExtensionProperties> extensions(extension_count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, extensions.data());
+        bool found = false;
+        for (const auto& extension : extensions) {
+            if (extension.extensionName == name) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw std::runtime_error("the requested instance extension is not available!");
+        }
+        renderer_data.instance_extensions.insert(name);
+    }
+    void renderer::add_device_extension(const std::string& name) {
+        // cant do any checks without a physical device
+        renderer_data.device_extensions.insert(name);
+    }
+    static void choose_device_extensions() {
+        const std::vector<std::string> required_extensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+        for (const auto& extension : required_extensions) {
+            renderer::add_device_extension(extension);
+        }
+    }
     static void choose_extensions() {
+        choose_device_extensions();
         uint32_t glfw_extension_count = 0;
         const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         if (glfw_extension_count > 0) {
             for (uint32_t i = 0; i < glfw_extension_count; i++) {
-                renderer_data.instance_extensions.push_back(glfw_extensions[i]);
+                renderer::add_instance_extension(glfw_extensions[i]);
             }
         }
         if (enable_validation_layers) {
-            const std::vector<const char*> validation_layers = {
+            const std::vector<std::string> validation_layers = {
                 "VK_LAYER_KHRONOS_validation"
             };
-            if (!check_layer_availability(validation_layers)) {
-                throw std::runtime_error("validation layers requested but not supported!");
+            for (const auto& layer_name : validation_layers) {
+                renderer::add_layer(layer_name);
             }
-            renderer_data.instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            renderer_data.layer_names.insert(renderer_data.layer_names.begin(), validation_layers.begin(), validation_layers.end());
+            renderer::add_instance_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
     }
     static void create_instance() {
@@ -147,13 +180,20 @@ namespace vkrollercoaster {
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         create_info.pApplicationInfo = &app_info;
-        if (!renderer_data.instance_extensions.empty()) {
-            create_info.enabledExtensionCount = renderer_data.instance_extensions.size();
-            create_info.ppEnabledExtensionNames = renderer_data.instance_extensions.data();
+        std::vector<const char*> extensions, layer_names;
+        for (const auto& extension : renderer_data.instance_extensions) {
+            extensions.push_back(extension.c_str());
         }
-        if (!renderer_data.layer_names.empty()) {
-            create_info.enabledLayerCount = renderer_data.layer_names.size();
-            create_info.ppEnabledLayerNames = renderer_data.layer_names.data();
+        for (const auto& layer_name : renderer_data.layer_names) {
+            layer_names.push_back(layer_name.c_str());
+        }
+        if (!extensions.empty()) {
+            create_info.enabledExtensionCount = extensions.size();
+            create_info.ppEnabledExtensionNames = extensions.data();
+        }
+        if (!layer_names.empty()) {
+            create_info.enabledLayerCount = layer_names.size();
+            create_info.ppEnabledLayerNames = layer_names.data();
         }
         if (vkCreateInstance(&create_info, nullptr, &renderer_data.instance) != VK_SUCCESS) {
             throw std::runtime_error("could not create a vulkan instance!");
@@ -185,13 +225,25 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create window surface!");
         }
     }
+    static bool check_device_extension_support(VkPhysicalDevice device) {
+        uint32_t extension_count = 0;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, nullptr);
+        std::vector<VkExtensionProperties> extensions(extension_count);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, extensions.data());
+        std::set<std::string> remaining_extensions(renderer_data.device_extensions);
+        for (const auto& extension : extensions) {
+            remaining_extensions.erase(extension.extensionName);
+        }
+        return remaining_extensions.empty();
+    }
     static bool is_device_suitable(VkPhysicalDevice device) {
         VkPhysicalDeviceProperties properties;
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceProperties(device, &properties);
         vkGetPhysicalDeviceFeatures(device, &features);
-        std::vector<bool> requirements_met = {
-            find_queue_families(device).complete()
+        std::set<bool> requirements_met = {
+            find_queue_families(device).complete(),
+            check_device_extension_support(device),
         };
         for (bool met : requirements_met) {
             if (!met) {
@@ -246,13 +298,20 @@ namespace vkrollercoaster {
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceFeatures(renderer_data.physical_device, &features);
         create_info.pEnabledFeatures = &features;
-        if (!renderer_data.layer_names.empty()) {
-            create_info.enabledLayerCount = renderer_data.layer_names.size();
-            create_info.ppEnabledLayerNames = renderer_data.layer_names.data();
+        std::vector<const char*> layer_names, extensions;
+        for (const auto& layer_name : renderer_data.layer_names) {
+            layer_names.push_back(layer_name.c_str());
         }
-        if (!renderer_data.device_extensions.empty()) {
-            create_info.enabledExtensionCount = renderer_data.device_extensions.size();
-            create_info.ppEnabledExtensionNames = renderer_data.device_extensions.data();
+        for (const auto& extension : renderer_data.device_extensions) {
+            extensions.push_back(extension.c_str());
+        }
+        if (!layer_names.empty()) {
+            create_info.enabledLayerCount = layer_names.size();
+            create_info.ppEnabledLayerNames = layer_names.data();
+        }
+        if (!extensions.empty()) {
+            create_info.enabledExtensionCount = extensions.size();
+            create_info.ppEnabledExtensionNames = extensions.data();
         }
         if (vkCreateDevice(renderer_data.physical_device, &create_info, nullptr, &renderer_data.device) != VK_SUCCESS) {
             throw std::runtime_error("could not create a logical device!");

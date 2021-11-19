@@ -19,6 +19,9 @@
 namespace vkrollercoaster {
     class renderer {
     public:
+        static void add_layer(const std::string& name);
+        static void add_instance_extension(const std::string& name);
+        static void add_device_extension(const std::string& name);
         static void init(std::shared_ptr<window> _window);
         static void shutdown();
         static VkInstance get_instance();
