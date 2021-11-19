@@ -25,10 +25,10 @@
 #include <optional>
 #include <memory>
 #include <stdexcept>
+#include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 #include <entt/entt.hpp>
 #include <imgui.h>

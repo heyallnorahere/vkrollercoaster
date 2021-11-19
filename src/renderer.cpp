@@ -23,9 +23,11 @@ namespace vkrollercoaster {
         std::vector<const char*> instance_extensions, device_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
+        VkSurfaceKHR window_surface = nullptr;
         VkPhysicalDevice physical_device = nullptr;
         VkDevice device = nullptr;
         VkQueue graphics_queue = nullptr;
+        VkQueue present_queue = nullptr;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -83,7 +85,7 @@ namespace vkrollercoaster {
         bool complete() const {
             const std::vector<bool> families_found {
                 this->graphics_family.has_value(),
-                //this->present_family.has_value(),
+                this->present_family.has_value(),
             };
             for (bool found : families_found) {
                 if (!found) {
@@ -104,11 +106,11 @@ namespace vkrollercoaster {
             if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphics_family = i;
             }
-            /*VkBool32 present_support = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, nullptr, &present_support);
+            VkBool32 present_support = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer_data.window_surface, &present_support);
             if (present_support) {
                 indices.present_family = i;
-            }*/
+            }
             if (indices.complete()) {
                 break;
             }
@@ -177,6 +179,12 @@ namespace vkrollercoaster {
             spdlog::warn("could not get vkCreateDebugUtilsMessengerEXT function address");
         }
     }
+    static void create_window_surface() {
+        GLFWwindow* glfw_window = renderer_data.application_window->get();
+        if (glfwCreateWindowSurface(renderer_data.instance, glfw_window, nullptr, &renderer_data.window_surface) != VK_SUCCESS) {
+            throw std::runtime_error("could not create window surface!");
+        }
+    }
     static bool is_device_suitable(VkPhysicalDevice device) {
         VkPhysicalDeviceProperties properties;
         VkPhysicalDeviceFeatures features;
@@ -220,7 +228,7 @@ namespace vkrollercoaster {
         auto indices = find_queue_families(renderer_data.physical_device);
         std::vector<VkDeviceQueueCreateInfo> queue_create_info;
         float queue_priority = 1.f;
-        std::set<uint32_t> unique_queue_families = { *indices.graphics_family };
+        std::set<uint32_t> unique_queue_families = { *indices.graphics_family, *indices.present_family };
         for (uint32_t queue_family : unique_queue_families) {
             VkDeviceQueueCreateInfo create_info;
             util::zero(create_info);
@@ -250,12 +258,14 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create a logical device!");
         }
         vkGetDeviceQueue(renderer_data.device, *indices.graphics_family, 0, &renderer_data.graphics_queue);
+        vkGetDeviceQueue(renderer_data.device, *indices.present_family, 0, &renderer_data.present_queue);
     }
     void renderer::init(std::shared_ptr<window> _window) {
         renderer_data.application_window = _window;
         choose_extensions();
         create_instance();
         create_debug_messenger();
+        create_window_surface();
         pick_physical_device();
         create_logical_device();
     }
@@ -266,22 +276,15 @@ namespace vkrollercoaster {
             if (fpDestroyDebugUtilsMessengerEXT != nullptr) {
                 fpDestroyDebugUtilsMessengerEXT(renderer_data.instance, renderer_data.debug_messenger, nullptr);
             } else {
-                spdlog::warn("created debug messenger but could not destroy it - will leak memory");
+                spdlog::warn("created debug messenger but could not destroy it - will result in memory leak");
             }
         }
+        vkDestroySurfaceKHR(renderer_data.instance, renderer_data.window_surface, nullptr);
         vkDestroyInstance(renderer_data.instance, nullptr);
         renderer_data.application_window.reset();
     }
-    VkInstance renderer::get_instance() {
-        return renderer_data.instance;
-    }
-    VkPhysicalDevice renderer::get_physical_device() {
-        return renderer_data.physical_device;
-    }
-    VkDevice renderer::get_device() {
-        return renderer_data.device;
-    }
-    VkQueue renderer::get_graphics_queue() {
-        return renderer_data.graphics_queue;
-    }
+    VkInstance renderer::get_instance() { return renderer_data.instance; }
+    VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }
+    VkDevice renderer::get_device() { return renderer_data.device; }
+    VkQueue renderer::get_graphics_queue() { return renderer_data.graphics_queue; }
 };
