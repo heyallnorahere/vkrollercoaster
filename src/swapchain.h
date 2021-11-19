@@ -14,21 +14,20 @@
    limitations under the License.
 */
 
-#include "pch.h"
-#include "renderer.h"
+#pragma once
 #include "window.h"
-#include "swapchain.h"
-using namespace vkrollercoaster;
-int32_t main(int32_t argc, const char** argv) {
-    window::init();
-    auto application_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
-    renderer::init(application_window);
-    swapchain swap_chain;
-    while (!application_window->should_close()) {
-        // todo: render
-        window::poll();
-    }
-    renderer::shutdown();
-    window::shutdown();
-    return 0;
+namespace vkrollercoaster {
+    class swapchain {
+    public:
+        swapchain();
+        ~swapchain();
+        void reload();
+        swapchain(const swapchain&) = delete;
+        swapchain& operator=(const swapchain&) = delete;
+    private:
+        void create(int32_t width, int32_t height);
+        void destroy();
+        std::shared_ptr<window> m_window;
+        VkSwapchainKHR m_swapchain;
+    };
 }

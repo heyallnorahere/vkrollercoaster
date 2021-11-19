@@ -15,6 +15,7 @@
 */
 
 #include "pch.h"
+#define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
@@ -28,6 +29,8 @@ namespace vkrollercoaster {
         VkDevice device = nullptr;
         VkQueue graphics_queue = nullptr;
         VkQueue present_queue = nullptr;
+        uint32_t ref_count = 0;
+        bool should_shutdown = false;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -47,6 +50,23 @@ namespace vkrollercoaster {
             break;
         };
         return VK_FALSE;
+    }
+    swapchain_support_details query_swapchain_support(VkPhysicalDevice device) {
+        swapchain_support_details details;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderer_data.window_surface, &details.capabilities);
+        uint32_t format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, nullptr);
+        if (format_count > 0) {
+            details.formats.resize(format_count);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, details.formats.data());
+        }
+        uint32_t present_mode_count;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, nullptr);
+        if (format_count > 0) {
+            details.present_modes.resize(present_mode_count);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, details.present_modes.data());
+        }
+        return details;
     }
 #ifdef NDEBUG
     constexpr bool enable_validation_layers = false;
@@ -241,9 +261,16 @@ namespace vkrollercoaster {
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceProperties(device, &properties);
         vkGetPhysicalDeviceFeatures(device, &features);
+        bool extensions_supported = check_device_extension_support(device);
+        bool swapchain_adequate = false;
+        if (extensions_supported) {
+            auto details = query_swapchain_support(device);
+            swapchain_adequate = !(details.formats.empty() || details.present_modes.empty());
+        }
         std::set<bool> requirements_met = {
             find_queue_families(device).complete(),
-            check_device_extension_support(device),
+            extensions_supported,
+            swapchain_adequate,
         };
         for (bool met : requirements_met) {
             if (!met) {
@@ -328,7 +355,7 @@ namespace vkrollercoaster {
         pick_physical_device();
         create_logical_device();
     }
-    void renderer::shutdown() {
+    static void shutdown_renderer() {
         vkDestroyDevice(renderer_data.device, nullptr);
         if (renderer_data.debug_messenger != nullptr) {
             auto fpDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(renderer_data.instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -342,8 +369,26 @@ namespace vkrollercoaster {
         vkDestroyInstance(renderer_data.instance, nullptr);
         renderer_data.application_window.reset();
     }
+    void renderer::shutdown() {
+        renderer_data.should_shutdown = true;
+        if (renderer_data.ref_count == 0) {
+            shutdown_renderer();
+        }
+    }
+    void renderer::add_ref() {
+        renderer_data.ref_count++;
+    }
+    void renderer::remove_ref() {
+        renderer_data.ref_count--;
+        if (renderer_data.ref_count == 0 && renderer_data.should_shutdown) {
+            shutdown_renderer();
+        }
+    }
+    std::shared_ptr<window> renderer::get_window() { return renderer_data.application_window; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }
     VkDevice renderer::get_device() { return renderer_data.device; }
     VkQueue renderer::get_graphics_queue() { return renderer_data.graphics_queue; }
+    VkQueue renderer::get_present_queue() { return renderer_data.present_queue; }
+    VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
 };

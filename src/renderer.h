@@ -17,6 +17,14 @@
 #pragma once
 #include "window.h"
 namespace vkrollercoaster {
+#ifdef EXPOSE_RENDERER_INTERNALS
+    struct swapchain_support_details {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> present_modes;
+    };
+    swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
+#endif
     class renderer {
     public:
         static void add_layer(const std::string& name);
@@ -24,10 +32,15 @@ namespace vkrollercoaster {
         static void add_device_extension(const std::string& name);
         static void init(std::shared_ptr<window> _window);
         static void shutdown();
+        static void add_ref();
+        static void remove_ref();
+        static std::shared_ptr<window> get_window();
         static VkInstance get_instance();
         static VkPhysicalDevice get_physical_device();
         static VkDevice get_device();
         static VkQueue get_graphics_queue();
+        static VkQueue get_present_queue();
+        static VkSurfaceKHR get_window_surface();
     private:
         renderer() = default;
     };

@@ -5,6 +5,7 @@ file(GLOB_RECURSE MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SO
 add_executable(vkrollercoaster ${MANIFEST})
 target_include_directories(vkrollercoaster PRIVATE ${VKROLLERCOASTER_INCLUDES})
 target_link_libraries(vkrollercoaster PRIVATE ${VKROLLERCOASTER_LIBS})
+set_target_properties(vkrollercoaster PROPERTIES CXX_STANDARD 17)
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.16)
     target_precompile_headers(vkrollercoaster PRIVATE pch.h)
 endif()
