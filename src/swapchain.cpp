@@ -69,7 +69,10 @@ namespace vkrollercoaster {
             return extent;
         }
     }
-    static VkSwapchainKHR create_swapchain(uint32_t width, uint32_t height) {
+    void swapchain::create(int32_t width, int32_t height) {
+        this->create_swapchain((uint32_t)width, (uint32_t)height);
+    }
+    void swapchain::create_swapchain(uint32_t width, uint32_t height) {
         auto physical_device = renderer::get_physical_device();
         auto support_details = query_swapchain_support(physical_device);
         auto indices = find_queue_families(physical_device);
@@ -83,7 +86,7 @@ namespace vkrollercoaster {
         create_info.surface = renderer::get_window_surface();
         create_info.minImageCount = image_count;
         auto format = choose_format(support_details.formats);
-        create_info.imageFormat = format.format;
+        this->m_image_format = create_info.imageFormat = format.format;
         create_info.imageColorSpace = format.colorSpace;
         create_info.imageExtent = choose_extent(width, height, support_details.capabilities);
         create_info.imageArrayLayers = 1;
@@ -101,17 +104,47 @@ namespace vkrollercoaster {
         create_info.presentMode = choose_present_mode(support_details.present_modes);
         create_info.clipped = true;
         VkDevice device = renderer::get_device();
-        VkSwapchainKHR swapchain_object;
-        if (vkCreateSwapchainKHR(device, &create_info, nullptr, &swapchain_object) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(device, &create_info, nullptr, &this->m_swapchain) != VK_SUCCESS) {
             throw std::runtime_error("could not create swapchain");
         }
-        return swapchain_object;
     }
-    void swapchain::create(int32_t width, int32_t height) {
-        this->m_swapchain = create_swapchain((uint32_t)width, (uint32_t)height);
+    void swapchain::fetch_images() {
+        VkDevice device = renderer::get_device();
+        uint32_t image_count;
+        vkGetSwapchainImagesKHR(device, this->m_swapchain, &image_count, nullptr);
+        std::vector<VkImage> images(image_count);
+        vkGetSwapchainImagesKHR(device, this->m_swapchain, &image_count, images.data());
+        for (VkImage image : images) {
+            auto& image_desc = this->m_swapchain_images.emplace_back();
+            image_desc.image = image;
+            VkImageViewCreateInfo view_create_info;
+            util::zero(view_create_info);
+            view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            view_create_info.image = image;
+            view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            view_create_info.format = this->m_image_format;
+            view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            view_create_info.subresourceRange.baseMipLevel = 0;
+            view_create_info.subresourceRange.levelCount = 1;
+            view_create_info.subresourceRange.baseArrayLayer = 0;
+            view_create_info.subresourceRange.layerCount = 1;
+            if (vkCreateImageView(device, &view_create_info, nullptr, &image_desc.view) != VK_SUCCESS) {
+                throw std::runtime_error("could not create swapchain image view!");
+            }
+            // todo: create framebuffer
+        }
     }
     void swapchain::destroy() {
         VkDevice device = renderer::get_device();
+        for (const auto& image : this->m_swapchain_images) {
+            // todo: destroy framebuffer
+            vkDestroyImageView(device, image.view, nullptr);
+        }
+        this->m_swapchain_images.clear();
         vkDestroySwapchainKHR(device, this->m_swapchain, nullptr);
     }
 }

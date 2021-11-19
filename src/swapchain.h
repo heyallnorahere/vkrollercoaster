@@ -19,15 +19,25 @@
 namespace vkrollercoaster {
     class swapchain {
     public:
+        struct swapchain_image {
+            VkImage image;
+            VkImageView view;
+            VkFramebuffer framebuffer;
+        };
         swapchain();
         ~swapchain();
-        void reload();
         swapchain(const swapchain&) = delete;
         swapchain& operator=(const swapchain&) = delete;
+        void reload();
+        size_t get_image_count() const { return this->m_swapchain_images.size(); }
     private:
         void create(int32_t width, int32_t height);
+        void create_swapchain(uint32_t width, uint32_t height);
+        void fetch_images();
         void destroy();
         std::shared_ptr<window> m_window;
         VkSwapchainKHR m_swapchain;
+        VkFormat m_image_format;
+        std::vector<swapchain_image> m_swapchain_images;
     };
 }
