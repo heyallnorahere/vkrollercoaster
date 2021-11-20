@@ -30,20 +30,30 @@ namespace vkrollercoaster {
     };
     struct vertex_attribute {
         vertex_attribute_type type;
-        size_t stride, offset;
+        size_t offset;
+    };
+    struct vertex_input_data {
+        size_t stride;
+        std::vector<vertex_attribute> attributes;
     };
     class pipeline {
     public:
-        pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const std::vector<vertex_attribute>& attributes);
+        pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const vertex_input_data& vertex_inputs);
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
+        VkViewport get_viewport() { return this->m_viewport; }
+        VkRect2D get_scissor() { return this->m_scissor; }
     private:
         void create();
         void destroy();
-        std::vector<vertex_attribute> m_vertex_attributes;
+        vertex_input_data m_vertex_input_data;
         std::shared_ptr<swapchain> m_swapchain;
         std::shared_ptr<shader> m_shader;
+        VkViewport m_viewport;
+        VkRect2D m_scissor;
+        VkPipelineLayout m_layout;
+        VkPipeline m_pipeline;
         friend class swapchain;
         friend class shader;
     };

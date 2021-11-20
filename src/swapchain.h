@@ -33,6 +33,7 @@ namespace vkrollercoaster {
         VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
         const std::vector<swapchain_image>& get_swapchain_images() { return this->m_swapchain_images; }
         VkFormat get_image_format() { return this->m_image_format; }
+        VkExtent2D get_extent() { return this->m_extent; }
         VkRenderPass get_render_pass() { return this->m_render_pass; }
     private:
         void create(int32_t width, int32_t height);

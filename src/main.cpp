@@ -19,13 +19,23 @@
 #include "window.h"
 #include "swapchain.h"
 #include "shader.h"
+#include "pipeline.h"
 using namespace vkrollercoaster;
+struct vertex {
+    glm::vec3 position;
+};
 int32_t main(int32_t argc, const char** argv) {
     window::init();
     auto application_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
     renderer::init(application_window);
     auto swap_chain = std::make_shared<swapchain>();
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
+    vertex_input_data vertex_inputs;
+    vertex_inputs.stride = sizeof(vertex);
+    vertex_inputs.attributes = {
+        { vertex_attribute_type::VEC3, offsetof(vertex, position) }
+    };
+    auto testpipeline = std::make_shared<pipeline>(swap_chain, testshader, vertex_inputs);
     while (!application_window->should_close()) {
         // todo: render
         window::poll();
