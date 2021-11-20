@@ -52,6 +52,7 @@ namespace vkrollercoaster {
         shader& operator=(const shader&) = delete;
         void reload();
         shader_reflection_data& get_reflection_data() { return this->m_reflection_data; }
+        const std::vector<VkPipelineShaderStageCreateInfo>& get_pipeline_info() { return this->m_shader_data; }
     private:
         void create();
         void compile(std::map<shader_stage, std::vector<uint32_t>>& spirv);

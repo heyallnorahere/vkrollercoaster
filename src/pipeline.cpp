@@ -244,11 +244,32 @@ namespace vkrollercoaster {
         if (vkCreatePipelineLayout(device, &layout_create_info, nullptr, &this->m_layout) != VK_SUCCESS) {
             throw std::runtime_error("could not create pipeline layout!");
         }
-        // todo: create pipeline
+        const auto& stages = this->m_shader->get_pipeline_info();
+        VkGraphicsPipelineCreateInfo create_info;
+        util::zero(create_info);
+        create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        create_info.stageCount = stages.size();
+        create_info.pStages = stages.data();
+        create_info.pVertexInputState = &vertex_input_info;
+        create_info.pInputAssemblyState = &input_assembly;
+        create_info.pViewportState = &viewport_state;
+        create_info.pRasterizationState = &rasterizer;
+        create_info.pMultisampleState = &multisampling;
+        create_info.pDepthStencilState = nullptr;
+        create_info.pColorBlendState = &color_blending;
+        create_info.pDynamicState = nullptr;
+        create_info.layout = this->m_layout;
+        create_info.renderPass = this->m_swapchain->get_render_pass();
+        create_info.subpass = 0;
+        create_info.basePipelineHandle = nullptr;
+        create_info.basePipelineIndex = -1;
+        if (vkCreateGraphicsPipelines(device, nullptr, 1, &create_info, nullptr, &this->m_pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("could not create pipeline!");
+        }
     }
     void pipeline::destroy_pipeline() {
         VkDevice device = renderer::get_device();
-        // todo: destroy pipeline
+        vkDestroyPipeline(device, this->m_pipeline, nullptr);
         vkDestroyPipelineLayout(device, this->m_layout, nullptr);
     }
     void pipeline::destroy_descriptor_sets() {

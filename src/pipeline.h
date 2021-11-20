@@ -46,6 +46,8 @@ namespace vkrollercoaster {
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
+        VkPipeline get() { return this->m_pipeline; }
+        VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }
         VkRect2D get_scissor() { return this->m_scissor; }
         const std::map<uint32_t, descriptor_set>& get_descriptor_sets() { return this->m_descriptor_sets; }
