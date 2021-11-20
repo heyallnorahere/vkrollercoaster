@@ -32,14 +32,23 @@ namespace vkrollercoaster {
         sampledimage,
         pushconstantbuffer
     };
+    struct shader_field {
+        size_t offset, type;
+    };
+    struct shader_type {
+        std::string name;
+        size_t size, array_stride, array_size;
+        std::map<std::string, shader_field> fields;
+    };
     struct shader_resource_data {
         std::string name;
         shader_resource_type resource_type;
         shader_stage stage;
-        // todo: type
+        size_t type;
     };
     struct shader_reflection_data {
         std::map<uint32_t, std::map<uint32_t, shader_resource_data>> resources;
+        std::vector<shader_type> types;
     };
     class pipeline;
     class shader {

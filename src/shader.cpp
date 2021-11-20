@@ -167,6 +167,60 @@ namespace vkrollercoaster {
             spirv[stage] = std::vector<uint32_t>(result.cbegin(), result.cend());
         }
     }
+    static std::map<spirv_cross::TypeID, size_t> found_types;
+    static size_t get_type_size(const spirv_cross::SPIRType& type, const spirv_cross::Compiler& compiler) {
+        using BaseType = spirv_cross::SPIRType::BaseType;
+        switch (type.basetype) {
+        case BaseType::Boolean:
+        case BaseType::Char:
+            return 1;
+        case BaseType::Float:
+        case BaseType::Int:
+        case BaseType::UInt:
+        case BaseType::SampledImage:
+        case BaseType::Sampler:
+            return 4;
+        case BaseType::Int64:
+        case BaseType::Double:
+        case BaseType::UInt64:
+            return 8;
+        case BaseType::Struct:
+            return compiler.get_declared_struct_size(type);
+        default:
+            throw std::runtime_error("invalid base type");
+        }
+        return 0;
+    }
+    static size_t get_type(const spirv_cross::Compiler& compiler, spirv_cross::TypeID id, spirv_cross::TypeID parent, uint32_t member_index, std::vector<shader_type>& types) {
+        if (found_types.find(id) != found_types.end()) {
+            return found_types[id];
+        }
+        size_t type_index = types.size();
+        found_types[id] = type_index;
+        auto& type = types.emplace_back();
+        const auto& spirv_type = compiler.get_type(id);
+        type.name = compiler.get_name(id);
+        type.size = get_type_size(spirv_type, compiler) * spirv_type.columns;
+        if (spirv_type.array.empty()) {
+            type.array_size = 1;
+            type.array_stride = 0;
+        } else {
+            type.array_size = spirv_type.array[0];
+            if (parent) {
+                const auto& parent_type = compiler.get_type(parent);
+                type.array_stride = compiler.type_struct_member_array_stride(parent_type, member_index);
+            } else {
+                type.array_stride = type.size;
+            }
+        }
+        for (uint32_t i = 0; i < spirv_type.member_types.size(); i++) {
+            std::string name = compiler.get_member_name(spirv_type.self, i);
+            auto& field = type.fields[name];
+            field.offset = compiler.type_struct_member_offset(spirv_type, i);
+            field.type = get_type(compiler, spirv_type.member_types[i], id, i, types);
+        }
+        return type_index;
+    }
     void shader::reflect(const std::vector<uint32_t>& spirv, shader_stage stage) {
         spirv_cross::Compiler compiler(std::move(spirv));
         auto resources = compiler.get_shader_resources();
@@ -177,6 +231,7 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::uniformbuffer;
             resource_desc.stage = stage;
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
         for (const auto& resource : resources.storage_buffers) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -185,6 +240,7 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::storagebuffer;
             resource_desc.stage = stage;
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
         for (const auto& resource : resources.sampled_images) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -193,6 +249,7 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::sampledimage;
             resource_desc.stage = stage;
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
         for (const auto& resource : resources.push_constant_buffers) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -201,7 +258,9 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::pushconstantbuffer;
             resource_desc.stage = stage;
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
+        found_types.clear();
     }
     void shader::destroy() {
         VkDevice device = renderer::get_device();

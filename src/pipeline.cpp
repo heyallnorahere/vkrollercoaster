@@ -49,7 +49,8 @@ namespace vkrollercoaster {
                 util::zero(set_binding);
                 set_binding.binding = binding;
                 set_binding.stageFlags = shader::get_stage_flags(data.stage);
-                set_binding.descriptorCount = 1; // todo: take reflection data
+                const auto& resource_type = reflection_data.types[data.type];
+                set_binding.descriptorCount = resource_type.array_size;
                 bool push_constant = false;
                 switch (data.resource_type) {
                 case shader_resource_type::uniformbuffer:
@@ -71,9 +72,14 @@ namespace vkrollercoaster {
                         VkPushConstantRange range;
                         util::zero(range);
                         range.stageFlags = set_binding.stageFlags;
-                        range.offset = 0;
-                        range.size = 0; // todo: take reflection data
-                        //this->m_push_constant_ranges.push_back(range);
+                        if (!this->m_push_constant_ranges.empty()) {
+                            const auto& previous = *this->m_push_constant_ranges.rbegin();
+                            range.offset = previous.offset + previous.size;
+                        } else {
+                            range.offset = 0;
+                        }
+                        range.size = resource_type.size;
+                        this->m_push_constant_ranges.push_back(range);
                     }
                     break;
                 default:
