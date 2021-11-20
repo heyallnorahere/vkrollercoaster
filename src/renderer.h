@@ -57,6 +57,7 @@ namespace vkrollercoaster {
         static VkQueue get_graphics_queue();
         static VkQueue get_present_queue();
         static VkSurfaceKHR get_window_surface();
+        static VkDescriptorPool get_descriptor_pool();
     private:
         renderer() = default;
     };

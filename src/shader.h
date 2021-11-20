@@ -26,6 +26,21 @@ namespace vkrollercoaster {
         glsl,
         hlsl
     };
+    enum class shader_resource_type {
+        uniformbuffer,
+        storagebuffer,
+        sampledimage,
+        pushconstantbuffer
+    };
+    struct shader_resource_data {
+        std::string name;
+        shader_resource_type resource_type;
+        shader_stage stage;
+        // todo: type
+    };
+    struct shader_reflection_data {
+        std::map<uint32_t, std::map<uint32_t, shader_resource_data>> resources;
+    };
     class pipeline;
     class shader {
     public:
@@ -36,13 +51,16 @@ namespace vkrollercoaster {
         shader(const shader&) = delete;
         shader& operator=(const shader&) = delete;
         void reload();
+        shader_reflection_data& get_reflection_data() { return this->m_reflection_data; }
     private:
         void create();
         void compile(std::map<shader_stage, std::vector<uint32_t>>& spirv);
+        void reflect(const std::vector<uint32_t>& spirv, shader_stage stage);
         void destroy();
         std::vector<VkPipelineShaderStageCreateInfo> m_shader_data;
         shader_language m_language;
         fs::path m_path;
+        shader_reflection_data m_reflection_data;
         std::unordered_set<pipeline*> m_dependents;
         friend class pipeline;
     };

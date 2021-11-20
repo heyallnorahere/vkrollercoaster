@@ -38,15 +38,22 @@ namespace vkrollercoaster {
     };
     class pipeline {
     public:
+        struct descriptor_set {
+            VkDescriptorSetLayout layout;
+            std::vector<VkDescriptorSet> sets;
+        };
         pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const vertex_input_data& vertex_inputs);
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
         VkViewport get_viewport() { return this->m_viewport; }
         VkRect2D get_scissor() { return this->m_scissor; }
+        const std::map<uint32_t, descriptor_set>& get_descriptor_sets() { return this->m_descriptor_sets; }
     private:
-        void create();
-        void destroy();
+        void create_descriptor_sets();
+        void create_pipeline();
+        void destroy_pipeline();
+        void destroy_descriptor_sets();
         vertex_input_data m_vertex_input_data;
         std::shared_ptr<swapchain> m_swapchain;
         std::shared_ptr<shader> m_shader;
@@ -54,6 +61,8 @@ namespace vkrollercoaster {
         VkRect2D m_scissor;
         VkPipelineLayout m_layout;
         VkPipeline m_pipeline;
+        std::map<uint32_t, descriptor_set> m_descriptor_sets;
+        std::vector<VkPushConstantRange> m_push_constant_ranges;
         friend class swapchain;
         friend class shader;
     };

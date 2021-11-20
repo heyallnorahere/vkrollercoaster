@@ -20,6 +20,7 @@
 #include "util.h"
 #include "pipeline.h"
 #include <shaderc/shaderc.hpp>
+#include <spirv_cross.hpp>
 namespace vkrollercoaster {
     VkShaderStageFlagBits shader::get_stage_flags(shader_stage stage) {
         switch (stage) {
@@ -59,12 +60,14 @@ namespace vkrollercoaster {
     }
     void shader::reload() {
         for (auto _pipeline : this->m_dependents) {
-            _pipeline->destroy();
+            _pipeline->destroy_pipeline();
+            _pipeline->destroy_descriptor_sets();
         }
         this->destroy();
         this->create();
         for (auto _pipeline : this->m_dependents) {
-            _pipeline->create();
+            _pipeline->create_descriptor_sets();
+            _pipeline->create_pipeline();
         }
     }
     void shader::create() {
@@ -72,7 +75,7 @@ namespace vkrollercoaster {
         this->compile(spirv);
         VkDevice device = renderer::get_device();
         for (const auto& [stage, data] : spirv) {
-            // todo: reflect
+            this->reflect(data, stage);
             VkShaderModuleCreateInfo module_create_info;
             util::zero(module_create_info);
             module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -162,6 +165,42 @@ namespace vkrollercoaster {
                 throw std::runtime_error("could not compile shader: " + result.GetErrorMessage());
             }
             spirv[stage] = std::vector<uint32_t>(result.cbegin(), result.cend());
+        }
+    }
+    void shader::reflect(const std::vector<uint32_t>& spirv, shader_stage stage) {
+        spirv_cross::Compiler compiler(std::move(spirv));
+        auto resources = compiler.get_shader_resources();
+        for (const auto& resource : resources.uniform_buffers) {
+            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            resource_desc.name = resource.name;
+            resource_desc.resource_type = shader_resource_type::uniformbuffer;
+            resource_desc.stage = stage;
+        }
+        for (const auto& resource : resources.storage_buffers) {
+            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            resource_desc.name = resource.name;
+            resource_desc.resource_type = shader_resource_type::storagebuffer;
+            resource_desc.stage = stage;
+        }
+        for (const auto& resource : resources.sampled_images) {
+            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            resource_desc.name = resource.name;
+            resource_desc.resource_type = shader_resource_type::sampledimage;
+            resource_desc.stage = stage;
+        }
+        for (const auto& resource : resources.push_constant_buffers) {
+            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            resource_desc.name = resource.name;
+            resource_desc.resource_type = shader_resource_type::pushconstantbuffer;
+            resource_desc.stage = stage;
         }
     }
     void shader::destroy() {

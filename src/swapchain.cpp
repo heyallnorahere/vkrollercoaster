@@ -40,12 +40,12 @@ namespace vkrollercoaster {
             glfwWaitEvents();
         }
         for (auto _pipeline : this->m_dependents) {
-            _pipeline->destroy();
+            _pipeline->destroy_pipeline();
         }
         this->destroy();
         this->create(width, height);
         for (auto _pipeline : this->m_dependents) {
-            _pipeline->create();
+            _pipeline->create_pipeline();
         }
     }
     static VkSurfaceFormatKHR choose_format(const std::vector<VkSurfaceFormatKHR>& formats) {

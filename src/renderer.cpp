@@ -29,6 +29,7 @@ namespace vkrollercoaster {
         VkDevice device = nullptr;
         VkQueue graphics_queue = nullptr;
         VkQueue present_queue = nullptr;
+        VkDescriptorPool descriptor_pool = nullptr;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
     } renderer_data;
@@ -331,6 +332,31 @@ namespace vkrollercoaster {
         vkGetDeviceQueue(renderer_data.device, *indices.graphics_family, 0, &renderer_data.graphics_queue);
         vkGetDeviceQueue(renderer_data.device, *indices.present_family, 0, &renderer_data.present_queue);
     }
+    static void create_descriptor_pool() {
+        std::vector<VkDescriptorPoolSize> pool_sizes = {
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+        };
+        VkDescriptorPoolCreateInfo create_info;
+        util::zero(create_info);
+        create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        create_info.poolSizeCount = pool_sizes.size();
+        create_info.pPoolSizes = pool_sizes.data();
+        create_info.maxSets = 1000 * pool_sizes.size();
+        create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        if (vkCreateDescriptorPool(renderer_data.device, &create_info, nullptr, &renderer_data.descriptor_pool) != VK_SUCCESS) {
+            throw std::runtime_error("could not create descriptor pool!");
+        }
+    }
     void renderer::init(std::shared_ptr<window> _window) {
         renderer_data.application_window = _window;
         choose_extensions();
@@ -339,8 +365,10 @@ namespace vkrollercoaster {
         create_window_surface();
         pick_physical_device();
         create_logical_device();
+        create_descriptor_pool();
     }
     static void shutdown_renderer() {
+        vkDestroyDescriptorPool(renderer_data.device, renderer_data.descriptor_pool, nullptr);
         vkDestroyDevice(renderer_data.device, nullptr);
         if (renderer_data.debug_messenger != nullptr) {
             auto fpDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(renderer_data.instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -376,4 +404,5 @@ namespace vkrollercoaster {
     VkQueue renderer::get_graphics_queue() { return renderer_data.graphics_queue; }
     VkQueue renderer::get_present_queue() { return renderer_data.present_queue; }
     VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
+    VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
 };

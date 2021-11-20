@@ -24,17 +24,95 @@ namespace vkrollercoaster {
         this->m_shader = _shader;
         this->m_vertex_input_data = vertex_inputs;
         renderer::add_ref();
-        this->create();
+        this->create_descriptor_sets();
+        this->create_pipeline();
         this->m_shader->m_dependents.insert(this);
         this->m_swapchain->m_dependents.insert(this);
     }
     pipeline::~pipeline() {
         this->m_swapchain->m_dependents.erase(this);
         this->m_shader->m_dependents.erase(this);
-        this->destroy();
+        this->destroy_pipeline();
+        this->destroy_descriptor_sets();
         renderer::remove_ref();
     }
-    void pipeline::create() {
+    void pipeline::create_descriptor_sets() {
+        this->m_push_constant_ranges.clear();
+        const auto& reflection_data = this->m_shader->get_reflection_data();
+        if (reflection_data.resources.empty()) {
+            return;
+        }
+        std::map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> bindings;
+        for (const auto& [set, resources] : reflection_data.resources) {
+            for (const auto& [binding, data] : resources) {
+                VkDescriptorSetLayoutBinding set_binding;
+                util::zero(set_binding);
+                set_binding.binding = binding;
+                set_binding.stageFlags = shader::get_stage_flags(data.stage);
+                set_binding.descriptorCount = 1; // todo: take reflection data
+                bool push_constant = false;
+                switch (data.resource_type) {
+                case shader_resource_type::uniformbuffer:
+                    set_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    break;
+                case shader_resource_type::storagebuffer:
+                    set_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    break;
+                case shader_resource_type::sampledimage:
+                    if (set_binding.descriptorCount > 1) {
+                        set_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    } else {
+                        set_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    }
+                    break;
+                case shader_resource_type::pushconstantbuffer:
+                    push_constant = true;
+                    {
+                        VkPushConstantRange range;
+                        util::zero(range);
+                        range.stageFlags = set_binding.stageFlags;
+                        range.offset = 0;
+                        range.size = 0; // todo: take reflection data
+                        //this->m_push_constant_ranges.push_back(range);
+                    }
+                    break;
+                default:
+                    throw std::runtime_error("invalid resource type!");
+                }
+                if (!push_constant) {
+                    bindings[set].push_back(set_binding);
+                }
+            }
+        }
+        size_t swapchain_image_count = this->m_swapchain->get_swapchain_images().size();
+        VkDevice device = renderer::get_device();
+        VkDescriptorPool descriptor_pool = renderer::get_descriptor_pool();
+        for (const auto& [set, set_bindings] : bindings) {
+            VkDescriptorSetLayoutCreateInfo create_info;
+            util::zero(create_info);
+            create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            create_info.bindingCount = set_bindings.size();
+            create_info.pBindings = set_bindings.data();
+            VkDescriptorSetLayout layout;
+            if (vkCreateDescriptorSetLayout(device, &create_info, nullptr, &layout) != VK_SUCCESS) {
+                throw std::runtime_error("could not create descriptor set layout!");
+            }
+            auto& set_data = this->m_descriptor_sets[set];
+            set_data.layout = layout;
+            set_data.sets.resize(swapchain_image_count);
+            std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, layout);
+            VkDescriptorSetAllocateInfo alloc_info;
+            util::zero(alloc_info);
+            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            alloc_info.descriptorPool = descriptor_pool;
+            alloc_info.descriptorSetCount = layouts.size();
+            alloc_info.pSetLayouts = layouts.data();
+            if (vkAllocateDescriptorSets(device, &alloc_info, set_data.sets.data()) != VK_SUCCESS) {
+                throw std::runtime_error("could not allocate descriptor sets!");
+            }
+        }
+    }
+    void pipeline::create_pipeline() {
         VkDevice device = renderer::get_device();
         VkExtent2D swapchain_extent = this->m_swapchain->get_extent();
         VkPipelineVertexInputStateCreateInfo vertex_input_info;
@@ -151,15 +229,34 @@ namespace vkrollercoaster {
         VkPipelineLayoutCreateInfo layout_create_info;
         util::zero(layout_create_info);
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // todo: descriptor sets and whatnot
+        std::vector<VkDescriptorSetLayout> set_layouts;
+        for (const auto& [_, set] : this->m_descriptor_sets) {
+            set_layouts.push_back(set.layout);
+        }
+        if (!set_layouts.empty()) {
+            layout_create_info.setLayoutCount = set_layouts.size();
+            layout_create_info.pSetLayouts = set_layouts.data();
+        }
+        if (!this->m_push_constant_ranges.empty()) {
+            layout_create_info.pushConstantRangeCount = this->m_push_constant_ranges.size();
+            layout_create_info.pPushConstantRanges = this->m_push_constant_ranges.data();
+        }
         if (vkCreatePipelineLayout(device, &layout_create_info, nullptr, &this->m_layout) != VK_SUCCESS) {
             throw std::runtime_error("could not create pipeline layout!");
         }
         // todo: create pipeline
     }
-    void pipeline::destroy() {
+    void pipeline::destroy_pipeline() {
         VkDevice device = renderer::get_device();
         // todo: destroy pipeline
         vkDestroyPipelineLayout(device, this->m_layout, nullptr);
+    }
+    void pipeline::destroy_descriptor_sets() {
+        VkDevice device = renderer::get_device();
+        VkDescriptorPool descriptor_pool = renderer::get_descriptor_pool();
+        for (const auto& [_, set] : this->m_descriptor_sets) {
+            vkFreeDescriptorSets(device, descriptor_pool, set.sets.size(), set.sets.data());
+            vkDestroyDescriptorSetLayout(device, set.layout, nullptr);
+        }
     }
 }
