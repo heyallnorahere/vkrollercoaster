@@ -26,6 +26,7 @@ namespace vkrollercoaster {
         glsl,
         hlsl
     };
+    class pipeline;
     class shader {
     public:
         static VkShaderStageFlagBits get_stage_flags(shader_stage stage);
@@ -42,5 +43,7 @@ namespace vkrollercoaster {
         std::vector<VkPipelineShaderStageCreateInfo> m_shader_data;
         shader_language m_language;
         fs::path m_path;
+        std::unordered_set<pipeline*> m_dependents;
+        friend class pipeline;
     };
 }

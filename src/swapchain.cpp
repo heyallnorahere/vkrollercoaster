@@ -19,6 +19,7 @@
 #define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
+#include "pipeline.h"
 namespace vkrollercoaster {
     swapchain::swapchain() {
         renderer::add_ref();
@@ -38,8 +39,14 @@ namespace vkrollercoaster {
             this->m_window->get_size(&width, &height);
             glfwWaitEvents();
         }
+        for (auto _pipeline : this->m_dependents) {
+            _pipeline->destroy();
+        }
         this->destroy();
         this->create(width, height);
+        for (auto _pipeline : this->m_dependents) {
+            _pipeline->create();
+        }
     }
     static VkSurfaceFormatKHR choose_format(const std::vector<VkSurfaceFormatKHR>& formats) {
         constexpr VkFormat preferred_format = VK_FORMAT_R8G8B8A8_SRGB;

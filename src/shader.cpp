@@ -18,6 +18,7 @@
 #include "shader.h"
 #include "renderer.h"
 #include "util.h"
+#include "pipeline.h"
 #include <shaderc/shaderc.hpp>
 namespace vkrollercoaster {
     VkShaderStageFlagBits shader::get_stage_flags(shader_stage stage) {
@@ -57,8 +58,14 @@ namespace vkrollercoaster {
         renderer::remove_ref();
     }
     void shader::reload() {
+        for (auto _pipeline : this->m_dependents) {
+            _pipeline->destroy();
+        }
         this->destroy();
         this->create();
+        for (auto _pipeline : this->m_dependents) {
+            _pipeline->create();
+        }
     }
     void shader::create() {
         std::map<shader_stage, std::vector<uint32_t>> spirv;
