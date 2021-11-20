@@ -18,9 +18,11 @@
 #include <cstdint>
 #include <stddef.h>
 #include <vector>
+#include <map>
 #include <set>
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <utility>
 #include <optional>
 #include <memory>
@@ -36,3 +38,12 @@
 #include <entt/entt.hpp>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#error please compile using c++17
+#endif

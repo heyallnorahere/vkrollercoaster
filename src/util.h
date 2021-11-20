@@ -31,5 +31,18 @@ namespace vkrollercoaster {
             }
             return mask;
         }
+        inline std::string read_file(const fs::path& path) {
+            std::ifstream file(path);
+            if (!file.is_open()) {
+                throw std::runtime_error("could not open file: " + path.string());
+            }
+            std::stringstream contents;
+            std::string line;
+            while (std::getline(file, line)) {
+                contents << line << '\n';
+            }
+            file.close();
+            return contents.str();
+        }
     }
 }
