@@ -71,6 +71,8 @@ namespace vkrollercoaster {
     }
     void swapchain::create(int32_t width, int32_t height) {
         this->create_swapchain((uint32_t)width, (uint32_t)height);
+        this->create_render_pass();
+        this->fetch_images();
     }
     void swapchain::create_swapchain(uint32_t width, uint32_t height) {
         auto physical_device = renderer::get_physical_device();
@@ -88,7 +90,7 @@ namespace vkrollercoaster {
         auto format = choose_format(support_details.formats);
         this->m_image_format = create_info.imageFormat = format.format;
         create_info.imageColorSpace = format.colorSpace;
-        create_info.imageExtent = choose_extent(width, height, support_details.capabilities);
+        this->m_extent = create_info.imageExtent = choose_extent(width, height, support_details.capabilities);
         create_info.imageArrayLayers = 1;
         create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         std::vector<uint32_t> queue_family_index_array = { *indices.graphics_family, *indices.present_family };
@@ -106,6 +108,40 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         if (vkCreateSwapchainKHR(device, &create_info, nullptr, &this->m_swapchain) != VK_SUCCESS) {
             throw std::runtime_error("could not create swapchain");
+        }
+    }
+    void swapchain::create_render_pass() {
+        VkAttachmentDescription color_attachment;
+        util::zero(color_attachment);
+        color_attachment.format = this->m_image_format;
+        color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        // for use later with depth buffering
+        std::vector<VkAttachmentDescription> attachments = { color_attachment };
+        VkAttachmentReference color_attachment_ref;
+        util::zero(color_attachment_ref);
+        color_attachment_ref.attachment = 0;
+        color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkSubpassDescription subpass;
+        util::zero(subpass);
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_attachment_ref;
+        VkRenderPassCreateInfo create_info;
+        util::zero(create_info);
+        create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        create_info.attachmentCount = attachments.size();
+        create_info.pAttachments = attachments.data();
+        create_info.subpassCount = 1;
+        create_info.pSubpasses = &subpass;
+        VkDevice device = renderer::get_device();
+        if (vkCreateRenderPass(device, &create_info, nullptr, &this->m_render_pass) != VK_SUCCESS) {
+            throw std::runtime_error("could not create render pass for swapchain!");
         }
     }
     void swapchain::fetch_images() {
@@ -135,16 +171,29 @@ namespace vkrollercoaster {
             if (vkCreateImageView(device, &view_create_info, nullptr, &image_desc.view) != VK_SUCCESS) {
                 throw std::runtime_error("could not create swapchain image view!");
             }
-            // todo: create framebuffer
+            std::vector<VkImageView> attachments = { image_desc.view };
+            VkFramebufferCreateInfo fb_create_info;
+            util::zero(fb_create_info);
+            fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            fb_create_info.renderPass = this->m_render_pass;
+            fb_create_info.attachmentCount = attachments.size();
+            fb_create_info.pAttachments = attachments.data();
+            fb_create_info.width = this->m_extent.width;
+            fb_create_info.height = this->m_extent.height;
+            fb_create_info.layers = 1;
+            if (vkCreateFramebuffer(device, &fb_create_info, nullptr, &image_desc.framebuffer) != VK_SUCCESS) {
+                throw std::runtime_error("could not create swapchain framebuffer!");
+            }
         }
     }
     void swapchain::destroy() {
         VkDevice device = renderer::get_device();
         for (const auto& image : this->m_swapchain_images) {
-            // todo: destroy framebuffer
+            vkDestroyFramebuffer(device, image.framebuffer, nullptr);
             vkDestroyImageView(device, image.view, nullptr);
         }
         this->m_swapchain_images.clear();
+        vkDestroyRenderPass(device, this->m_render_pass, nullptr);
         vkDestroySwapchainKHR(device, this->m_swapchain, nullptr);
     }
 }

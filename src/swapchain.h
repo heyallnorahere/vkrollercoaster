@@ -29,15 +29,21 @@ namespace vkrollercoaster {
         swapchain(const swapchain&) = delete;
         swapchain& operator=(const swapchain&) = delete;
         void reload();
-        size_t get_image_count() const { return this->m_swapchain_images.size(); }
+        VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
+        const std::vector<swapchain_image>& get_swapchain_images() { return this->m_swapchain_images; }
+        VkFormat get_image_format() { return this->m_image_format; }
+        VkRenderPass get_render_pass() { return this->m_render_pass; }
     private:
         void create(int32_t width, int32_t height);
         void create_swapchain(uint32_t width, uint32_t height);
+        void create_render_pass();
         void fetch_images();
         void destroy();
         std::shared_ptr<window> m_window;
         VkSwapchainKHR m_swapchain;
         VkFormat m_image_format;
+        VkExtent2D m_extent;
+        VkRenderPass m_render_pass;
         std::vector<swapchain_image> m_swapchain_images;
     };
 }

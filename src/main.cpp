@@ -23,7 +23,7 @@ int32_t main(int32_t argc, const char** argv) {
     window::init();
     auto application_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
     renderer::init(application_window);
-    swapchain swap_chain;
+    auto swap_chain = std::make_shared<swapchain>();
     while (!application_window->should_close()) {
         // todo: render
         window::poll();
