@@ -20,24 +20,48 @@
 #include "swapchain.h"
 #include "shader.h"
 #include "pipeline.h"
+#include "command_buffer.h"
 using namespace vkrollercoaster;
 struct vertex {
     glm::vec3 position;
 };
+static struct {
+    std::shared_ptr<window> app_window;
+    std::shared_ptr<swapchain> swap_chain;
+    std::shared_ptr<pipeline> test_pipeline;
+    std::vector<std::shared_ptr<command_buffer>> command_buffers;
+} app_data;
+static void build_command_buffers() {
+    app_data.command_buffers.clear();
+    size_t image_count = app_data.swap_chain->get_swapchain_images().size();
+    for (size_t i = 0; i < image_count; i++) {
+        auto cmdbuffer = renderer::create_render_command_buffer();
+        cmdbuffer->begin();
+        cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(1.f, 0.f, 0.f, 1.f), i);
+        cmdbuffer->end_render_pass();
+        cmdbuffer->end();
+        app_data.command_buffers.push_back(cmdbuffer);
+    }
+}
 int32_t main(int32_t argc, const char** argv) {
     window::init();
-    auto application_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
-    renderer::init(application_window);
-    auto swap_chain = std::make_shared<swapchain>();
+    app_data.app_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
+    renderer::init(app_data.app_window);
+    app_data.swap_chain = std::make_shared<swapchain>();
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
     vertex_input_data vertex_inputs;
     vertex_inputs.stride = sizeof(vertex);
     vertex_inputs.attributes = {
         { vertex_attribute_type::VEC3, offsetof(vertex, position) }
     };
-    auto testpipeline = std::make_shared<pipeline>(swap_chain, testshader, vertex_inputs);
-    while (!application_window->should_close()) {
-        // todo: render
+    app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, vertex_inputs);
+    build_command_buffers();
+    while (!app_data.app_window->should_close()) {
+        renderer::new_frame();
+        app_data.swap_chain->prepare_frame();
+        size_t current_image = app_data.swap_chain->get_current_image();
+        app_data.command_buffers[current_image]->submit();
+        app_data.swap_chain->present();
         window::poll();
     }
     renderer::shutdown();

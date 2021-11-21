@@ -30,6 +30,9 @@ namespace vkrollercoaster {
         VkQueue graphics_queue = nullptr;
         VkQueue present_queue = nullptr;
         VkDescriptorPool descriptor_pool = nullptr;
+        VkCommandPool graphics_command_pool = nullptr;
+        std::array<sync_objects, renderer::max_frame_count> frame_sync_objects;
+        size_t current_frame = 0;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
     } renderer_data;
@@ -51,23 +54,6 @@ namespace vkrollercoaster {
             break;
         };
         return VK_FALSE;
-    }
-    swapchain_support_details query_swapchain_support(VkPhysicalDevice device) {
-        swapchain_support_details details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderer_data.window_surface, &details.capabilities);
-        uint32_t format_count;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, nullptr);
-        if (format_count > 0) {
-            details.formats.resize(format_count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, details.formats.data());
-        }
-        uint32_t present_mode_count;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, nullptr);
-        if (format_count > 0) {
-            details.present_modes.resize(present_mode_count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, details.present_modes.data());
-        }
-        return details;
     }
 #ifdef NDEBUG
     constexpr bool enable_validation_layers = false;
@@ -98,28 +84,6 @@ namespace vkrollercoaster {
             return false;
         }
         return true;
-    }
-    queue_family_indices find_queue_families(VkPhysicalDevice device) {
-        queue_family_indices indices;
-        uint32_t queue_family_count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
-        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
-        for (uint32_t i = 0; i < queue_families.size(); i++) {
-            const auto& queue_family = queue_families[i];
-            if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphics_family = i;
-            }
-            VkBool32 present_support = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer_data.window_surface, &present_support);
-            if (present_support) {
-                indices.present_family = i;
-            }
-            if (indices.complete()) {
-                break;
-            }
-        }
-        return indices;
     }
     void renderer::add_layer(const std::string& name) {
         if (!check_layer_availability(name)) {
@@ -250,11 +214,11 @@ namespace vkrollercoaster {
         bool extensions_supported = check_device_extension_support(device);
         bool swapchain_adequate = false;
         if (extensions_supported) {
-            auto details = query_swapchain_support(device);
+            auto details = renderer::query_swapchain_support(device);
             swapchain_adequate = !(details.formats.empty() || details.present_modes.empty());
         }
         std::set<bool> requirements_met = {
-            find_queue_families(device).complete(),
+            renderer::find_queue_families(device).complete(),
             extensions_supported,
             swapchain_adequate,
         };
@@ -290,7 +254,7 @@ namespace vkrollercoaster {
         throw std::runtime_error("no suitable GPU was found!");
     }
     static void create_logical_device() {
-        auto indices = find_queue_families(renderer_data.physical_device);
+        auto indices = renderer::find_queue_families(renderer_data.physical_device);
         std::vector<VkDeviceQueueCreateInfo> queue_create_info;
         float queue_priority = 1.f;
         std::set<uint32_t> unique_queue_families = { *indices.graphics_family, *indices.present_family };
@@ -357,6 +321,33 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create descriptor pool!");
         }
     }
+    static void create_graphics_command_pool() {
+        auto indices = renderer::find_queue_families(renderer_data.physical_device);
+        VkCommandPoolCreateInfo create_info;
+        util::zero(create_info);
+        create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        create_info.queueFamilyIndex = *indices.graphics_family;
+        create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        if (vkCreateCommandPool(renderer_data.device, &create_info, nullptr, &renderer_data.graphics_command_pool) != VK_SUCCESS) {
+            throw std::runtime_error("could not create command pool!");
+        }
+    }
+    static void create_sync_objects() {
+        VkSemaphoreCreateInfo semaphore_create_info;
+        util::zero(semaphore_create_info);
+        semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkFenceCreateInfo fence_create_info;
+        util::zero(fence_create_info);
+        fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        for (auto& frame_data : renderer_data.frame_sync_objects) {
+            if (vkCreateSemaphore(renderer_data.device, &semaphore_create_info, nullptr, &frame_data.image_available_semaphore) != VK_SUCCESS ||
+                vkCreateSemaphore(renderer_data.device, &semaphore_create_info, nullptr, &frame_data.render_finished_semaphore) != VK_SUCCESS ||
+                vkCreateFence(renderer_data.device, &fence_create_info, nullptr, &frame_data.fence) != VK_SUCCESS) {
+                throw std::runtime_error("could not create sync objects!");
+            }
+        }
+    }
     void renderer::init(std::shared_ptr<window> _window) {
         renderer_data.application_window = _window;
         choose_extensions();
@@ -366,8 +357,17 @@ namespace vkrollercoaster {
         pick_physical_device();
         create_logical_device();
         create_descriptor_pool();
+        create_graphics_command_pool();
+        create_sync_objects();
     }
     static void shutdown_renderer() {
+        vkDeviceWaitIdle(renderer_data.device);
+        for (const auto& frame_data : renderer_data.frame_sync_objects) {
+            vkDestroyFence(renderer_data.device, frame_data.fence, nullptr);
+            vkDestroySemaphore(renderer_data.device, frame_data.render_finished_semaphore, nullptr);
+            vkDestroySemaphore(renderer_data.device, frame_data.image_available_semaphore, nullptr);
+        }
+        vkDestroyCommandPool(renderer_data.device, renderer_data.graphics_command_pool, nullptr);
         vkDestroyDescriptorPool(renderer_data.device, renderer_data.descriptor_pool, nullptr);
         vkDestroyDevice(renderer_data.device, nullptr);
         if (renderer_data.debug_messenger != nullptr) {
@@ -383,10 +383,14 @@ namespace vkrollercoaster {
         renderer_data.application_window.reset();
     }
     void renderer::shutdown() {
+        vkDeviceWaitIdle(renderer_data.device);
         renderer_data.should_shutdown = true;
         if (renderer_data.ref_count == 0) {
             shutdown_renderer();
         }
+    }
+    void renderer::new_frame() {
+        renderer_data.current_frame = (renderer_data.current_frame + 1) % max_frame_count;
     }
     void renderer::add_ref() {
         renderer_data.ref_count++;
@@ -397,6 +401,10 @@ namespace vkrollercoaster {
             shutdown_renderer();
         }
     }
+    std::shared_ptr<command_buffer> renderer::create_render_command_buffer() {
+        auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, false, true);
+        return std::shared_ptr<command_buffer>(instance);
+    }
     std::shared_ptr<window> renderer::get_window() { return renderer_data.application_window; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }
@@ -405,4 +413,49 @@ namespace vkrollercoaster {
     VkQueue renderer::get_present_queue() { return renderer_data.present_queue; }
     VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
+    queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
+        queue_family_indices indices;
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
+        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
+        for (uint32_t i = 0; i < queue_families.size(); i++) {
+            const auto& queue_family = queue_families[i];
+            if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphics_family = i;
+            }
+            VkBool32 present_support = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer_data.window_surface, &present_support);
+            if (present_support) {
+                indices.present_family = i;
+            }
+            if (indices.complete()) {
+                break;
+            }
+        }
+        return indices;
+    }
+    swapchain_support_details renderer::query_swapchain_support(VkPhysicalDevice device) {
+        swapchain_support_details details;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderer_data.window_surface, &details.capabilities);
+        uint32_t format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, nullptr);
+        if (format_count > 0) {
+            details.formats.resize(format_count);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderer_data.window_surface, &format_count, details.formats.data());
+        }
+        uint32_t present_mode_count;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, nullptr);
+        if (format_count > 0) {
+            details.present_modes.resize(present_mode_count);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderer_data.window_surface, &present_mode_count, details.present_modes.data());
+        }
+        return details;
+    }
+    const sync_objects& renderer::get_sync_objects(size_t frame_index) {
+        return renderer_data.frame_sync_objects[frame_index];
+    }
+    size_t renderer::get_current_frame() {
+        return renderer_data.current_frame;
+    }
 };

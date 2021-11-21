@@ -16,6 +16,7 @@
 
 #pragma once
 #include "window.h"
+#include "command_buffer.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct swapchain_support_details {
@@ -38,8 +39,11 @@ namespace vkrollercoaster {
             return true;
         }
     };
-    swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
-    queue_family_indices find_queue_families(VkPhysicalDevice device);
+    struct sync_objects {
+        VkSemaphore image_available_semaphore = nullptr;
+        VkSemaphore render_finished_semaphore = nullptr;
+        VkFence fence = nullptr;
+    };
 #endif
     class renderer {
     public:
@@ -48,8 +52,10 @@ namespace vkrollercoaster {
         static void add_device_extension(const std::string& name);
         static void init(std::shared_ptr<window> _window);
         static void shutdown();
+        static void new_frame();
         static void add_ref();
         static void remove_ref();
+        static std::shared_ptr<command_buffer> create_render_command_buffer();
         static std::shared_ptr<window> get_window();
         static VkInstance get_instance();
         static VkPhysicalDevice get_physical_device();
@@ -58,6 +64,13 @@ namespace vkrollercoaster {
         static VkQueue get_present_queue();
         static VkSurfaceKHR get_window_surface();
         static VkDescriptorPool get_descriptor_pool();
+#ifdef EXPOSE_RENDERER_INTERNALS
+        static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
+        static queue_family_indices find_queue_families(VkPhysicalDevice device);
+        static const sync_objects& get_sync_objects(size_t frame_index);
+        static size_t get_current_frame();
+        static constexpr size_t max_frame_count = 2;
+#endif
     private:
         renderer() = default;
     };

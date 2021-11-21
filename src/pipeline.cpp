@@ -27,7 +27,10 @@ namespace vkrollercoaster {
         this->create_descriptor_sets();
         this->create_pipeline();
         this->m_shader->m_dependents.insert(this);
-        this->m_swapchain->m_dependents.insert(this);
+        swapchain::swapchain_dependent dependent_desc;
+        dependent_desc.destroy = [this]() mutable { this->destroy_pipeline(); };
+        dependent_desc.recreate = [this]() mutable { this->create_pipeline(); };
+        this->m_swapchain->m_dependents.insert({ this, dependent_desc });
     }
     pipeline::~pipeline() {
         this->m_swapchain->m_dependents.erase(this);

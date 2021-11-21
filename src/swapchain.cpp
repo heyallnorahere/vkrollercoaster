@@ -23,6 +23,7 @@
 namespace vkrollercoaster {
     swapchain::swapchain() {
         renderer::add_ref();
+        this->m_current_image = 0;
         this->m_window = renderer::get_window();
         int32_t width, height;
         this->m_window->get_size(&width, &height);
@@ -39,13 +40,50 @@ namespace vkrollercoaster {
             this->m_window->get_size(&width, &height);
             glfwWaitEvents();
         }
-        for (auto _pipeline : this->m_dependents) {
-            _pipeline->destroy_pipeline();
+        for (const auto& [_, callbacks] : this->m_dependents) {
+            callbacks.destroy();
         }
         this->destroy();
         this->create(width, height);
-        for (auto _pipeline : this->m_dependents) {
-            _pipeline->create_pipeline();
+        for (const auto& [_, callbacks] : this->m_dependents) {
+            callbacks.recreate();
+        }
+    }
+    void swapchain::prepare_frame() {
+        VkDevice device = renderer::get_device();
+        size_t current_frame = renderer::get_current_frame();
+        const auto& frame_sync_objects = renderer::get_sync_objects(current_frame);
+        constexpr uint64_t uint64_max = std::numeric_limits<uint64_t>::max();
+        vkWaitForFences(device, 1, &frame_sync_objects.fence, true, uint64_max);
+        VkResult result = vkAcquireNextImageKHR(device, this->m_swapchain, uint64_max, frame_sync_objects.image_available_semaphore, nullptr, &this->m_current_image);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            this->reload();
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("could not acquire next swapchain image!");
+        }
+        if (this->m_image_fences[this->m_current_image] != nullptr) {
+            vkWaitForFences(device, 1, &this->m_image_fences[this->m_current_image], true, uint64_max);
+        }
+        this->m_image_fences[this->m_current_image] = frame_sync_objects.fence;
+        vkResetFences(device, 1, &frame_sync_objects.fence);
+    }
+    void swapchain::present() {
+        VkQueue present_queue = renderer::get_present_queue();
+        size_t current_frame = renderer::get_current_frame();
+        const auto& frame_sync_objects = renderer::get_sync_objects(current_frame);
+        VkPresentInfoKHR present_info;
+        util::zero(present_info);
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.waitSemaphoreCount = 1;
+        present_info.pWaitSemaphores = &frame_sync_objects.render_finished_semaphore;
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = &this->m_swapchain;
+        present_info.pImageIndices = &this->m_current_image;
+        VkResult result = vkQueuePresentKHR(present_queue, &present_info);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            this->reload();
+        } else if (result != VK_SUCCESS) {
+            throw std::runtime_error("could not present!");
         }
     }
     static VkSurfaceFormatKHR choose_format(const std::vector<VkSurfaceFormatKHR>& formats) {
@@ -83,10 +121,10 @@ namespace vkrollercoaster {
     }
     void swapchain::create_swapchain(uint32_t width, uint32_t height) {
         auto physical_device = renderer::get_physical_device();
-        auto support_details = query_swapchain_support(physical_device);
-        auto indices = find_queue_families(physical_device);
+        auto support_details = renderer::query_swapchain_support(physical_device);
+        auto indices = renderer::find_queue_families(physical_device);
         uint32_t image_count = support_details.capabilities.minImageCount + 1;
-        if (support_details.capabilities.maxImageCount > 0 && image_count > support_details.capabilities.maxImageCount) {
+        if (support_details.capabilities.maxImageCount > 0 && image_count > support_details.capabilities.maxImageCount) { 
             image_count = support_details.capabilities.maxImageCount;
         }
         VkSwapchainCreateInfoKHR create_info;
@@ -192,9 +230,11 @@ namespace vkrollercoaster {
                 throw std::runtime_error("could not create swapchain framebuffer!");
             }
         }
+        this->m_image_fences.resize(image_count, nullptr);
     }
     void swapchain::destroy() {
         VkDevice device = renderer::get_device();
+        this->m_image_fences.clear();
         for (const auto& image : this->m_swapchain_images) {
             vkDestroyFramebuffer(device, image.framebuffer, nullptr);
             vkDestroyImageView(device, image.view, nullptr);

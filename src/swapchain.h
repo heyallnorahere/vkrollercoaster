@@ -30,12 +30,18 @@ namespace vkrollercoaster {
         swapchain(const swapchain&) = delete;
         swapchain& operator=(const swapchain&) = delete;
         void reload();
+        void prepare_frame();
+        void present();
         VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
         const std::vector<swapchain_image>& get_swapchain_images() { return this->m_swapchain_images; }
         VkFormat get_image_format() { return this->m_image_format; }
         VkExtent2D get_extent() { return this->m_extent; }
         VkRenderPass get_render_pass() { return this->m_render_pass; }
+        uint32_t get_current_image() { return this->m_current_image; }
     private:
+        struct swapchain_dependent {
+            std::function<void()> destroy, recreate;
+        };
         void create(int32_t width, int32_t height);
         void create_swapchain(uint32_t width, uint32_t height);
         void create_render_pass();
@@ -47,7 +53,9 @@ namespace vkrollercoaster {
         VkExtent2D m_extent;
         VkRenderPass m_render_pass;
         std::vector<swapchain_image> m_swapchain_images;
-        std::unordered_set<pipeline*> m_dependents;
+        std::map<void*, swapchain_dependent> m_dependents;
+        uint32_t m_current_image;
+        std::vector<VkFence> m_image_fences;
         friend class pipeline;
     };
 }

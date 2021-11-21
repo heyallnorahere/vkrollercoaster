@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <stddef.h>
 #include <vector>
+#include <array>
 #include <map>
 #include <set>
 #include <unordered_set>
