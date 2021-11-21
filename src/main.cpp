@@ -30,18 +30,34 @@ static struct {
     std::shared_ptr<swapchain> swap_chain;
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
+    void* dependency_id;
 } app_data;
+static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
+    cmdbuffer->begin();
+    cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(1.f, 0.f, 1.f, 1.f), current_image);
+    cmdbuffer->end_render_pass();
+    cmdbuffer->end();
+}
 static void build_command_buffers() {
-    app_data.command_buffers.clear();
+    std::function<void()> render = []() {
+        for (size_t i = 0; i < app_data.command_buffers.size(); i++) {
+            auto cmdbuffer = app_data.command_buffers[i];
+            draw(cmdbuffer, i);
+        }
+    };
+    std::function<void()> destroy = []() {
+        for (auto cmdbuffer : app_data.command_buffers) {
+            cmdbuffer->reset();
+        }
+    };
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
-        cmdbuffer->begin();
-        cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(1.f, 0.f, 0.f, 1.f), i);
-        cmdbuffer->end_render_pass();
-        cmdbuffer->end();
         app_data.command_buffers.push_back(cmdbuffer);
     }
+    render();
+    app_data.dependency_id = (void*)0x100;
+    app_data.swap_chain->add_reload_callbacks(app_data.dependency_id, destroy, render);
 }
 int32_t main(int32_t argc, const char** argv) {
     window::init();
@@ -60,10 +76,12 @@ int32_t main(int32_t argc, const char** argv) {
         renderer::new_frame();
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();
-        app_data.command_buffers[current_image]->submit();
+        auto cmdbuffer = app_data.command_buffers[current_image];
+        cmdbuffer->submit();
         app_data.swap_chain->present();
         window::poll();
     }
+    app_data.swap_chain->remove_reload_callbacks(app_data.dependency_id);
     renderer::shutdown();
     window::shutdown();
     return 0;

@@ -86,6 +86,18 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not present!");
         }
     }
+    void swapchain::add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate) {
+        if (this->m_dependents.find(id) != this->m_dependents.end()) {
+            throw std::runtime_error("the given id already exists!");
+        }
+        swapchain_dependent dependent_desc;
+        dependent_desc.destroy = destroy;
+        dependent_desc.recreate = recreate;
+        this->m_dependents.insert({ id, dependent_desc });
+    }
+    void swapchain::remove_reload_callbacks(void* id) {
+        this->m_dependents.erase(id);
+    }
     static VkSurfaceFormatKHR choose_format(const std::vector<VkSurfaceFormatKHR>& formats) {
         constexpr VkFormat preferred_format = VK_FORMAT_R8G8B8A8_SRGB;
         constexpr VkColorSpaceKHR preferred_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;

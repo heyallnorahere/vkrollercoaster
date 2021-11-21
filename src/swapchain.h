@@ -32,6 +32,8 @@ namespace vkrollercoaster {
         void reload();
         void prepare_frame();
         void present();
+        void add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate);
+        void remove_reload_callbacks(void* id);
         VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
         const std::vector<swapchain_image>& get_swapchain_images() { return this->m_swapchain_images; }
         VkFormat get_image_format() { return this->m_image_format; }

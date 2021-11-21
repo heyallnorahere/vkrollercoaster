@@ -74,6 +74,7 @@ namespace vkrollercoaster {
         }
     }
     void command_buffer::reset() {
+        vkQueueWaitIdle(this->m_queue);
         vkResetCommandBuffer(this->m_buffer, 0);
     }
     command_buffer::command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render) {
