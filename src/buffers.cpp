@@ -93,4 +93,30 @@ namespace vkrollercoaster {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(cmdbuffer->get(), slot, 1, &this->m_buffer, &offset);
     }
+    index_buffer::index_buffer(const uint32_t* data, size_t index_count) {
+        this->m_index_count = index_count;
+        size_t size = index_count * sizeof(uint32_t);
+        VkBuffer staging_buffer;
+        VkDeviceMemory staging_memory;
+        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            staging_buffer, staging_memory);
+        void* gpu_data;
+        VkDevice device = renderer::get_device();
+        vkMapMemory(device, staging_memory, 0, size, 0, &gpu_data);
+        memcpy(gpu_data, data, size);
+        vkUnmapMemory(device, staging_memory);
+        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            this->m_buffer, this->m_memory);
+        copy_buffer(staging_buffer, this->m_buffer, size);
+        vkDestroyBuffer(device, staging_buffer, nullptr);
+        vkFreeMemory(device, staging_memory, nullptr);
+    }
+    index_buffer::~index_buffer() {
+        VkDevice device = renderer::get_device();
+        vkDestroyBuffer(device, this->m_buffer, nullptr);
+        vkFreeMemory(device, this->m_memory, nullptr);
+    }
+    void index_buffer::bind(std::shared_ptr<command_buffer> cmdbuffer) {
+        vkCmdBindIndexBuffer(cmdbuffer->get(), this->m_buffer, 0, VK_INDEX_TYPE_UINT32);
+    }
 }

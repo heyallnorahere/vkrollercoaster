@@ -33,18 +33,15 @@ static struct {
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
     std::shared_ptr<vertex_buffer> triangle_vertex_buffer;
+    std::shared_ptr<index_buffer> triangle_index_buffer;
 } app_data;
-std::vector<vertex> vertices = {
-    { glm::vec3(-0.5f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec2(0.f, 1.f) },
-    { glm::vec3(0.f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec2(0.5f, 0.f) },
-    { glm::vec3(0.5f, 0.5f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec2(1.f, 1.f) },
-};
 static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
-    cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(1.f, 0.f, 1.f, 1.f), current_image);
+    cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(0.f, 0.f, 0.f, 1.f), current_image);
     app_data.test_pipeline->bind(cmdbuffer, current_image);
     app_data.triangle_vertex_buffer->bind(cmdbuffer);
-    vkCmdDraw(cmdbuffer->get(), vertices.size(), 1, 0, 0);
+    app_data.triangle_index_buffer->bind(cmdbuffer);
+    vkCmdDrawIndexed(cmdbuffer->get(), app_data.triangle_index_buffer->get_index_count(), 1, 0, 0, 0);
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
@@ -62,7 +59,18 @@ int32_t main(int32_t argc, const char** argv) {
         { vertex_attribute_type::VEC2, offsetof(vertex, uv) }
     };
     app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, vertex_inputs);
+    std::vector<vertex> vertices = {
+        { glm::vec3(-0.5f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 1.f), glm::vec2(0.f, 0.f) },
+        { glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(1.f), glm::vec2(1.f, 0.f) },
+        { glm::vec3(0.5f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 1.f), glm::vec2(1.f, 1.f) },
+        { glm::vec3(-0.5f, 0.5f, 0.f), glm::vec3(1.f), glm::vec2(0.f, 1.f) },
+    };
+    std::vector<uint32_t> indices = {
+        0, 1, 3,
+        1, 2, 3
+    };
     app_data.triangle_vertex_buffer = std::make_shared<vertex_buffer>(vertices);
+    app_data.triangle_index_buffer = std::make_shared<index_buffer>(indices);
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();

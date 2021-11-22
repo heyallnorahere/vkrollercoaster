@@ -34,4 +34,18 @@ namespace vkrollercoaster {
         VkBuffer m_buffer;
         VkDeviceMemory m_memory;
     };
+    class index_buffer {
+    public:
+        index_buffer(const std::vector<uint32_t>& data) : index_buffer(data.data(), data.size()) { }
+        index_buffer(const uint32_t* data, size_t index_count);
+        ~index_buffer();
+        index_buffer(const index_buffer&) = delete;
+        index_buffer& operator=(const index_buffer&) = delete;
+        void bind(std::shared_ptr<command_buffer> cmdbuffer);
+        size_t get_index_count() { return this->m_index_count; }
+    private:
+        VkBuffer m_buffer;
+        VkDeviceMemory m_memory;
+        size_t m_index_count;
+    };
 }
