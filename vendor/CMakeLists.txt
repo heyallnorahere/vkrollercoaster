@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 add_subdirectory("entt")
 add_subdirectory("glfw")
-include("imgui.cmake")
+add_subdirectory("imgui")
 include("shaderc.cmake")
 add_subdirectory("spdlog")
 add_subdirectory("SPIRV-Cross")
