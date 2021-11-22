@@ -405,6 +405,10 @@ namespace vkrollercoaster {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, false, true);
         return std::shared_ptr<command_buffer>(instance);
     }
+    std::shared_ptr<command_buffer> renderer::create_single_time_command_buffer() {
+        auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, true, false);
+        return std::shared_ptr<command_buffer>(instance);
+    }
     std::shared_ptr<window> renderer::get_window() { return renderer_data.application_window; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }

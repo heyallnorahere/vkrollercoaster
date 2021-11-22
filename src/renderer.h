@@ -56,6 +56,7 @@ namespace vkrollercoaster {
         static void add_ref();
         static void remove_ref();
         static std::shared_ptr<command_buffer> create_render_command_buffer();
+        static std::shared_ptr<command_buffer> create_single_time_command_buffer();
         static std::shared_ptr<window> get_window();
         static VkInstance get_instance();
         static VkPhysicalDevice get_physical_device();

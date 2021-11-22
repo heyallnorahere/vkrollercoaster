@@ -62,6 +62,7 @@ namespace vkrollercoaster {
             fence = frame_sync_objects.fence;
         } else {
             VkFenceCreateInfo fence_create_info;
+            util::zero(fence_create_info);
             fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
             if (vkCreateFence(device, &fence_create_info, nullptr, &fence) != VK_SUCCESS) {
                 throw std::runtime_error("could not create fence for syncing!");

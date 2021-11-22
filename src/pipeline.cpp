@@ -38,6 +38,13 @@ namespace vkrollercoaster {
         this->destroy_descriptor_sets();
         renderer::remove_ref();
     }
+    void pipeline::bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
+        VkCommandBuffer vk_cmdbuffer = cmdbuffer->get();
+        vkCmdBindPipeline(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
+        for (const auto& [set, data] : this->m_descriptor_sets) {
+            vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout, set, 1, &data.sets[current_image], 0, nullptr);
+        }
+    }
     void pipeline::create_descriptor_sets() {
         this->m_push_constant_ranges.clear();
         const auto& reflection_data = this->m_shader->get_reflection_data();

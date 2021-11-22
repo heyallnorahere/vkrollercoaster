@@ -17,6 +17,7 @@
 #pragma once
 #include "shader.h"
 #include "swapchain.h"
+#include "command_buffer.h"
 namespace vkrollercoaster {
     enum class vertex_attribute_type {
         FLOAT,
@@ -46,6 +47,7 @@ namespace vkrollercoaster {
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
+        void bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image);
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }
