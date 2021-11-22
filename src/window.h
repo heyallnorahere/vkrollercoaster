@@ -16,6 +16,7 @@
 
 #pragma once
 namespace vkrollercoaster {
+    class swapchain;
     class window {
     public:
         static void init();
@@ -29,6 +30,9 @@ namespace vkrollercoaster {
         GLFWwindow* get() const { return this->m_window; }
         void get_size(int32_t* width, int32_t* height) { glfwGetFramebufferSize(this->m_window, width, height); }
     private:
+        static void glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height);
         GLFWwindow* m_window;
+        std::unordered_set<swapchain*> m_swapchains;
+        friend class swapchain;
     };
 }

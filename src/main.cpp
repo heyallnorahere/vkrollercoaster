@@ -30,7 +30,6 @@ static struct {
     std::shared_ptr<swapchain> swap_chain;
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
-    void* dependency_id;
 } app_data;
 static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
@@ -66,7 +65,6 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.swap_chain->present();
         window::poll();
     }
-    app_data.swap_chain->remove_reload_callbacks(app_data.dependency_id);
     renderer::shutdown();
     window::shutdown();
     return 0;

@@ -57,5 +57,7 @@ namespace vkrollercoaster {
         std::map<void*, swapchain_dependent> m_dependents;
         uint32_t m_current_image;
         std::vector<VkFence> m_image_fences;
+        bool m_should_resize;
+        friend class window;
     };
 }

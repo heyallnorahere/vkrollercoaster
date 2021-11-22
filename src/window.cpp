@@ -16,11 +16,13 @@
 
 #include "pch.h"
 #include "window.h"
+#include "swapchain.h"
 namespace vkrollercoaster {
     static struct {
         uint32_t window_count = 0;
         bool initialized = false;
         bool should_shutdown = false;
+        std::map<GLFWwindow*, window*> window_map;
     } window_data;
     void window::init() {
         if (!glfwInit()) {
@@ -54,8 +56,11 @@ namespace vkrollercoaster {
             int32_t error_code = glfwGetError(&desc);
             throw std::runtime_error("glfw error " + std::to_string(error_code) + ": " + desc);
         }
+        window_data.window_map.insert({ this->m_window, this });
+        glfwSetFramebufferSizeCallback(this->m_window, glfw_resize_callback);
     }
     window::~window() {
+        window_data.window_map.erase(this->m_window);
         glfwDestroyWindow(this->m_window);
         window_data.window_count--;
         if (window_data.window_count == 0 && window_data.should_shutdown) {
@@ -64,5 +69,11 @@ namespace vkrollercoaster {
     }
     bool window::should_close() const {
         return glfwWindowShouldClose(this->m_window);
+    }
+    void window::glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height) {
+        window* _window = window_data.window_map[glfw_window];
+        for (auto swap_chain : _window->m_swapchains) {
+            swap_chain->m_should_resize = true;
+        }
     }
 }

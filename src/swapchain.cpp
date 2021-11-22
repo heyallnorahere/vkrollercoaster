@@ -23,13 +23,16 @@
 namespace vkrollercoaster {
     swapchain::swapchain() {
         renderer::add_ref();
+        this->m_should_resize = false;
         this->m_current_image = 0;
         this->m_window = renderer::get_window();
         int32_t width, height;
         this->m_window->get_size(&width, &height);
         this->create(width, height);
+        this->m_window->m_swapchains.insert(this);
     }
     swapchain::~swapchain() {
+        this->m_window->m_swapchains.erase(this);
         this->destroy();
         renderer::remove_ref();
     }
@@ -80,7 +83,8 @@ namespace vkrollercoaster {
         present_info.pSwapchains = &this->m_swapchain;
         present_info.pImageIndices = &this->m_current_image;
         VkResult result = vkQueuePresentKHR(present_queue, &present_info);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || this->m_should_resize) {
+            this->m_should_resize = false;
             this->reload();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("could not present!");
