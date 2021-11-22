@@ -17,7 +17,6 @@
 #pragma once
 #include "window.h"
 namespace vkrollercoaster {
-    class pipeline;
     class swapchain {
     public:
         struct swapchain_image {
@@ -58,6 +57,5 @@ namespace vkrollercoaster {
         std::map<void*, swapchain_dependent> m_dependents;
         uint32_t m_current_image;
         std::vector<VkFence> m_image_fences;
-        friend class pipeline;
     };
 }

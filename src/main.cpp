@@ -38,27 +38,6 @@ static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
-static void build_command_buffers() {
-    std::function<void()> render = []() {
-        for (size_t i = 0; i < app_data.command_buffers.size(); i++) {
-            auto cmdbuffer = app_data.command_buffers[i];
-            draw(cmdbuffer, i);
-        }
-    };
-    std::function<void()> destroy = []() {
-        for (auto cmdbuffer : app_data.command_buffers) {
-            cmdbuffer->reset();
-        }
-    };
-    size_t image_count = app_data.swap_chain->get_swapchain_images().size();
-    for (size_t i = 0; i < image_count; i++) {
-        auto cmdbuffer = renderer::create_render_command_buffer();
-        app_data.command_buffers.push_back(cmdbuffer);
-    }
-    render();
-    app_data.dependency_id = (void*)0x100;
-    app_data.swap_chain->add_reload_callbacks(app_data.dependency_id, destroy, render);
-}
 int32_t main(int32_t argc, const char** argv) {
     window::init();
     app_data.app_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
@@ -71,13 +50,19 @@ int32_t main(int32_t argc, const char** argv) {
         { vertex_attribute_type::VEC3, offsetof(vertex, position) }
     };
     app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, vertex_inputs);
-    build_command_buffers();
+    size_t image_count = app_data.swap_chain->get_swapchain_images().size();
+    for (size_t i = 0; i < image_count; i++) {
+        auto cmdbuffer = renderer::create_render_command_buffer();
+        app_data.command_buffers.push_back(cmdbuffer);
+    }
     while (!app_data.app_window->should_close()) {
         renderer::new_frame();
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();
         auto cmdbuffer = app_data.command_buffers[current_image];
+        draw(cmdbuffer, current_image);
         cmdbuffer->submit();
+        cmdbuffer->reset();
         app_data.swap_chain->present();
         window::poll();
     }
