@@ -69,6 +69,7 @@ namespace vkrollercoaster {
         cmdbuffer->submit();
     }
     vertex_buffer::vertex_buffer(const void* data, size_t size) {
+        renderer::add_ref();
         VkBuffer staging_buffer;
         VkDeviceMemory staging_memory;
         create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -88,6 +89,7 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         vkDestroyBuffer(device, this->m_buffer, nullptr);
         vkFreeMemory(device, this->m_memory, nullptr);
+        renderer::remove_ref();
     }
     void vertex_buffer::bind(std::shared_ptr<command_buffer> cmdbuffer, uint32_t slot) {
         VkDeviceSize offset = 0;
@@ -96,6 +98,7 @@ namespace vkrollercoaster {
     index_buffer::index_buffer(const uint32_t* data, size_t index_count) {
         this->m_index_count = index_count;
         size_t size = index_count * sizeof(uint32_t);
+        renderer::add_ref();
         VkBuffer staging_buffer;
         VkDeviceMemory staging_memory;
         create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -115,6 +118,7 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         vkDestroyBuffer(device, this->m_buffer, nullptr);
         vkFreeMemory(device, this->m_memory, nullptr);
+        renderer::remove_ref();
     }
     void index_buffer::bind(std::shared_ptr<command_buffer> cmdbuffer) {
         vkCmdBindIndexBuffer(cmdbuffer->get(), this->m_buffer, 0, VK_INDEX_TYPE_UINT32);

@@ -77,6 +77,7 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.command_buffers.push_back(cmdbuffer);
     }
     while (!app_data.app_window->should_close()) {
+        window::poll();
         renderer::new_frame();
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();
@@ -85,9 +86,7 @@ int32_t main(int32_t argc, const char** argv) {
         cmdbuffer->submit();
         cmdbuffer->reset();
         app_data.swap_chain->present();
-        window::poll();
     }
     renderer::shutdown();
-    window::shutdown();
     return 0;
 }

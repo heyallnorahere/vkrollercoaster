@@ -19,9 +19,7 @@
 #include "swapchain.h"
 namespace vkrollercoaster {
     static struct {
-        uint32_t window_count = 0;
         bool initialized = false;
-        bool should_shutdown = false;
         std::map<GLFWwindow*, window*> window_map;
     } window_data;
     void window::init() {
@@ -30,25 +28,13 @@ namespace vkrollercoaster {
         }
         window_data.initialized = true;
     }
-    static void shutdown_glfw() {
-        glfwTerminate();
-    }
-    void window::shutdown() {
-        window_data.should_shutdown = true;
-        if (window_data.window_count == 0) {
-            shutdown_glfw();
-        }
-    }
     void window::poll() {
         glfwPollEvents();
     }
     window::window(int32_t width, int32_t height, const std::string& title) {
         if (!window_data.initialized) {
             throw std::runtime_error("glfw has not been initialized!");
-        } else if (window_data.should_shutdown) {
-            throw std::runtime_error("glfw has already been shut down!");
         }
-        window_data.window_count++;
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         this->m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
         if (!this->m_window) {
@@ -62,10 +48,6 @@ namespace vkrollercoaster {
     window::~window() {
         window_data.window_map.erase(this->m_window);
         glfwDestroyWindow(this->m_window);
-        window_data.window_count--;
-        if (window_data.window_count == 0 && window_data.should_shutdown) {
-            shutdown_glfw();
-        }
     }
     bool window::should_close() const {
         return glfwWindowShouldClose(this->m_window);

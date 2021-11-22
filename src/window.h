@@ -20,7 +20,6 @@ namespace vkrollercoaster {
     class window {
     public:
         static void init();
-        static void shutdown();
         static void poll();
         window(int32_t width, int32_t height, const std::string& title);
         ~window();
