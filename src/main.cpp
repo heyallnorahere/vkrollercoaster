@@ -51,10 +51,15 @@ static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer
 int32_t main(int32_t argc, const char** argv) {
     app_data_t app_data;
 
+    // create window
     window::init();
     app_data.app_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
+
+    // set up vulkan
     renderer::init(app_data.app_window);
     app_data.swap_chain = std::make_shared<swapchain>();
+
+    // load app data
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
     vertex_input_data vertex_inputs;
     vertex_inputs.stride = sizeof(vertex);
@@ -81,6 +86,8 @@ int32_t main(int32_t argc, const char** argv) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
     }
+
+    // game loop
     while (!app_data.app_window->should_close()) {
         window::poll();
         renderer::new_frame();
@@ -92,7 +99,10 @@ int32_t main(int32_t argc, const char** argv) {
         cmdbuffer->reset();
         app_data.swap_chain->present();
     }
+
+    // clean up
     renderer::shutdown();
+    window::shutdown();
 
     return 0;
 }
