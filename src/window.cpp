@@ -22,15 +22,18 @@ namespace vkrollercoaster {
         bool initialized = false;
         std::map<GLFWwindow*, window*> window_map;
     } window_data;
+
     void window::init() {
         if (!glfwInit()) {
             throw std::runtime_error("could not initialize glfw!");
         }
         window_data.initialized = true;
     }
+
     void window::poll() {
         glfwPollEvents();
     }
+
     window::window(int32_t width, int32_t height, const std::string& title) {
         if (!window_data.initialized) {
             throw std::runtime_error("glfw has not been initialized!");
@@ -45,13 +48,16 @@ namespace vkrollercoaster {
         window_data.window_map.insert({ this->m_window, this });
         glfwSetFramebufferSizeCallback(this->m_window, glfw_resize_callback);
     }
+
     window::~window() {
         window_data.window_map.erase(this->m_window);
         glfwDestroyWindow(this->m_window);
     }
+
     bool window::should_close() const {
         return glfwWindowShouldClose(this->m_window);
     }
+
     void window::glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height) {
         window* _window = window_data.window_map[glfw_window];
         for (auto swap_chain : _window->m_swapchains) {

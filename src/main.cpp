@@ -27,15 +27,17 @@ struct vertex {
     glm::vec3 position, color;
     glm::vec2 uv;
 };
-static struct {
+
+struct app_data_t {
     std::shared_ptr<window> app_window;
     std::shared_ptr<swapchain> swap_chain;
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
     std::shared_ptr<vertex_buffer> triangle_vertex_buffer;
     std::shared_ptr<index_buffer> triangle_index_buffer;
-} app_data;
-static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
+};
+
+static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
     cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(0.f, 0.f, 0.f, 1.f), current_image);
     app_data.test_pipeline->bind(cmdbuffer, current_image);
@@ -45,7 +47,10 @@ static void draw(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
+
 int32_t main(int32_t argc, const char** argv) {
+    app_data_t app_data;
+
     window::init();
     app_data.app_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
     renderer::init(app_data.app_window);
@@ -82,11 +87,12 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();
         auto cmdbuffer = app_data.command_buffers[current_image];
-        draw(cmdbuffer, current_image);
+        draw(app_data, cmdbuffer, current_image);
         cmdbuffer->submit();
         cmdbuffer->reset();
         app_data.swap_chain->present();
     }
     renderer::shutdown();
+
     return 0;
 }

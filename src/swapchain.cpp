@@ -31,11 +31,13 @@ namespace vkrollercoaster {
         this->create(width, height);
         this->m_window->m_swapchains.insert(this);
     }
+
     swapchain::~swapchain() {
         this->m_window->m_swapchains.erase(this);
         this->destroy();
         renderer::remove_ref();
     }
+
     void swapchain::reload() {
         int32_t width = 0, height = 0;
         this->m_window->get_size(&width, &height);
