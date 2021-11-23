@@ -36,6 +36,7 @@ namespace vkrollercoaster {
         size_t offset, type;
     };
     struct shader_type {
+        size_t find_offset(const std::string& field_name, const shader_reflection_data& base_data) const;
         std::string name;
         size_t size, array_stride, array_size;
         std::map<std::string, shader_field> fields;
@@ -47,6 +48,7 @@ namespace vkrollercoaster {
         size_t type;
     };
     struct shader_reflection_data {
+        bool find_resource(const std::string& name, uint32_t& set, uint32_t& binding) const;
         std::map<uint32_t, std::map<uint32_t, shader_resource_data>> resources;
         std::vector<shader_type> types;
     };

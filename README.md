@@ -1,4 +1,4 @@
-# vkrollercoaster
+# vkrollercoaster ![CI status](https://img.shields.io/github/workflow/status/yodasoda1219/vkrollercoaster/build)
 
 A roller coaster in C++17 and Vulkan.
 

@@ -269,4 +269,57 @@ namespace vkrollercoaster {
         }
         this->m_shader_data.clear();
     }
+    size_t shader_type::find_offset(const std::string& field_name, const shader_reflection_data& base_data) const {
+        size_t separator_pos = field_name.find('.');
+        std::string name, subname;
+        if (separator_pos != std::string::npos) {
+            name = field_name.substr(0, separator_pos);
+            subname = field_name.substr(separator_pos + 1);
+            if (subname.empty()) {
+                throw std::runtime_error("invalid field name");
+            }
+        } else {
+            name = field_name;
+        }
+        int32_t index = -1;
+        size_t open_bracket = name.find('[');
+        if (open_bracket != std::string::npos) {
+            size_t close_bracket = name.find(']');
+            if (close_bracket <= open_bracket + 1 || close_bracket >= name.length() || close_bracket < name.length() - 1) {
+                throw std::runtime_error("invalid index operator call");
+            }
+            size_t index_start = open_bracket + 1;
+            std::string index_string = name.substr(index_start, close_bracket - index_start);
+            name = name.substr(0, open_bracket);
+            index = atoi(index_string.c_str());
+        }
+        if (this->fields.find(name) == this->fields.end()) {
+            throw std::runtime_error(name + " is not the name of a field");
+        }
+        const auto& field = this->fields.find(name)->second;
+        if (index != -1 && base_data.types[field.type].array_stride == 0) {
+            throw std::runtime_error("attempted to index into a non-array field");
+        }
+        if (index == -1) {
+            index = 0;
+        }
+        size_t offset = field.offset + (index * base_data.types[field.type].array_stride);
+        if (subname.empty()) {
+            return offset;
+        } else {
+            return offset + base_data.types[field.type].find_offset(subname, base_data);
+        }
+    }
+    bool shader_reflection_data::find_resource(const std::string& name, uint32_t& set, uint32_t& binding) const {
+        for (const auto& [current_set, resources] : this->resources) {
+            for (const auto& [current_binding, resource] : resources) {
+                if (resource.name == name) {
+                    set = current_set;
+                    binding = current_binding;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
