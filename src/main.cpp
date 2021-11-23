@@ -22,7 +22,9 @@
 #include "pipeline.h"
 #include "command_buffer.h"
 #include "buffers.h"
+#include "util.h"
 using namespace vkrollercoaster;
+
 struct vertex {
     glm::vec3 position, color;
     glm::vec2 uv;
@@ -35,7 +37,25 @@ struct app_data_t {
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
     std::shared_ptr<vertex_buffer> triangle_vertex_buffer;
     std::shared_ptr<index_buffer> triangle_index_buffer;
+    std::shared_ptr<uniform_buffer> camera_buffer;
 };
+
+static void update(app_data_t& app_data) {
+    constexpr float distance = 2.5f;
+    double time = util::get_time<double>();
+    glm::vec3 view_point = glm::vec3(0.f);
+    view_point.x = (float)cos(time) * distance;
+    view_point.z = (float)sin(time) * distance;
+    int32_t width, height;
+    app_data.app_window->get_size(&width, &height);
+    float aspect_ratio = (float)width / (float)height;
+    struct {
+        glm::mat4 projection, view;
+    } camera_data;
+    camera_data.projection = glm::perspective(glm::radians(45.f), aspect_ratio, 0.1f, 100.f);
+    camera_data.view = glm::lookAt(view_point, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+    app_data.camera_buffer->set_data(camera_data);
+}
 
 static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
@@ -81,16 +101,19 @@ int32_t main(int32_t argc, const char** argv) {
     };
     app_data.triangle_vertex_buffer = std::make_shared<vertex_buffer>(vertices);
     app_data.triangle_index_buffer = std::make_shared<index_buffer>(indices);
+    app_data.camera_buffer = uniform_buffer::from_shader_data(testshader, 0, 0);
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
+        app_data.camera_buffer->bind(app_data.test_pipeline, i);
     }
 
     // game loop
     while (!app_data.app_window->should_close()) {
         window::poll();
         renderer::new_frame();
+        update(app_data);
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();
         auto cmdbuffer = app_data.command_buffers[current_image];

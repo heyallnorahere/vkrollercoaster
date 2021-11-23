@@ -16,6 +16,8 @@
 
 #pragma once
 #include "command_buffer.h"
+#include "pipeline.h"
+#include "shader.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     uint32_t find_memory_type(uint32_t filter, VkMemoryPropertyFlags properties);
@@ -47,5 +49,23 @@ namespace vkrollercoaster {
         VkBuffer m_buffer;
         VkDeviceMemory m_memory;
         size_t m_index_count;
+    };
+    class uniform_buffer {
+    public:
+        static std::shared_ptr<uniform_buffer> from_shader_data(std::shared_ptr<shader> _shader, uint32_t set, uint32_t binding);
+        uniform_buffer(uint32_t set, uint32_t binding, size_t size);
+        ~uniform_buffer();
+        uniform_buffer(const uniform_buffer&) = delete;
+        uniform_buffer& operator=(const uniform_buffer&) = delete;
+        void bind(std::shared_ptr<pipeline> _pipeline, size_t current_image);
+        template<typename T> void set_data(const T& data, size_t offset = 0) {
+            this->set_data(&data, sizeof(T), offset);
+        }
+        void set_data(const void* data, size_t size, size_t offset = 0);
+    private:
+        VkBuffer m_buffer;
+        VkDeviceMemory m_memory;
+        uint32_t m_set, m_binding;
+        size_t m_size;
     };
 }

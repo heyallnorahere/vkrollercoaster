@@ -44,5 +44,9 @@ namespace vkrollercoaster {
             file.close();
             return contents.str();
         }
+        template<typename T> inline T get_time() {
+            static_assert(std::is_floating_point_v<T>, "must pass a decimal type!");
+            return (T)glfwGetTime();
+        }
     }
 }
