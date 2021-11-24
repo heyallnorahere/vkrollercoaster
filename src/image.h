@@ -32,8 +32,10 @@ namespace vkrollercoaster {
         ~image();
         image(const image&) = delete;
         image& operator=(const image&) = delete;
+        void transition(VkImageLayout new_layout);
         VkFormat get_format() { return this->m_format; }
         VkImageView get_view() { return this->m_view; }
+        VkImageLayout get_layout() { return this->m_layout; }
     private:
         void create_image_from_data(const image_data& data);
         void create_view();
@@ -41,5 +43,6 @@ namespace vkrollercoaster {
         VkImageView m_view;
         VkDeviceMemory m_memory;
         VkFormat m_format;
+        VkImageLayout m_layout;
     };
 }

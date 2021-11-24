@@ -19,7 +19,6 @@
 #define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
-#include "pipeline.h"
 namespace vkrollercoaster {
     swapchain::swapchain() {
         renderer::add_ref();

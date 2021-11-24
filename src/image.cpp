@@ -162,6 +162,7 @@ namespace vkrollercoaster {
     }
     image::image(const image_data& data) {
         renderer::add_ref();
+        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         this->create_image_from_data(data);
         this->create_view();
     }
@@ -172,13 +173,17 @@ namespace vkrollercoaster {
         vkFreeMemory(device, this->m_memory, nullptr);
         renderer::remove_ref();
     }
+    void image::transition(VkImageLayout new_layout) {
+        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout);
+        this->m_layout = new_layout;
+    }
     void image::create_image_from_data(const image_data& data) {
         switch (data.channels) {
         case 4:
-            this->m_format = VK_FORMAT_R8G8B8A8_UINT;
+            this->m_format = VK_FORMAT_R8G8B8A8_SRGB;
             break;
         case 3:
-            this->m_format = VK_FORMAT_R8G8B8_UINT;
+            this->m_format = VK_FORMAT_R8G8B8_SRGB;
             break;
         default:
             throw std::runtime_error("invalid image format!");
@@ -195,9 +200,9 @@ namespace vkrollercoaster {
         vkUnmapMemory(device, staging_memory);
         create_image(data.width, data.height, this->m_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->m_image, this->m_memory);
-        transition_image_layout(this->m_image, this->m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
-        transition_image_layout(this->m_image, this->m_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        this->transition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         vkDestroyBuffer(device, staging_buffer, nullptr);
         vkFreeMemory(device, staging_memory, nullptr);
     }

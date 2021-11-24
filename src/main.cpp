@@ -23,7 +23,7 @@
 #include "command_buffer.h"
 #include "buffers.h"
 #include "util.h"
-#include "image.h"
+#include "texture.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -39,6 +39,7 @@ struct app_data_t {
     std::shared_ptr<vertex_buffer> triangle_vertex_buffer;
     std::shared_ptr<index_buffer> triangle_index_buffer;
     std::shared_ptr<uniform_buffer> camera_buffer;
+    std::shared_ptr<texture> tux;
 };
 
 static void update(app_data_t& app_data) {
@@ -103,13 +104,14 @@ int32_t main(int32_t argc, const char** argv) {
     app_data.triangle_vertex_buffer = std::make_shared<vertex_buffer>(vertices);
     app_data.triangle_index_buffer = std::make_shared<index_buffer>(indices);
     app_data.camera_buffer = uniform_buffer::from_shader_data(testshader, 0, 0);
+    app_data.tux = std::make_shared<texture>(image::from_file("assets/tux.png"));
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
         app_data.camera_buffer->bind(app_data.test_pipeline, i);
+        app_data.tux->bind(app_data.test_pipeline, i, "tux");
     }
-    auto tux = image::from_file("assets/tux.png");
 
     // game loop
     while (!app_data.app_window->should_close()) {

@@ -48,6 +48,7 @@ namespace vkrollercoaster {
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
         void bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image);
+        std::shared_ptr<shader> get_shader() { return this->m_shader; }
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }

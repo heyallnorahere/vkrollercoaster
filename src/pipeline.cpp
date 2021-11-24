@@ -69,11 +69,7 @@ namespace vkrollercoaster {
                     set_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                     break;
                 case shader_resource_type::sampledimage:
-                    if (set_binding.descriptorCount > 1) {
-                        set_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    } else {
-                        set_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    }
+                    set_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                     break;
                 case shader_resource_type::pushconstantbuffer:
                     push_constant = true;
