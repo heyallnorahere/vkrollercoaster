@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 set(VKROLLERCOASTER_INCLUDES "${CMAKE_SOURCE_DIR}/vendor/glm" ${Vulkan_INCLUDE_DIR})
-set(VKROLLERCOASTER_LIBS glfw spdlog spirv-cross-glsl EnTT imgui shaderc ${Vulkan_LIBRARIES})
+set(VKROLLERCOASTER_LIBS stb glfw spdlog spirv-cross-glsl EnTT imgui shaderc ${Vulkan_LIBRARIES})
 if(UNIX AND NOT APPLE)
     list(APPEND VKROLLERCOATER_LIBS pthread stdc++fs)
 endif()

@@ -349,6 +349,7 @@ namespace vkrollercoaster {
         }
     }
     void renderer::init(std::shared_ptr<window> _window) {
+        spdlog::info("initializing renderer...");
         renderer_data.application_window = _window;
         choose_extensions();
         create_instance();
@@ -361,6 +362,7 @@ namespace vkrollercoaster {
         create_sync_objects();
     }
     static void shutdown_renderer() {
+        spdlog::info("shutting down renderer...");
         vkDeviceWaitIdle(renderer_data.device);
         for (const auto& frame_data : renderer_data.frame_sync_objects) {
             vkDestroyFence(renderer_data.device, frame_data.fence, nullptr);

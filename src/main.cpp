@@ -23,6 +23,7 @@
 #include "command_buffer.h"
 #include "buffers.h"
 #include "util.h"
+#include "image.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -108,6 +109,7 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.command_buffers.push_back(cmdbuffer);
         app_data.camera_buffer->bind(app_data.test_pipeline, i);
     }
+    auto tux = image::from_file("assets/tux.png");
 
     // game loop
     while (!app_data.app_window->should_close()) {

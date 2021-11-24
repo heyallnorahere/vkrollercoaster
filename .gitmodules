@@ -19,3 +19,6 @@
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/yodasoda1219/imgui.git
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/yodasoda1219/stb.git
