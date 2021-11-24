@@ -252,13 +252,10 @@ namespace vkrollercoaster {
             resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
         for (const auto& resource : resources.push_constant_buffers) {
-            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            auto& resource_desc = this->m_reflection_data.resources[set][binding];
-            resource_desc.name = resource.name;
-            resource_desc.resource_type = shader_resource_type::pushconstantbuffer;
-            resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
+            auto& desc = this->m_reflection_data.push_constant_buffers.emplace_back();
+            desc.name = resource.name;
+            desc.stage = stage;
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
         }
         found_types.clear();
     }

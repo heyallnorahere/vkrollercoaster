@@ -16,6 +16,7 @@
 
 #pragma once
 #include "swapchain.h"
+#include "shader.h"
 namespace vkrollercoaster {
     class renderer;
     class command_buffer {

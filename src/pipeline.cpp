@@ -48,6 +48,14 @@ namespace vkrollercoaster {
     void pipeline::create_descriptor_sets() {
         this->m_push_constant_ranges.clear();
         const auto& reflection_data = this->m_shader->get_reflection_data();
+        for (const auto& push_constant : reflection_data.push_constant_buffers) {
+            VkPushConstantRange range;
+            util::zero(range);
+            range.stageFlags = shader::get_stage_flags(push_constant.stage);
+            range.offset = 0;
+            range.size = reflection_data.types[push_constant.type].size;
+            this->m_push_constant_ranges.push_back(range);
+        }
         if (reflection_data.resources.empty()) {
             return;
         }
@@ -60,7 +68,6 @@ namespace vkrollercoaster {
                 set_binding.stageFlags = shader::get_stage_flags(data.stage);
                 const auto& resource_type = reflection_data.types[data.type];
                 set_binding.descriptorCount = resource_type.array_size;
-                bool push_constant = false;
                 switch (data.resource_type) {
                 case shader_resource_type::uniformbuffer:
                     set_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -71,28 +78,10 @@ namespace vkrollercoaster {
                 case shader_resource_type::sampledimage:
                     set_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                     break;
-                case shader_resource_type::pushconstantbuffer:
-                    push_constant = true;
-                    {
-                        VkPushConstantRange range;
-                        util::zero(range);
-                        range.stageFlags = set_binding.stageFlags;
-                        if (!this->m_push_constant_ranges.empty()) {
-                            const auto& previous = *this->m_push_constant_ranges.rbegin();
-                            range.offset = previous.offset + previous.size;
-                        } else {
-                            range.offset = 0;
-                        }
-                        range.size = resource_type.size;
-                        this->m_push_constant_ranges.push_back(range);
-                    }
-                    break;
                 default:
                     throw std::runtime_error("invalid resource type!");
                 }
-                if (!push_constant) {
-                    bindings[set].push_back(set_binding);
-                }
+                bindings[set].push_back(set_binding);
             }
         }
         size_t swapchain_image_count = this->m_swapchain->get_swapchain_images().size();

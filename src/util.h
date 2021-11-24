@@ -48,5 +48,8 @@ namespace vkrollercoaster {
             static_assert(std::is_floating_point_v<T>, "must pass a decimal type!");
             return (T)glfwGetTime();
         }
+        template<typename T> inline void append_vector(std::vector<T>& destination, const std::vector<T>& source) {
+            destination.insert(destination.end(), source.begin(), source.end());
+        }
     }
 }

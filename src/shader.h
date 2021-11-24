@@ -29,8 +29,7 @@ namespace vkrollercoaster {
     enum class shader_resource_type {
         uniformbuffer,
         storagebuffer,
-        sampledimage,
-        pushconstantbuffer
+        sampledimage
     };
     struct shader_field {
         size_t offset, type;
@@ -48,9 +47,15 @@ namespace vkrollercoaster {
         shader_stage stage;
         size_t type;
     };
+    struct push_constant_buffer_data {
+        std::string name;
+        size_t type;
+        shader_stage stage;
+    };
     struct shader_reflection_data {
         bool find_resource(const std::string& name, uint32_t& set, uint32_t& binding) const;
         std::map<uint32_t, std::map<uint32_t, shader_resource_data>> resources;
+        std::vector<push_constant_buffer_data> push_constant_buffers;
         std::vector<shader_type> types;
     };
     class pipeline;
