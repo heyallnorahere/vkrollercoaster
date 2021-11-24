@@ -133,6 +133,7 @@ namespace vkrollercoaster {
     }
     void swapchain::create(int32_t width, int32_t height) {
         this->create_swapchain((uint32_t)width, (uint32_t)height);
+        this->create_depth_image();
         this->create_render_pass();
         this->fetch_images();
     }
@@ -172,6 +173,26 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create swapchain");
         }
     }
+    static VkFormat find_supported_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+        VkPhysicalDevice physical_device = renderer::get_physical_device();
+        for (VkFormat format : candidates) {
+            VkFormatProperties properties;
+            vkGetPhysicalDeviceFormatProperties(physical_device, format, &properties);
+            if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+        throw std::runtime_error("could not find a supported format!");
+        return VK_FORMAT_MAX_ENUM;
+    }
+    void swapchain::create_depth_image() {
+        VkFormat depth_format = find_supported_format({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+            VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        this->m_depth_image = std::make_shared<image>(depth_format, this->m_extent.width, this->m_extent.height, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        this->m_depth_image->transition(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    }
     void swapchain::create_render_pass() {
         VkAttachmentDescription color_attachment;
         util::zero(color_attachment);
@@ -183,17 +204,31 @@ namespace vkrollercoaster {
         color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        // for use later with depth buffering
-        std::vector<VkAttachmentDescription> attachments = { color_attachment };
+        VkAttachmentDescription depth_attachment;
+        util::zero(depth_attachment);
+        depth_attachment.format = this->m_depth_image->get_format();
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = this->m_depth_image->get_layout();
+        std::vector<VkAttachmentDescription> attachments = { color_attachment, depth_attachment };
         VkAttachmentReference color_attachment_ref;
         util::zero(color_attachment_ref);
         color_attachment_ref.attachment = 0;
         color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depth_attachment_ref;
+        util::zero(depth_attachment_ref);
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = this->m_depth_image->get_layout();
         VkSubpassDescription subpass;
         util::zero(subpass);
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &color_attachment_ref;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
         VkRenderPassCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -233,7 +268,7 @@ namespace vkrollercoaster {
             if (vkCreateImageView(device, &view_create_info, nullptr, &image_desc.view) != VK_SUCCESS) {
                 throw std::runtime_error("could not create swapchain image view!");
             }
-            std::vector<VkImageView> attachments = { image_desc.view };
+            std::vector<VkImageView> attachments = { image_desc.view, this->m_depth_image->get_view() };
             VkFramebufferCreateInfo fb_create_info;
             util::zero(fb_create_info);
             fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

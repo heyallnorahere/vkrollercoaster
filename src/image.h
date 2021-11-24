@@ -29,6 +29,7 @@ namespace vkrollercoaster {
         static bool load_image(const fs::path& path, image_data& data);
         static std::shared_ptr<image> from_file(const fs::path& path);
         image(const image_data& data);
+        image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags image_aspect);
         ~image();
         image(const image&) = delete;
         image& operator=(const image&) = delete;
@@ -44,5 +45,6 @@ namespace vkrollercoaster {
         VkDeviceMemory m_memory;
         VkFormat m_format;
         VkImageLayout m_layout;
+        VkImageAspectFlags m_aspect;
     };
 }

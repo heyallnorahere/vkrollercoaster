@@ -201,6 +201,14 @@ namespace vkrollercoaster {
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = false;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkPipelineDepthStencilStateCreateInfo depth_stencil;
+        util::zero(depth_stencil);
+        depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depth_stencil.depthBoundsTestEnable = true;
+        depth_stencil.depthWriteEnable = true;
+        depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depth_stencil.depthBoundsTestEnable = false;
+        depth_stencil.stencilTestEnable = false;
         VkPipelineColorBlendAttachmentState color_blend_attachment;
         util::zero(color_blend_attachment);
         color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -255,7 +263,7 @@ namespace vkrollercoaster {
         create_info.pViewportState = &viewport_state;
         create_info.pRasterizationState = &rasterizer;
         create_info.pMultisampleState = &multisampling;
-        create_info.pDepthStencilState = nullptr;
+        create_info.pDepthStencilState = &depth_stencil;
         create_info.pColorBlendState = &color_blending;
         create_info.pDynamicState = nullptr;
         create_info.layout = this->m_layout;

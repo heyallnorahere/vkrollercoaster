@@ -95,6 +95,7 @@ namespace vkrollercoaster {
         barrier.newLayout = new_layout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        // todo: take image aspect flags
         if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT) {
@@ -163,7 +164,18 @@ namespace vkrollercoaster {
     image::image(const image_data& data) {
         renderer::add_ref();
         this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
         this->create_image_from_data(data);
+        this->create_view();
+    }
+    image::image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags aspect) {
+        // only use this constructor for things such as depth buffering
+        renderer::add_ref();
+        this->m_format = format;
+        this->m_aspect = aspect;
+        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        create_image(width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            this->m_image, this->m_memory);
         this->create_view();
     }
     image::~image() {
@@ -213,7 +225,7 @@ namespace vkrollercoaster {
         create_info.image = this->m_image;
         create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         create_info.format = this->m_format;
-        create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        create_info.subresourceRange.aspectMask = this->m_aspect;
         create_info.subresourceRange.baseMipLevel = 0;
         create_info.subresourceRange.levelCount = 1;
         create_info.subresourceRange.baseArrayLayer = 0;

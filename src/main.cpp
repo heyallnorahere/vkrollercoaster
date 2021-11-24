@@ -37,8 +37,8 @@ struct app_data_t {
     std::shared_ptr<swapchain> swap_chain;
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
-    std::shared_ptr<vertex_buffer> triangle_vertex_buffer;
-    std::shared_ptr<index_buffer> triangle_index_buffer;
+    std::shared_ptr<vertex_buffer> knight_vertex_buffer;
+    std::shared_ptr<index_buffer> knight_index_buffer;
     std::shared_ptr<uniform_buffer> camera_buffer;
     std::shared_ptr<texture> tux;
     glm::mat4 model;
@@ -46,7 +46,7 @@ struct app_data_t {
 
 static void update(app_data_t& app_data) {
     constexpr float distance = 2.5f;
-    double time = util::get_time<double>();
+    double time = util::get_time<double>() / 50;
     glm::vec3 view_point = glm::vec3(0.f);
     view_point.x = (float)cos(time) * distance;
     view_point.z = (float)sin(time) * distance;
@@ -59,7 +59,7 @@ static void update(app_data_t& app_data) {
     camera_data.projection = glm::perspective(glm::radians(45.f), aspect_ratio, 0.1f, 100.f);
     camera_data.view = glm::lookAt(view_point, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
     app_data.camera_buffer->set_data(camera_data);
-    float scale = ((float)sin(time) * 0.5f + 0.5f) * 0.25f;
+    float scale = (float)sin(time) * 0.5f + 0.5f;
     app_data.model = glm::scale(glm::mat4(1.f), glm::vec3(scale));
 }
 
@@ -67,10 +67,10 @@ static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer
     cmdbuffer->begin();
     cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(0.f, 0.f, 0.f, 1.f), current_image);
     app_data.test_pipeline->bind(cmdbuffer, current_image);
-    app_data.triangle_vertex_buffer->bind(cmdbuffer);
-    app_data.triangle_index_buffer->bind(cmdbuffer);
+    app_data.knight_vertex_buffer->bind(cmdbuffer);
+    app_data.knight_index_buffer->bind(cmdbuffer);
     vkCmdPushConstants(cmdbuffer->get(), app_data.test_pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &app_data.model);
-    vkCmdDrawIndexed(cmdbuffer->get(), app_data.triangle_index_buffer->get_index_count(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdbuffer->get(), app_data.knight_index_buffer->get_index_count(), 1, 0, 0, 0);
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
@@ -96,19 +96,9 @@ int32_t main(int32_t argc, const char** argv) {
         { vertex_attribute_type::VEC2, offsetof(model::vertex, uv) }
     };
     app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, vertex_inputs);
-    /*std::vector<vertex> vertices = {
-        { glm::vec3(-0.5f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 1.f), glm::vec2(0.f, 0.f) },
-        { glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(1.f), glm::vec2(1.f, 0.f) },
-        { glm::vec3(0.5f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 1.f), glm::vec2(1.f, 1.f) },
-        { glm::vec3(-0.5f, 0.5f, 0.f), glm::vec3(1.f), glm::vec2(0.f, 1.f) },
-    };
-    std::vector<uint32_t> indices = {
-        0, 1, 3,
-        1, 2, 3
-    };*/
     auto knight = std::make_shared<model>("assets/models/knight.gltf");
-    app_data.triangle_vertex_buffer = std::make_shared<vertex_buffer>(knight->get_vertices());
-    app_data.triangle_index_buffer = std::make_shared<index_buffer>(knight->get_indices());
+    app_data.knight_vertex_buffer = std::make_shared<vertex_buffer>(knight->get_vertices());
+    app_data.knight_index_buffer = std::make_shared<index_buffer>(knight->get_indices());
     app_data.camera_buffer = uniform_buffer::from_shader_data(testshader, 0, 0);
     app_data.tux = std::make_shared<texture>(image::from_file("assets/tux.png"));
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();

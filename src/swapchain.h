@@ -16,6 +16,7 @@
 
 #pragma once
 #include "window.h"
+#include "image.h"
 namespace vkrollercoaster {
     class swapchain {
     public:
@@ -45,6 +46,7 @@ namespace vkrollercoaster {
         };
         void create(int32_t width, int32_t height);
         void create_swapchain(uint32_t width, uint32_t height);
+        void create_depth_image();
         void create_render_pass();
         void fetch_images();
         void destroy();
@@ -53,6 +55,7 @@ namespace vkrollercoaster {
         VkFormat m_image_format;
         VkExtent2D m_extent;
         VkRenderPass m_render_pass;
+        std::shared_ptr<image> m_depth_image;
         std::vector<swapchain_image> m_swapchain_images;
         std::map<void*, swapchain_dependent> m_dependents;
         uint32_t m_current_image;

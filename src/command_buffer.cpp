@@ -104,12 +104,10 @@ namespace vkrollercoaster {
         begin_info.framebuffer = swapchain_images[image_index].framebuffer;
         begin_info.renderArea.offset = { 0, 0 };
         begin_info.renderArea.extent = swap_chain->get_extent();
-        std::vector<VkClearValue> clear_values;
-        VkClearValue clear_value;
-        util::zero(clear_value);
-        memcpy(clear_value.color.float32, &clear_color, sizeof(glm::vec4));
-        clear_values.push_back(clear_value);
-        // todo: depth-stencil
+        std::array<VkClearValue, 2> clear_values;
+        util::zero(clear_values.data(), clear_values.size() * sizeof(VkClearValue));
+        memcpy(clear_values[0].color.float32, &clear_color, sizeof(glm::vec4));
+        clear_values[1].depthStencil = { 1.f, 0 };
         begin_info.clearValueCount = clear_values.size();
         begin_info.pClearValues = clear_values.data();
         vkCmdBeginRenderPass(this->m_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
