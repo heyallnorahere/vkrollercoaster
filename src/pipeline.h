@@ -34,8 +34,24 @@ namespace vkrollercoaster {
         size_t offset;
     };
     struct vertex_input_data {
-        size_t stride;
+        size_t stride = 0;
         std::vector<vertex_attribute> attributes;
+    };
+    enum class pipeline_polygon_mode {
+        fill,
+        wireframe
+    };
+    enum class pipeline_front_face {
+        clockwise,
+        counter_clockwise
+    };
+    struct pipeline_spec {
+        pipeline_spec() = default;
+        bool enable_depth_testing = true;
+        bool enable_blending = true;
+        pipeline_polygon_mode polygon_mode = pipeline_polygon_mode::fill;
+        pipeline_front_face front_face = pipeline_front_face::clockwise;
+        vertex_input_data input_layout;
     };
     class pipeline {
     public:
@@ -43,7 +59,7 @@ namespace vkrollercoaster {
             VkDescriptorSetLayout layout;
             std::vector<VkDescriptorSet> sets;
         };
-        pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const vertex_input_data& vertex_inputs);
+        pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const pipeline_spec& spec);
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
@@ -59,7 +75,7 @@ namespace vkrollercoaster {
         void create_pipeline();
         void destroy_pipeline();
         void destroy_descriptor_sets();
-        vertex_input_data m_vertex_input_data;
+        pipeline_spec m_spec;
         std::shared_ptr<swapchain> m_swapchain;
         std::shared_ptr<shader> m_shader;
         VkViewport m_viewport;

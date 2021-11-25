@@ -19,10 +19,10 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    pipeline::pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const vertex_input_data& vertex_inputs) {
+    pipeline::pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const pipeline_spec& spec) {
         this->m_swapchain = _swapchain;
         this->m_shader = _shader;
-        this->m_vertex_input_data = vertex_inputs;
+        this->m_spec = spec;
         renderer::add_ref();
         this->create_descriptor_sets();
         this->create_pipeline();
@@ -122,12 +122,12 @@ namespace vkrollercoaster {
         VkVertexInputBindingDescription binding;
         util::zero(binding);
         binding.binding = 0;
-        binding.stride = this->m_vertex_input_data.stride;
+        binding.stride = this->m_spec.input_layout.stride;
         binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         vertex_input_info.vertexBindingDescriptionCount = 1;
         vertex_input_info.pVertexBindingDescriptions = &binding;
-        for (uint32_t i = 0; i < this->m_vertex_input_data.attributes.size(); i++) {
-            const auto& attribute = this->m_vertex_input_data.attributes[i];
+        for (uint32_t i = 0; i < this->m_spec.input_layout.attributes.size(); i++) {
+            const auto& attribute = this->m_spec.input_layout.attributes[i];
             auto& attribute_desc = attributes.emplace_back();
             util::zero(attribute_desc);
             attribute_desc.binding = 0;
@@ -191,10 +191,28 @@ namespace vkrollercoaster {
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = false;
         rasterizer.rasterizerDiscardEnable = false;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        switch (this->m_spec.polygon_mode) {
+        case pipeline_polygon_mode::fill:
+            rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+            break;
+        case pipeline_polygon_mode::wireframe:
+            rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
+            break;
+        default:
+            throw std::runtime_error("invalid polygon mode!");
+        }
         rasterizer.lineWidth = 1.f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        switch (this->m_spec.front_face) {
+        case pipeline_front_face::clockwise:
+            rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+            break;
+        case pipeline_front_face::counter_clockwise:
+            rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+            break;
+        default:
+            throw std::runtime_error("invalid front face!");
+        }
         rasterizer.depthBiasEnable = false;
         VkPipelineMultisampleStateCreateInfo multisampling;
         util::zero(multisampling);
@@ -204,21 +222,23 @@ namespace vkrollercoaster {
         VkPipelineDepthStencilStateCreateInfo depth_stencil;
         util::zero(depth_stencil);
         depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depth_stencil.depthBoundsTestEnable = true;
-        depth_stencil.depthWriteEnable = true;
-        depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
-        depth_stencil.depthBoundsTestEnable = false;
-        depth_stencil.stencilTestEnable = false;
+        if (this->m_spec.enable_depth_testing) {
+            depth_stencil.depthTestEnable = true;
+            depth_stencil.depthWriteEnable = true;
+            depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        }
         VkPipelineColorBlendAttachmentState color_blend_attachment;
         util::zero(color_blend_attachment);
         color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        color_blend_attachment.blendEnable = true;
-        color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-        color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        if (this->m_spec.enable_blending) {
+            color_blend_attachment.blendEnable = true;
+            color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+            color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        }
         VkPipelineColorBlendStateCreateInfo color_blending;
         util::zero(color_blending);
         color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;

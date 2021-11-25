@@ -52,7 +52,7 @@ struct transform_component {
 
 static void update(app_data_t& app_data) {
     constexpr float distance = 2.5f;
-    double time = util::get_time<double>() / 50;
+    double time = util::get_time<double>();
     glm::vec3 view_point = glm::vec3(0.f);
     view_point.x = (float)cos(time) * distance;
     view_point.z = (float)sin(time) * distance;
@@ -94,14 +94,15 @@ int32_t main(int32_t argc, const char** argv) {
 
     // load app data
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
-    vertex_input_data vertex_inputs;
-    vertex_inputs.stride = sizeof(model::vertex);
-    vertex_inputs.attributes = {
+    pipeline_spec test_pipeline_spec;
+    test_pipeline_spec.front_face = pipeline_front_face::clockwise;
+    test_pipeline_spec.input_layout.stride = sizeof(model::vertex);
+    test_pipeline_spec.input_layout.attributes = {
         { vertex_attribute_type::VEC3, offsetof(model::vertex, position) },
         { vertex_attribute_type::VEC3, offsetof(model::vertex, normal) },
         { vertex_attribute_type::VEC2, offsetof(model::vertex, uv) }
     };
-    app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, vertex_inputs);
+    app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, test_pipeline_spec);
     auto knight = std::make_shared<model>("assets/models/knight.gltf");
     app_data.knight_vertex_buffer = std::make_shared<vertex_buffer>(knight->get_vertices());
     app_data.knight_index_buffer = std::make_shared<index_buffer>(knight->get_indices());

@@ -23,5 +23,5 @@ layout(location = 0) in vec3 normal;
 layout(location = 1) in vec2 uv;
 layout(set = 0, binding = 1) uniform sampler2D tux;
 void main() {
-    color = vec4(normal, 1.0);
+    color = vec4(uv, 0.0, 1.0);
 }
