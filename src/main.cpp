@@ -25,6 +25,7 @@
 #include "util.h"
 #include "texture.h"
 #include "model.h"
+#include "scene.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -42,6 +43,11 @@ struct app_data_t {
     std::shared_ptr<uniform_buffer> camera_buffer;
     std::shared_ptr<texture> tux;
     glm::mat4 model;
+    std::shared_ptr<scene> global_scene;
+};
+
+struct transform_component {
+    glm::vec3 position;
 };
 
 static void update(app_data_t& app_data) {
@@ -108,6 +114,7 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.camera_buffer->bind(app_data.test_pipeline, i);
         app_data.tux->bind(app_data.test_pipeline, i, "tux");
     }
+    app_data.global_scene = std::make_shared<scene>();
 
     // game loop
     while (!app_data.app_window->should_close()) {
