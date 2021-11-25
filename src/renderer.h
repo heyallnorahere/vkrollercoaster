@@ -17,6 +17,7 @@
 #pragma once
 #include "window.h"
 #include "command_buffer.h"
+#include "scene.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct swapchain_support_details {
@@ -55,6 +56,7 @@ namespace vkrollercoaster {
         static void new_frame();
         static void add_ref();
         static void remove_ref();
+        static void render(std::shared_ptr<command_buffer> cmdbuffer, std::shared_ptr<pipeline> _pipeline, entity to_render);
         static std::shared_ptr<command_buffer> create_render_command_buffer();
         static std::shared_ptr<command_buffer> create_single_time_command_buffer();
         static std::shared_ptr<window> get_window();

@@ -26,6 +26,7 @@
 #include "texture.h"
 #include "model.h"
 #include "scene.h"
+#include "components.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -33,28 +34,43 @@ struct vertex {
     glm::vec2 uv;
 };
 
+struct draw_call_data {
+    std::shared_ptr<vertex_buffer> vbo;
+    std::shared_ptr<index_buffer> ibo;
+};
+
 struct app_data_t {
     std::shared_ptr<window> app_window;
     std::shared_ptr<swapchain> swap_chain;
     std::shared_ptr<pipeline> test_pipeline;
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
-    std::shared_ptr<vertex_buffer> knight_vertex_buffer;
-    std::shared_ptr<index_buffer> knight_index_buffer;
+    std::vector<draw_call_data> rendered_draw_calls;
     std::shared_ptr<uniform_buffer> camera_buffer;
     std::shared_ptr<texture> tux;
-    glm::mat4 model;
     std::shared_ptr<scene> global_scene;
     uint64_t frame_count = 0;
 };
 
-struct transform_component {
-    glm::vec3 position;
-};
+static void new_frame(app_data_t& app_data) {
+    renderer::new_frame();
+    app_data.rendered_draw_calls.clear();
+}
 
 static void update(app_data_t& app_data) {
-    app_data.frame_count++;
-    constexpr float distance = 2.5f;
+    static double last_frame = 0;
     double time = util::get_time<double>();
+    double delta_time = time - last_frame;
+    last_frame = time;
+    // capping it at 60
+    constexpr double fps = 60;
+    constexpr double frame_duration = 1 / fps;
+    if (delta_time < frame_duration) {
+        auto duration = std::chrono::milliseconds(1000 * (int64_t)(frame_duration - delta_time));
+        std::this_thread::sleep_for(duration);
+    }
+    app_data.frame_count++;
+
+    constexpr float distance = 2.5f;
     glm::vec3 view_point = glm::vec3(0.f);
     view_point.x = (float)cos(time) * distance;
     view_point.z = (float)sin(time) * distance;
@@ -67,18 +83,30 @@ static void update(app_data_t& app_data) {
     camera_data.projection = glm::perspective(glm::radians(45.f), aspect_ratio, 0.1f, 100.f);
     camera_data.view = glm::lookAt(view_point, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
     app_data.camera_buffer->set_data(camera_data);
-    float scale = (float)sin(time) * 0.5f + 0.5f;
-    app_data.model = glm::scale(glm::mat4(1.f), glm::vec3(scale));
+    for (entity knight : app_data.global_scene->find_tag("knight")) {
+        auto& transform = knight.get_component<transform_component>();
+        transform.rotation += glm::radians(glm::vec3(1.f, 0.f, 0.f));
+    }
 }
 
 static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
-    cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(0.f, 0.f, 0.f, 1.f), current_image);
+    cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(glm::vec3(0.1f), 1.f), current_image);
     app_data.test_pipeline->bind(cmdbuffer, current_image);
-    app_data.knight_vertex_buffer->bind(cmdbuffer);
-    app_data.knight_index_buffer->bind(cmdbuffer);
-    vkCmdPushConstants(cmdbuffer->get(), app_data.test_pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &app_data.model);
-    vkCmdDrawIndexed(cmdbuffer->get(), app_data.knight_index_buffer->get_index_count(), 1, 0, 0, 0);
+    // probably should optimize and batch render
+    for (entity ent : app_data.global_scene->view<transform_component, model_component>()) {
+        const auto& model_data = ent.get_component<model_component>();
+        const auto& transform = ent.get_component<transform_component>();
+        glm::mat4 model = transform.matrix();
+        draw_call_data draw_call;
+        draw_call.vbo = std::make_shared<vertex_buffer>(model_data.data->get_vertices());
+        draw_call.ibo = std::make_shared<index_buffer>(model_data.data->get_indices());
+        draw_call.vbo->bind(cmdbuffer);
+        draw_call.ibo->bind(cmdbuffer);
+        vkCmdPushConstants(cmdbuffer->get(), app_data.test_pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
+        vkCmdDrawIndexed(cmdbuffer->get(), draw_call.ibo->get_index_count(), 1, 0, 0, 0);
+        app_data.rendered_draw_calls.push_back(draw_call);
+    }
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
@@ -105,9 +133,6 @@ int32_t main(int32_t argc, const char** argv) {
         { vertex_attribute_type::VEC2, offsetof(model::vertex, uv) }
     };
     app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, test_pipeline_spec);
-    auto knight = std::make_shared<model>("assets/models/knight.gltf");
-    app_data.knight_vertex_buffer = std::make_shared<vertex_buffer>(knight->get_vertices());
-    app_data.knight_index_buffer = std::make_shared<index_buffer>(knight->get_indices());
     app_data.camera_buffer = uniform_buffer::from_shader_data(testshader, 0, 0);
     app_data.tux = std::make_shared<texture>(image::from_file("assets/tux.png"));
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
@@ -118,11 +143,15 @@ int32_t main(int32_t argc, const char** argv) {
         app_data.tux->bind(app_data.test_pipeline, i, "tux");
     }
     app_data.global_scene = std::make_shared<scene>();
+    auto knight_model = std::make_shared<model>("assets/models/knight.gltf");
+    entity knight = app_data.global_scene->create("knight");
+    knight.get_component<transform_component>().scale = glm::vec3(0.25f);
+    knight.add_component<model_component>(knight_model);
 
     // game loop
     while (!app_data.app_window->should_close()) {
         window::poll();
-        renderer::new_frame();
+        new_frame(app_data);
         update(app_data);
         app_data.swap_chain->prepare_frame();
         size_t current_image = app_data.swap_chain->get_current_image();

@@ -86,12 +86,18 @@ namespace vkrollercoaster {
         return true;
     }
     void renderer::add_layer(const std::string& name) {
+        if (renderer_data.layer_names.find(name) != renderer_data.layer_names.end()) {
+            return;
+        }
         if (!check_layer_availability(name)) {
             throw std::runtime_error("attempted to add unsupported layer!");
         }
         renderer_data.layer_names.insert(name);
     }
     void renderer::add_instance_extension(const std::string& name) {
+        if (renderer_data.instance_extensions.find(name) != renderer_data.instance_extensions.end()) {
+            return;
+        }
         uint32_t extension_count = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
         std::vector<VkExtensionProperties> extensions(extension_count);

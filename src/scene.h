@@ -38,10 +38,9 @@ namespace vkrollercoaster {
     };
     class scene {
     public:
-        entity create() {
-            entt::entity id = this->m_registry.create();
-            return entity(id, this);
-        }
+        entity create();
+        entity create(const std::string& tag);
+        std::vector<entity> find_tag(const std::string& tag);
         template<typename... Components> std::vector<entity> view() {
             std::vector<entity> entities;
             auto view = this->m_registry.view<Components...>();

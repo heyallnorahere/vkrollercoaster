@@ -8,11 +8,11 @@ layout(location = 1) out vec2 uv;
 layout(std140, set = 0, binding = 0) uniform camera_data {
     mat4 projection, view;
 } camera;
-layout(push_constant) uniform push_constant_data {
+layout(push_constant) uniform push_constants {
     mat4 model;
-} push_constants;
+} object_data;
 void main() {
-    gl_Position = camera.projection * camera.view * push_constants.model * vec4(in_position, 1.0);
+    gl_Position = camera.projection * camera.view * object_data.model * vec4(in_position, 1.0);
     normal = in_normal;
     uv = in_uv;
 }
