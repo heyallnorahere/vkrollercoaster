@@ -45,6 +45,14 @@ namespace vkrollercoaster {
             vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout, set, 1, &data.sets[current_image], 0, nullptr);
         }
     }
+    void pipeline::reload(bool descriptor_sets) {
+        this->destroy_pipeline();
+        if (descriptor_sets) {
+            this->destroy_descriptor_sets();
+            this->create_descriptor_sets();
+        }
+        this->create_pipeline();
+    }
     void pipeline::create_descriptor_sets() {
         this->m_push_constant_ranges.clear();
         const auto& reflection_data = this->m_shader->get_reflection_data();

@@ -44,6 +44,7 @@ struct app_data_t {
     std::shared_ptr<texture> tux;
     glm::mat4 model;
     std::shared_ptr<scene> global_scene;
+    uint64_t frame_count = 0;
 };
 
 struct transform_component {
@@ -51,6 +52,7 @@ struct transform_component {
 };
 
 static void update(app_data_t& app_data) {
+    app_data.frame_count++;
     constexpr float distance = 2.5f;
     double time = util::get_time<double>();
     glm::vec3 view_point = glm::vec3(0.f);
