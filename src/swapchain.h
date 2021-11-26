@@ -40,11 +40,12 @@ namespace vkrollercoaster {
         VkExtent2D get_extent() { return this->m_extent; }
         VkRenderPass get_render_pass() { return this->m_render_pass; }
         uint32_t get_current_image() { return this->m_current_image; }
+        std::shared_ptr<window> get_window() { return this->m_window; }
     private:
         struct swapchain_dependent {
             std::function<void()> destroy, recreate;
         };
-        void create(int32_t width, int32_t height);
+        void create(int32_t width, int32_t height, bool render_pass = false);
         void create_swapchain(uint32_t width, uint32_t height);
         void create_depth_image();
         void create_render_pass();

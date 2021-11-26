@@ -27,13 +27,15 @@ namespace vkrollercoaster {
         this->m_window = renderer::get_window();
         int32_t width, height;
         this->m_window->get_size(&width, &height);
-        this->create(width, height);
+        this->create(width, height, true);
         this->m_window->m_swapchains.insert(this);
     }
 
     swapchain::~swapchain() {
         this->m_window->m_swapchains.erase(this);
         this->destroy();
+        VkDevice device = renderer::get_device();
+        vkDestroyRenderPass(device, this->m_render_pass, nullptr);
         renderer::remove_ref();
     }
 
@@ -59,12 +61,16 @@ namespace vkrollercoaster {
         const auto& frame_sync_objects = renderer::get_sync_objects(current_frame);
         constexpr uint64_t uint64_max = std::numeric_limits<uint64_t>::max();
         vkWaitForFences(device, 1, &frame_sync_objects.fence, true, uint64_max);
+
         VkResult result = vkAcquireNextImageKHR(device, this->m_swapchain, uint64_max, frame_sync_objects.image_available_semaphore, nullptr, &this->m_current_image);
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             this->reload();
+            this->prepare_frame();
+            return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("could not acquire next swapchain image!");
         }
+
         if (this->m_image_fences[this->m_current_image] != nullptr) {
             vkWaitForFences(device, 1, &this->m_image_fences[this->m_current_image], true, uint64_max);
         }
@@ -131,10 +137,12 @@ namespace vkrollercoaster {
             return extent;
         }
     }
-    void swapchain::create(int32_t width, int32_t height) {
+    void swapchain::create(int32_t width, int32_t height, bool render_pass) {
         this->create_swapchain((uint32_t)width, (uint32_t)height);
         this->create_depth_image();
-        this->create_render_pass();
+        if (render_pass) {
+            this->create_render_pass();
+        }
         this->fetch_images();
     }
     void swapchain::create_swapchain(uint32_t width, uint32_t height) {
@@ -292,7 +300,6 @@ namespace vkrollercoaster {
             vkDestroyImageView(device, image.view, nullptr);
         }
         this->m_swapchain_images.clear();
-        vkDestroyRenderPass(device, this->m_render_pass, nullptr);
         vkDestroySwapchainKHR(device, this->m_swapchain, nullptr);
     }
 }

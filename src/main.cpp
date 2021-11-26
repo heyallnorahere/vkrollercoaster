@@ -27,6 +27,7 @@
 #include "model.h"
 #include "scene.h"
 #include "components.h"
+#include "imgui_controller.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -47,6 +48,7 @@ struct app_data_t {
     std::vector<draw_call_data> rendered_draw_calls;
     std::shared_ptr<uniform_buffer> camera_buffer;
     std::shared_ptr<texture> tux;
+    std::shared_ptr<imgui_controller> imgui;
     std::shared_ptr<scene> global_scene;
     uint64_t frame_count = 0;
 };
@@ -54,6 +56,7 @@ struct app_data_t {
 static void new_frame(app_data_t& app_data) {
     renderer::new_frame();
     app_data.rendered_draw_calls.clear();
+    app_data.imgui->new_frame();
 }
 
 static void update(app_data_t& app_data) {
@@ -70,7 +73,7 @@ static void update(app_data_t& app_data) {
     }
     app_data.frame_count++;
 
-    constexpr float distance = 2.5f;
+    static float distance = 2.5f;
     glm::vec3 view_point = glm::vec3(0.f);
     view_point.x = (float)cos(time) * distance;
     view_point.z = (float)sin(time) * distance;
@@ -86,6 +89,22 @@ static void update(app_data_t& app_data) {
     for (entity knight : app_data.global_scene->find_tag("knight")) {
         auto& transform = knight.get_component<transform_component>();
         transform.rotation += glm::radians(glm::vec3(1.f, 0.f, 0.f));
+    }
+
+    {
+        static bool wireframe = false;
+        auto& spec = app_data.test_pipeline->spec();
+        bool reload_pipeline = false;
+        ImGui::Begin("Settings");
+        if (ImGui::Checkbox("Wireframe", &wireframe)) {
+            spec.polygon_mode = (wireframe ? pipeline_polygon_mode::wireframe : pipeline_polygon_mode::fill);
+            reload_pipeline = true;
+        }
+        ImGui::SliderFloat("Distance from object", &distance, 0.5f, 10.f);
+        ImGui::End();
+        if (reload_pipeline) {
+            app_data.test_pipeline->reload();
+        }
     }
 }
 
@@ -107,6 +126,7 @@ static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer
         vkCmdDrawIndexed(cmdbuffer->get(), draw_call.ibo->get_index_count(), 1, 0, 0, 0);
         app_data.rendered_draw_calls.push_back(draw_call);
     }
+    app_data.imgui->render(cmdbuffer);
     cmdbuffer->end_render_pass();
     cmdbuffer->end();
 }
@@ -121,6 +141,7 @@ int32_t main(int32_t argc, const char** argv) {
     // set up vulkan
     renderer::init(app_data.app_window);
     app_data.swap_chain = std::make_shared<swapchain>();
+    app_data.imgui = std::make_shared<imgui_controller>(app_data.swap_chain);
 
     // load app data
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
