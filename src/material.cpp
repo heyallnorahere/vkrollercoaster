@@ -28,7 +28,7 @@ namespace vkrollercoaster {
         material_data.swap_chain = swap_chain;
     }
     void material::shutdown() {
-        if (material_data.swap_chain) {
+        if (!material_data.swap_chain) {
             spdlog::warn("the material system has not been initialized");
         }
         material_data.swap_chain.reset();
