@@ -28,6 +28,7 @@
 #include "scene.h"
 #include "components.h"
 #include "imgui_controller.h"
+#include "material.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -142,6 +143,7 @@ int32_t main(int32_t argc, const char** argv) {
     renderer::init(app_data.app_window);
     app_data.swap_chain = std::make_shared<swapchain>();
     app_data.imgui = std::make_shared<imgui_controller>(app_data.swap_chain);
+    material::init(app_data.swap_chain);
 
     // load app data
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
@@ -184,6 +186,7 @@ int32_t main(int32_t argc, const char** argv) {
     }
 
     // clean up
+    material::shutdown();
     renderer::shutdown();
     window::shutdown();
 
