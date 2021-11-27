@@ -110,22 +110,35 @@ namespace vkrollercoaster {
         this->m_dependents.erase(id);
     }
     static VkSurfaceFormatKHR choose_format(const std::vector<VkSurfaceFormatKHR>& formats) {
-        constexpr VkFormat preferred_format = VK_FORMAT_R8G8B8A8_SRGB;
+        std::vector<VkFormat> preferred_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
         constexpr VkColorSpaceKHR preferred_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-        for (const auto& format : formats) {
-            if (format.format == preferred_format && format.colorSpace == preferred_color_space) {
-                return format;
+        if (formats.size() == 1) {
+            if (formats[0].format == VK_FORMAT_UNDEFINED) {
+                VkSurfaceFormatKHR surface_format;
+                surface_format.format = preferred_formats[0];
+                surface_format.colorSpace = preferred_color_space;
+            }
+        } else {
+            for (VkFormat preferred_format : preferred_formats) {
+                for (const auto& format : formats) {
+                    if (format.format == preferred_format && format.colorSpace == preferred_color_space) {
+                        return format;
+                    }
+                }
             }
         }
         return formats[0];
     }
     static VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR>& present_modes) {
-        for (auto present_mode : present_modes) {
-            if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return present_mode;
+        std::vector<VkPresentModeKHR> preferred_present_modes = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+        for (auto preferred_present_mode : preferred_present_modes) {
+            for (auto present_mode : present_modes) {
+                if (present_mode == preferred_present_mode) {
+                    return present_mode;
+                }
             }
         }
-        return VK_PRESENT_MODE_FIFO_KHR;
+        return preferred_present_modes[0];
     }
     static VkExtent2D choose_extent(uint32_t width, uint32_t height, const VkSurfaceCapabilitiesKHR& capabilities) {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
