@@ -16,6 +16,7 @@
 
 #include "pch.h"
 #include "material.h"
+#include "renderer.h"
 namespace vkrollercoaster {
     static struct {
         std::shared_ptr<swapchain> swap_chain;
@@ -43,6 +44,18 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not find material buffer!");
         }
         this->m_buffer = uniform_buffer::from_shader_data(this->m_shader, this->m_set, this->m_binding);
+        for (const auto& [set, resources] : reflection_data.resources) {
+            for (const auto& [binding, resource] : resources) {
+                if (resource.resource_type == shader_resource_type::sampledimage) {
+                    auto white_texture = renderer::get_white_texture();
+                    const auto& type = reflection_data.types[resource.type];
+                    this->m_textures[resource.name].resize(type.array_size);
+                    for (uint32_t i = 0; i < type.array_size; i++) {
+                        this->m_textures[resource.name][i] = white_texture;
+                    }
+                }
+            }
+        }
     }
     std::shared_ptr<pipeline> material::create_pipeline(const pipeline_spec& spec) {
         auto _pipeline = std::make_shared<pipeline>(this->m_swapchain, this->m_shader, spec);
@@ -94,9 +107,6 @@ namespace vkrollercoaster {
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, std::shared_ptr<texture> tex, uint32_t slot) {
-        if (slot >= this->m_textures[name].size()) {
-            this->m_textures[name].resize(slot + 1);
-        }
         this->m_textures[name][slot] = tex;
     }
 }

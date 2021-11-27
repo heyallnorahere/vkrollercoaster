@@ -32,6 +32,7 @@ namespace vkrollercoaster {
         VkDescriptorPool descriptor_pool = nullptr;
         VkCommandPool graphics_command_pool = nullptr;
         std::array<sync_objects, renderer::max_frame_count> frame_sync_objects;
+        std::shared_ptr<texture> white_texture;
         size_t current_frame = 0;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
@@ -366,6 +367,12 @@ namespace vkrollercoaster {
         create_descriptor_pool();
         create_graphics_command_pool();
         create_sync_objects();
+        image_data white_data;
+        int32_t channels = 3;
+        white_data.data.resize(channels, 1);
+        white_data.channels = channels;
+        white_data.width = white_data.height = 1;
+        renderer_data.white_texture = std::make_shared<texture>(std::make_shared<image>(white_data));
     }
     static void shutdown_renderer() {
         spdlog::info("shutting down renderer...");
@@ -391,6 +398,7 @@ namespace vkrollercoaster {
         renderer_data.application_window.reset();
     }
     void renderer::shutdown() {
+        renderer_data.white_texture.reset();
         vkDeviceWaitIdle(renderer_data.device);
         renderer_data.should_shutdown = true;
         if (renderer_data.ref_count == 0) {
@@ -425,6 +433,7 @@ namespace vkrollercoaster {
     VkQueue renderer::get_present_queue() { return renderer_data.present_queue; }
     VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
+    std::shared_ptr<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
     queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
         uint32_t queue_family_count = 0;

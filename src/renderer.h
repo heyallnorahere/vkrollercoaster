@@ -18,6 +18,7 @@
 #include "window.h"
 #include "command_buffer.h"
 #include "scene.h"
+#include "texture.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct swapchain_support_details {
@@ -67,6 +68,7 @@ namespace vkrollercoaster {
         static VkQueue get_present_queue();
         static VkSurfaceKHR get_window_surface();
         static VkDescriptorPool get_descriptor_pool();
+        static std::shared_ptr<texture> get_white_texture();
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
         static queue_family_indices find_queue_families(VkPhysicalDevice device);

@@ -48,7 +48,6 @@ struct app_data_t {
     std::vector<std::shared_ptr<command_buffer>> command_buffers;
     std::vector<draw_call_data> rendered_draw_calls;
     std::shared_ptr<uniform_buffer> camera_buffer;
-    std::shared_ptr<texture> tux;
     std::shared_ptr<imgui_controller> imgui;
     std::shared_ptr<scene> global_scene;
     uint64_t frame_count = 0;
@@ -157,13 +156,11 @@ int32_t main(int32_t argc, const char** argv) {
     };
     app_data.test_pipeline = std::make_shared<pipeline>(app_data.swap_chain, testshader, test_pipeline_spec);
     app_data.camera_buffer = uniform_buffer::from_shader_data(testshader, 0, 0);
-    app_data.tux = std::make_shared<texture>(image::from_file("assets/tux.png"));
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
         app_data.camera_buffer->bind(app_data.test_pipeline, i);
-        app_data.tux->bind(app_data.test_pipeline, i, "tux");
     }
     app_data.global_scene = std::make_shared<scene>();
     auto knight_model = std::make_shared<model>("assets/models/knight.gltf");

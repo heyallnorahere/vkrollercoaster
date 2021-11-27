@@ -21,7 +21,14 @@ void main() {
 layout(location = 0) out vec4 color;
 layout(location = 0) in vec3 normal;
 layout(location = 1) in vec2 uv;
-layout(set = 0, binding = 1) uniform sampler2D tux;
+/*layout(set = 1, binding = 0) uniform material_data {
+    float shininess;
+    vec3 diffuse, ambient, specular;
+} material;
+layout(set = 1, binding = 1) uniform sampler2D diffuse_texture;
+layout(set = 1, binding = 2) uniform sampler2D ambient_texture;
+layout(set = 1, binding = 3) uniform sampler2D specular_texture;*/
 void main() {
+    //color = texture(diffuse_texture) * vec4(material.diffuse, 1.0);
     color = vec4(uv, 0.0, 1.0);
 }
