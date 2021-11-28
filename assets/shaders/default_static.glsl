@@ -23,11 +23,9 @@ layout(location = 0) in vec3 normal;
 layout(location = 1) in vec2 uv;
 layout(set = 1, binding = 0) uniform material_data {
     float shininess;
-    vec3 diffuse, ambient, specular;
+    vec3 albedo_color;
 } material;
-layout(set = 1, binding = 1) uniform sampler2D diffuse_texture;
-layout(set = 1, binding = 2) uniform sampler2D ambient_texture;
-layout(set = 1, binding = 3) uniform sampler2D specular_texture;
+layout(set = 1, binding = 1) uniform sampler2D albedo_texture;
 void main() {
-    color = texture(diffuse_texture, uv) * vec4(material.diffuse, 1.0);
+    color = texture(albedo_texture, uv) * vec4(material.albedo_color, 1.0);
 }

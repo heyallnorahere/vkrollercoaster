@@ -224,8 +224,8 @@ namespace vkrollercoaster {
             return found_types[id];
         }
         size_t type_index = base_data->types.size();
-        found_types[id] = type_index;
-        auto& type = base_data->types.emplace_back();
+        found_types.insert(std::make_pair(id, type_index));
+        shader_type type;
         type.base_data = base_data;
         const auto& spirv_type = compiler.get_type(id);
         type.name = compiler.get_name(id);
@@ -243,11 +243,13 @@ namespace vkrollercoaster {
                 type.array_stride = type.size;
             }
         }
+        base_data->types.push_back(type);
         for (uint32_t i = 0; i < spirv_type.member_types.size(); i++) {
             std::string name = compiler.get_member_name(spirv_type.self, i);
-            auto& field = type.fields[name];
+            shader_field field;
             field.offset = compiler.type_struct_member_offset(spirv_type, i);
             field.type = get_type(compiler, spirv_type.member_types[i], id, i, base_data);
+            base_data->types[type_index].fields.insert(std::make_pair(name, field));
         }
         return type_index;
     }
@@ -257,47 +259,53 @@ namespace vkrollercoaster {
         for (const auto& resource : resources.uniform_buffers) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            shader_resource_data resource_desc;
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::uniformbuffer;
             resource_desc.stage = stage;
             resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.storage_buffers) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            shader_resource_data resource_desc;
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::storagebuffer;
             resource_desc.stage = stage;
             resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.sampled_images) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            auto& resource_desc = this->m_reflection_data.resources[set][binding];
+            shader_resource_data resource_desc;
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::sampledimage;
             resource_desc.stage = stage;
             resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.push_constant_buffers) {
-            auto& desc = this->m_reflection_data.push_constant_buffers.emplace_back();
+            push_constant_buffer_data desc;
             desc.name = resource.name;
             desc.stage = stage;
             desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.push_constant_buffers.push_back(desc);
         }
         for (const auto& resource : resources.stage_inputs) {
-            auto& desc = this->m_reflection_data.inputs[stage].emplace_back();
+            shader_stage_io_field desc;
             desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
             desc.name = resource.name;
             desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.inputs[stage].push_back(desc);
         }
         for (const auto& resource : resources.stage_outputs) {
-            auto& desc = this->m_reflection_data.outputs[stage].emplace_back();
+            shader_stage_io_field desc;
             desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
             desc.name = resource.name;
             desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            this->m_reflection_data.outputs[stage].push_back(desc);
         }
         found_types.clear();
     }

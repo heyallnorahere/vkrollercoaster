@@ -18,6 +18,7 @@
 #define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
+#include "components.h"
 namespace vkrollercoaster {
     static struct {
         std::shared_ptr<window> application_window;
@@ -416,6 +417,13 @@ namespace vkrollercoaster {
         if (renderer_data.ref_count == 0 && renderer_data.should_shutdown) {
             shutdown_renderer();
         }
+    }
+    void renderer::render(std::shared_ptr<command_buffer> cmdbuffer, entity to_render) {
+        if (!to_render.has_component<transform_component>() ||
+            !to_render.has_component<model_component>()) {
+            throw std::runtime_error("the given entity does not have necessary components for rendering!");
+        }
+        // todo: render model
     }
     std::shared_ptr<command_buffer> renderer::create_render_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, false, true);
