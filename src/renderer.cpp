@@ -423,7 +423,21 @@ namespace vkrollercoaster {
             !to_render.has_component<model_component>()) {
             throw std::runtime_error("the given entity does not have necessary components for rendering!");
         }
-        // todo: render model
+        const auto& model_data = to_render.get_component<model_component>();
+        const auto& transform = to_render.get_component<transform_component>();
+        glm::mat4 model_matrix = transform.matrix();
+        const auto& render_call_data = model_data.data->get_render_call_data();
+        for (const auto& render_call : render_call_data) {
+            auto _pipeline = render_call._material._pipeline;
+            auto swap_chain = _pipeline->get_swapchain();
+            size_t current_image = swap_chain->get_current_image();
+
+            render_call.vbo->bind(cmdbuffer);
+            render_call.ibo->bind(cmdbuffer);
+            _pipeline->bind(cmdbuffer, current_image);
+            vkCmdPushConstants(cmdbuffer->get(), _pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model_matrix);
+            vkCmdDrawIndexed(cmdbuffer->get(), render_call.ibo->get_index_count(), 1, 0, 0, 0);
+        }
     }
     std::shared_ptr<command_buffer> renderer::create_render_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, false, true);

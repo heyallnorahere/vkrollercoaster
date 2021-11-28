@@ -67,6 +67,7 @@ namespace vkrollercoaster {
         void bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image);
         void reload(bool descriptor_sets = false);
         std::shared_ptr<shader> get_shader() { return this->m_shader; }
+        std::shared_ptr<swapchain> get_swapchain() { return this->m_swapchain; }
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }

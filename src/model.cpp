@@ -51,6 +51,9 @@ namespace vkrollercoaster {
     model::model(const fs::path& path) {
         initialize_logger();
         this->m_path = path;
+        if (!this->m_path.has_parent_path()) {
+            this->m_path = fs::current_path() / this->m_path;
+        }
         this->reload();
     }
     static constexpr uint32_t import_flags =
@@ -135,7 +138,8 @@ namespace vkrollercoaster {
 
             // albedo map
             if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_path) == aiReturn_SUCCESS) {
-                auto img = image::from_file(fs::path(ai_path.C_Str()));
+                auto path = this->m_path.parent_path() / fs::path(ai_path.C_Str());
+                auto img = image::from_file(path);
                 if (img) {
                     auto tex = std::make_shared<texture>(img);
                     _material->set("albedo_texture", tex);
