@@ -67,9 +67,9 @@ static void update(app_data_t& app_data) {
     // capping it at 60
     constexpr double fps = 60;
     constexpr double frame_duration = 1 / fps;
-    if (delta_time < frame_duration) {
-        auto duration = std::chrono::milliseconds(1000 * (int64_t)(frame_duration - delta_time));
-        std::this_thread::sleep_for(duration);
+
+    if (frame_duration > delta_time) {
+        std::this_thread::sleep_for(std::chrono::duration<double>(frame_duration - delta_time));
     }
     app_data.frame_count++;
 
@@ -96,6 +96,8 @@ static void update(app_data_t& app_data) {
         auto& spec = app_data.test_pipeline->spec();
         bool reload_pipeline = false;
         ImGui::Begin("Settings");
+        ImGuiIO& io = ImGui::GetIO();
+        ImGui::Text("FPS: %f", io.Framerate);
         if (ImGui::Checkbox("Wireframe", &wireframe)) {
             spec.polygon_mode = (wireframe ? pipeline_polygon_mode::wireframe : pipeline_polygon_mode::fill);
             reload_pipeline = true;

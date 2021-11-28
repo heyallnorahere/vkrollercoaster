@@ -34,12 +34,31 @@ namespace vkrollercoaster {
     struct shader_field {
         size_t offset, type;
     };
-    struct shader_reflection_data;
-    struct shader_type {
-        size_t find_offset(const std::string& field_name, const shader_reflection_data& base_data) const;
+    struct shader_stage_io_field {
+        size_t type, location;
         std::string name;
-        size_t size, array_stride, array_size;
+    };
+    struct shader_reflection_data;
+    enum class shader_base_type {
+        UINT,
+        INT,
+        UINT64,
+        INT64,
+        FLOAT,
+        STRUCT,
+        CHAR,
+        BOOLEAN,
+        DOUBLE,
+        SAMPLED_IMAGE,
+        SAMPLER,
+    };
+    struct shader_type {
+        size_t find_offset(const std::string& field_name) const;
+        std::string name;
+        size_t size, array_stride, array_size, columns;
         std::map<std::string, shader_field> fields;
+        shader_base_type base_type;
+        shader_reflection_data* base_data;
     };
     struct shader_resource_data {
         std::string name;
@@ -57,6 +76,7 @@ namespace vkrollercoaster {
         std::map<uint32_t, std::map<uint32_t, shader_resource_data>> resources;
         std::vector<push_constant_buffer_data> push_constant_buffers;
         std::vector<shader_type> types;
+        std::map<shader_stage, std::vector<shader_stage_io_field>> inputs, outputs;
     };
     class pipeline;
     class shader {

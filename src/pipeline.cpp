@@ -166,6 +166,9 @@ namespace vkrollercoaster {
             case vertex_attribute_type::IVEC4:
                 attribute_desc.format = VK_FORMAT_R32G32B32A32_SINT;
                 break;
+            case vertex_attribute_type::BOOLEAN:
+                attribute_desc.format = VK_FORMAT_R8_UINT;
+                break;
             default:
                 throw std::runtime_error("invalid vertex attribute type!");
             }

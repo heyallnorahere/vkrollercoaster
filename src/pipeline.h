@@ -27,7 +27,8 @@ namespace vkrollercoaster {
         VEC3,
         IVEC3,
         VEC4,
-        IVEC4
+        IVEC4,
+        BOOLEAN,
     };
     struct vertex_attribute {
         vertex_attribute_type type;

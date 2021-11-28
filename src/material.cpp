@@ -73,37 +73,37 @@ namespace vkrollercoaster {
     void material::set(const std::string& name, int32_t data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, uint32_t data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, float data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, const glm::vec3& data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, const glm::vec4& data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, const glm::mat4& data) {
         auto& reflection_data = this->m_shader->get_reflection_data();
         auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name, reflection_data);
+        size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
     void material::set(const std::string& name, std::shared_ptr<texture> tex, uint32_t slot) {

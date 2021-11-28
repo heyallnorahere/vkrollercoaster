@@ -168,39 +168,69 @@ namespace vkrollercoaster {
         }
     }
     static std::map<spirv_cross::TypeID, size_t> found_types;
-    static size_t get_type_size(const spirv_cross::SPIRType& type, const spirv_cross::Compiler& compiler) {
+    static void parse_base_type(const spirv_cross::SPIRType& type, const spirv_cross::Compiler& compiler, size_t& size, shader_base_type& base_type) {
         using BaseType = spirv_cross::SPIRType::BaseType;
         switch (type.basetype) {
         case BaseType::Boolean:
+            size = sizeof(bool);
+            base_type = shader_base_type::BOOLEAN;
+            break;
         case BaseType::Char:
-            return 1;
+            size = sizeof(char);
+            base_type = shader_base_type::CHAR;
+            break;
         case BaseType::Float:
+            size = sizeof(float);
+            base_type = shader_base_type::FLOAT;
+            break;
         case BaseType::Int:
+            size = sizeof(int32_t);
+            base_type = shader_base_type::INT;
+            break;
         case BaseType::UInt:
+            size = sizeof(uint32_t);
+            base_type = shader_base_type::UINT;
+            break;
         case BaseType::SampledImage:
+            size = std::numeric_limits<size_t>::max();
+            base_type = shader_base_type::SAMPLED_IMAGE;
+            break;
         case BaseType::Sampler:
-            return 4;
+            size = std::numeric_limits<size_t>::max();
+            base_type = shader_base_type::SAMPLER;
+            break;
         case BaseType::Int64:
+            size = sizeof(int64_t);
+            base_type = shader_base_type::INT64;
+            break;
         case BaseType::Double:
+            size = sizeof(double);
+            base_type = shader_base_type::DOUBLE;
+            break;
         case BaseType::UInt64:
-            return 8;
+            size = sizeof(uint64_t);
+            base_type = shader_base_type::UINT64;
+            break;
         case BaseType::Struct:
-            return compiler.get_declared_struct_size(type);
+            size = compiler.get_declared_struct_size(type);
+            base_type = shader_base_type::STRUCT;
+            break;
         default:
             throw std::runtime_error("invalid base type");
         }
-        return 0;
     }
-    static size_t get_type(const spirv_cross::Compiler& compiler, spirv_cross::TypeID id, spirv_cross::TypeID parent, uint32_t member_index, std::vector<shader_type>& types) {
+    static size_t get_type(const spirv_cross::Compiler& compiler, spirv_cross::TypeID id, spirv_cross::TypeID parent, uint32_t member_index, shader_reflection_data* base_data) {
         if (found_types.find(id) != found_types.end()) {
             return found_types[id];
         }
-        size_t type_index = types.size();
+        size_t type_index = base_data->types.size();
         found_types[id] = type_index;
-        auto& type = types.emplace_back();
+        auto& type = base_data->types.emplace_back();
+        type.base_data = base_data;
         const auto& spirv_type = compiler.get_type(id);
         type.name = compiler.get_name(id);
-        type.size = get_type_size(spirv_type, compiler) * spirv_type.columns;
+        type.columns = spirv_type.columns;
+        parse_base_type(spirv_type, compiler, type.size, type.base_type);
         if (spirv_type.array.empty()) {
             type.array_size = 1;
             type.array_stride = 0;
@@ -217,7 +247,7 @@ namespace vkrollercoaster {
             std::string name = compiler.get_member_name(spirv_type.self, i);
             auto& field = type.fields[name];
             field.offset = compiler.type_struct_member_offset(spirv_type, i);
-            field.type = get_type(compiler, spirv_type.member_types[i], id, i, types);
+            field.type = get_type(compiler, spirv_type.member_types[i], id, i, base_data);
         }
         return type_index;
     }
@@ -231,7 +261,7 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::uniformbuffer;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
         }
         for (const auto& resource : resources.storage_buffers) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -240,7 +270,7 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::storagebuffer;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
         }
         for (const auto& resource : resources.sampled_images) {
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -249,13 +279,25 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::sampledimage;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
         }
         for (const auto& resource : resources.push_constant_buffers) {
             auto& desc = this->m_reflection_data.push_constant_buffers.emplace_back();
             desc.name = resource.name;
             desc.stage = stage;
-            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, this->m_reflection_data.types);
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+        }
+        for (const auto& resource : resources.stage_inputs) {
+            auto& desc = this->m_reflection_data.inputs[stage].emplace_back();
+            desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+            desc.name = resource.name;
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+        }
+        for (const auto& resource : resources.stage_outputs) {
+            auto& desc = this->m_reflection_data.outputs[stage].emplace_back();
+            desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+            desc.name = resource.name;
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
         }
         found_types.clear();
     }
@@ -266,7 +308,7 @@ namespace vkrollercoaster {
         }
         this->m_shader_data.clear();
     }
-    size_t shader_type::find_offset(const std::string& field_name, const shader_reflection_data& base_data) const {
+    size_t shader_type::find_offset(const std::string& field_name) const {
         size_t separator_pos = field_name.find('.');
         std::string name, subname;
         if (separator_pos != std::string::npos) {
@@ -294,17 +336,17 @@ namespace vkrollercoaster {
             throw std::runtime_error(name + " is not the name of a field");
         }
         const auto& field = this->fields.find(name)->second;
-        if (index != -1 && base_data.types[field.type].array_stride == 0) {
+        if (index != -1 && this->base_data->types[field.type].array_stride == 0) {
             throw std::runtime_error("attempted to index into a non-array field");
         }
         if (index == -1) {
             index = 0;
         }
-        size_t offset = field.offset + (index * base_data.types[field.type].array_stride);
+        size_t offset = field.offset + (index * this->base_data->types[field.type].array_stride);
         if (subname.empty()) {
             return offset;
         } else {
-            return offset + base_data.types[field.type].find_offset(subname, base_data);
+            return offset + this->base_data->types[field.type].find_offset(subname);
         }
     }
     bool shader_reflection_data::find_resource(const std::string& name, uint32_t& set, uint32_t& binding) const {
