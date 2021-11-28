@@ -102,4 +102,24 @@ namespace vkrollercoaster {
         std::unordered_set<pipeline*> m_dependents;
         friend class pipeline;
     };
+    class shader_library {
+    public:
+        static std::shared_ptr<shader> add(const std::string& name) {
+            return add(name, "assets/shaders/" + name + ".glsl");
+        }
+        static std::shared_ptr<shader> add(const std::string& name, const fs::path& path) {
+            std::shared_ptr<shader> _shader;
+            if (!get(name)) {
+                _shader = std::make_shared<shader>(path);
+                add(name, _shader);
+            }
+            return _shader;
+        }
+        static bool add(const std::string& name, std::shared_ptr<shader> _shader);
+        static bool remove(const std::string& name);
+        static std::shared_ptr<shader> get(const std::string& name);
+        static void clear();
+    private:
+        shader_library() = default;
+    };
 }

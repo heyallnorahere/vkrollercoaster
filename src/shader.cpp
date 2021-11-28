@@ -361,4 +361,32 @@ namespace vkrollercoaster {
         }
         return false;
     }
+    static std::unordered_map<std::string, std::shared_ptr<shader>> library;
+    bool shader_library::add(const std::string& name, std::shared_ptr<shader> _shader) {
+        if (library.find(name) != library.end()) {
+            return false;
+        }
+        if (!_shader) {
+            return false;
+        }
+        library.insert(std::make_pair(name, _shader));
+        return true;
+    }
+    bool shader_library::remove(const std::string& name) {
+        if (library.find(name) == library.end()) {
+            return false;
+        }
+        library.erase(name);
+        return true;
+    }
+    std::shared_ptr<shader> shader_library::get(const std::string& name) {
+        std::shared_ptr<shader> _shader;
+        if (library.find(name) != library.end()) {
+            _shader = library[name];
+        }
+        return _shader;
+    }
+    void shader_library::clear() {
+        library.clear();
+    }
 }

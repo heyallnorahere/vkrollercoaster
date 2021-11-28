@@ -147,6 +147,7 @@ int32_t main(int32_t argc, const char** argv) {
     material::init(app_data.swap_chain);
 
     // load app data
+    shader_library::add("default_static");
     auto testshader = std::make_shared<shader>("assets/shaders/testshader.glsl");
     pipeline_spec test_pipeline_spec;
     test_pipeline_spec.front_face = pipeline_front_face::clockwise;
@@ -186,6 +187,7 @@ int32_t main(int32_t argc, const char** argv) {
 
     // clean up
     material::shutdown();
+    shader_library::clear();
     renderer::shutdown();
     window::shutdown();
 

@@ -39,6 +39,9 @@ namespace vkrollercoaster {
             throw std::runtime_error("the material system has not been initialized!");
         }
         this->m_shader = _shader;
+        if (!this->m_shader) {
+            throw std::runtime_error("passed nullptr!");
+        }
         auto& reflection_data = this->m_shader->get_reflection_data();
         if (!reflection_data.find_resource("material_data", this->m_set, this->m_binding)) {
             throw std::runtime_error("could not find material buffer!");

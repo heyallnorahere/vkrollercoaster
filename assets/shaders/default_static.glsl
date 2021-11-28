@@ -29,5 +29,5 @@ layout(set = 1, binding = 1) uniform sampler2D diffuse_texture;
 layout(set = 1, binding = 2) uniform sampler2D ambient_texture;
 layout(set = 1, binding = 3) uniform sampler2D specular_texture;
 void main() {
-    color = texture(diffuse_texture) * vec4(material.diffuse, 1.0);
+    color = texture(diffuse_texture, uv) * vec4(material.diffuse, 1.0);
 }

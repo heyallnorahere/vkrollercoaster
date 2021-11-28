@@ -26,6 +26,7 @@ namespace vkrollercoaster {
         static void init(std::shared_ptr<swapchain> swap_chain);
         static void shutdown();
         material(std::shared_ptr<shader> _shader);
+        material(const std::string& shader_name) : material(shader_library::get(shader_name)) { }
         ~material() = default;
         std::shared_ptr<pipeline> create_pipeline(const pipeline_spec& spec);
         void set(const std::string& name, int32_t data);
