@@ -36,6 +36,11 @@ struct vertex {
     glm::vec2 uv;
 };
 
+struct loaded_model_t {
+    std::shared_ptr<model> data;
+    std::string name;
+};
+
 struct app_data_t {
     std::shared_ptr<window> app_window;
     std::shared_ptr<swapchain> swap_chain;
@@ -43,6 +48,8 @@ struct app_data_t {
     std::shared_ptr<uniform_buffer> camera_buffer;
     std::shared_ptr<imgui_controller> imgui;
     std::shared_ptr<scene> global_scene;
+    std::vector<loaded_model_t> loaded_models;
+    int32_t current_model = 0;
     uint64_t frame_count = 0;
 };
 
@@ -52,17 +59,10 @@ static void new_frame(app_data_t& app_data) {
 }
 
 static void update(app_data_t& app_data) {
-    static double last_frame = 0;
     double time = util::get_time<double>();
+    static double last_frame = time;
     double delta_time = time - last_frame;
     last_frame = time;
-    // capping it at 60
-    constexpr double fps = 60;
-    constexpr double frame_duration = 1 / fps;
-
-    if (frame_duration > delta_time) {
-        std::this_thread::sleep_for(std::chrono::duration<double>(frame_duration - delta_time));
-    }
     app_data.frame_count++;
 
     static float distance = 2.5f;
@@ -78,16 +78,22 @@ static void update(app_data_t& app_data) {
     camera_data.projection = glm::perspective(glm::radians(45.f), aspect_ratio, 0.1f, 100.f);
     camera_data.view = glm::lookAt(view_point, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
     app_data.camera_buffer->set_data(camera_data);
-    for (entity knight : app_data.global_scene->find_tag("knight")) {
-        auto& transform = knight.get_component<transform_component>();
-        transform.rotation += glm::radians(glm::vec3(1.f, 0.f, 0.f));
-    }
 
     {
         ImGui::Begin("Settings");
         ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("FPS: %f", io.Framerate);
         ImGui::SliderFloat("Distance from object", &distance, 0.5f, 10.f);
+        std::vector<const char*> names;
+        for (const auto& loaded_model : app_data.loaded_models) {
+            names.push_back(loaded_model.name.c_str());
+        }
+        if (ImGui::Combo("Model", &app_data.current_model, names.data(), names.size())) {
+            for (entity object : app_data.global_scene->find_tag("created-object")) {
+                auto& model_data = object.get_component<model_component>();
+                model_data.data = app_data.loaded_models[app_data.current_model].data;
+            }
+        }
         ImGui::End();
     }
 }
@@ -121,19 +127,30 @@ int32_t main(int32_t argc, const char** argv) {
     shader_library::add("default_static");
     app_data.camera_buffer = std::make_shared<uniform_buffer>(0, 0, sizeof(glm::mat4) * 2);
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
-    auto knight_model = std::make_shared<model>("assets/models/knight.gltf");
+    for (const auto& entry : fs::directory_iterator("assets/models")) {
+        fs::path path = entry.path();
+        if (path.extension() != ".gltf") {
+            continue;
+        }
+        loaded_model_t loaded_model;
+        loaded_model.data = std::make_shared<model>(path);
+        loaded_model.name = path.filename().string();
+        app_data.loaded_models.push_back(loaded_model);
+    }
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
         // todo: not this
-        for (const auto& render_call : knight_model->get_render_call_data()) {
-            app_data.camera_buffer->bind(render_call._material._pipeline, i);
+        for (const auto& loaded_model : app_data.loaded_models) {
+            for (const auto& render_call : loaded_model.data->get_render_call_data()) {
+                app_data.camera_buffer->bind(render_call._material._pipeline, i);
+            }
         }
     }
     app_data.global_scene = std::make_shared<scene>();
-    entity knight = app_data.global_scene->create("knight");
-    knight.get_component<transform_component>().scale = glm::vec3(0.25f);
-    knight.add_component<model_component>(knight_model);
+    entity object = app_data.global_scene->create("created-object");
+    object.get_component<transform_component>().scale = glm::vec3(0.25f);
+    object.add_component<model_component>(app_data.loaded_models[app_data.current_model].data);
 
     // game loop
     while (!app_data.app_window->should_close()) {
