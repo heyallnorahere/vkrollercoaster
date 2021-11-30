@@ -54,6 +54,8 @@ namespace vkrollercoaster {
         pipeline_front_face front_face = pipeline_front_face::clockwise;
         vertex_input_data input_layout;
     };
+    class uniform_buffer;
+    class texture;
     class pipeline : public ref_counted {
     public:
         struct descriptor_set {
@@ -75,10 +77,35 @@ namespace vkrollercoaster {
         const std::map<uint32_t, descriptor_set>& get_descriptor_sets() { return this->m_descriptor_sets; }
         pipeline_spec& spec() { return this->m_spec; }
     private:
+        enum class buffer_type {
+            ubo,
+            // todo: shader storage buffer object
+        };
+        struct bound_buffer_desc {
+            buffer_type type;
+            void* object = nullptr;
+        };
+        struct texture_binding_desc {
+            uint32_t set, binding, slot;
+            // why is this necessary???
+            bool operator==(const texture_binding_desc& other) const {
+                return (this->set == other.set) && (this->binding == other.binding) && (this->slot) == (other.slot);
+            }
+            bool operator!=(const texture_binding_desc& other) const {
+                return !(*this == other);
+            }
+            struct hash {
+                size_t operator()(const texture_binding_desc& desc) const {
+                    std::hash<uint32_t> hasher;
+                    return (hasher(desc.set) << 2) ^ (hasher(desc.binding) << 1) ^ hasher(desc.slot);
+                }
+            };
+        };
         void create_descriptor_sets();
         void create_pipeline();
         void destroy_pipeline();
         void destroy_descriptor_sets();
+        void rebind_objects();
         pipeline_spec m_spec;
         ref<swapchain> m_swapchain;
         ref<shader> m_shader;
@@ -88,7 +115,11 @@ namespace vkrollercoaster {
         VkPipeline m_pipeline;
         std::map<uint32_t, descriptor_set> m_descriptor_sets;
         std::vector<VkPushConstantRange> m_push_constant_ranges;
+        std::unordered_map<texture_binding_desc, texture*, texture_binding_desc::hash> m_bound_textures;
+        std::map<uint32_t, std::map<uint32_t, bound_buffer_desc>> m_bound_buffers;
         friend class swapchain;
         friend class shader;
+        friend class uniform_buffer;
+        friend class texture;
     };
 }

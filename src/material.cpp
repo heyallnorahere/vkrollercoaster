@@ -62,13 +62,10 @@ namespace vkrollercoaster {
     }
     ref<pipeline> material::create_pipeline(const pipeline_spec& spec) {
         auto _pipeline = ref<pipeline>::create(this->m_swapchain, this->m_shader, spec);
-        size_t image_count = this->m_swapchain->get_swapchain_images().size();
-        for (size_t i = 0; i < image_count; i++) {
-            this->m_buffer->bind(_pipeline, i);
-            for (const auto& [resource_name, textures] : this->m_textures) {
-                for (size_t slot = 0; slot < textures.size(); slot++) {
-                    textures[slot]->bind(_pipeline, i, resource_name, slot);
-                }
+        this->m_buffer->bind(_pipeline);
+        for (const auto& [resource_name, textures] : this->m_textures) {
+            for (size_t slot = 0; slot < textures.size(); slot++) {
+                textures[slot]->bind(_pipeline, resource_name, slot);
             }
         }
         return _pipeline;

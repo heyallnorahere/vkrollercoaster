@@ -140,11 +140,11 @@ int32_t main(int32_t argc, const char** argv) {
     for (size_t i = 0; i < image_count; i++) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
-        // todo: not this
-        for (const auto& loaded_model : app_data.loaded_models) {
-            for (const auto& render_call : loaded_model.data->get_render_call_data()) {
-                app_data.camera_buffer->bind(render_call._material._pipeline, i);
-            }
+    }
+    // todo: not this
+    for (const auto& loaded_model : app_data.loaded_models) {
+        for (const auto& render_call : loaded_model.data->get_render_call_data()) {
+            app_data.camera_buffer->bind(render_call._material._pipeline);
         }
     }
     app_data.global_scene = ref<scene>::create();

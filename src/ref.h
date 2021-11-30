@@ -133,3 +133,11 @@ namespace vkrollercoaster {
         template<typename U> friend class ref;
     };
 }
+namespace std {
+    template<typename T> struct hash<::vkrollercoaster::ref<T>> {
+        size_t operator()(const ::vkrollercoaster::ref<T>& ref) const {
+            hash<T*> hasher;
+            return hasher(ref.raw());
+        }
+    };
+}

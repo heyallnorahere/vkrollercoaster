@@ -57,7 +57,7 @@ namespace vkrollercoaster {
         ~uniform_buffer();
         uniform_buffer(const uniform_buffer&) = delete;
         uniform_buffer& operator=(const uniform_buffer&) = delete;
-        void bind(ref<pipeline> _pipeline, size_t current_image);
+        void bind(ref<pipeline> _pipeline);
         template<typename T> void set_data(const T& data, size_t offset = 0) {
             this->set_data(&data, sizeof(T), offset);
         }
@@ -67,5 +67,7 @@ namespace vkrollercoaster {
         VkDeviceMemory m_memory;
         uint32_t m_set, m_binding;
         size_t m_size;
+        std::set<pipeline*> m_bound_pipelines;
+        friend class pipeline;
     };
 }

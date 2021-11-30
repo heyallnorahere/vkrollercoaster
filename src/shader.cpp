@@ -64,9 +64,11 @@ namespace vkrollercoaster {
             _pipeline->destroy_descriptor_sets();
         }
         this->destroy();
+        this->m_reflection_data.reset();
         this->create();
         for (auto _pipeline : this->m_dependents) {
             _pipeline->create_descriptor_sets();
+            _pipeline->rebind_objects();
             _pipeline->create_pipeline();
         }
     }
@@ -368,6 +370,13 @@ namespace vkrollercoaster {
             }
         }
         return false;
+    }
+    void shader_reflection_data::reset() {
+        this->resources.clear();
+        this->push_constant_buffers.clear();
+        this->types.clear();
+        this->inputs.clear();
+        this->outputs.clear();
     }
     static std::unordered_map<std::string, ref<shader>> library;
     bool shader_library::add(const std::string& name, ref<shader> _shader) {

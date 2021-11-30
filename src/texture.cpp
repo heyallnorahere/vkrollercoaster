@@ -25,11 +25,22 @@ namespace vkrollercoaster {
         this->create_sampler();
     }
     texture::~texture() {
+        for (auto _pipeline : this->m_bound_pipelines) {
+            std::vector<pipeline::texture_binding_desc> bindings;
+            for (const auto& [binding, tex] : _pipeline->m_bound_textures) {
+                if (tex == this) {
+                    bindings.push_back(binding);
+                }
+            }
+            for (const auto& binding : bindings) {
+                _pipeline->m_bound_textures.erase(binding);
+            }
+        }
         VkDevice device = renderer::get_device();
         vkDestroySampler(device, this->m_sampler, nullptr);
         renderer::remove_ref();
     }
-    void texture::bind(ref<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot) {
+    void texture::bind(ref<pipeline> _pipeline, uint32_t set, uint32_t binding, uint32_t slot) {
         auto _shader = _pipeline->get_shader();
         auto& reflection_data = _shader->get_reflection_data();
         const auto& resource = reflection_data.resources[set][binding];
@@ -41,7 +52,7 @@ namespace vkrollercoaster {
         if (slot >= resource_type.array_size) {
             throw std::runtime_error("index " + std::to_string(slot) + " is out of the array range (" + std::to_string(resource_type.array_size) + ") of " + binding_string + "!");
         }
-        const auto& sets = _pipeline->get_descriptor_sets();
+        auto& sets = _pipeline->m_descriptor_sets;
         if (sets.find(set) == sets.end()) {
             throw std::runtime_error("set " + std::to_string(set) + " does not exist on the given pipeline!");
         }
@@ -50,24 +61,38 @@ namespace vkrollercoaster {
         image_info.imageLayout = this->m_image->get_layout();
         image_info.imageView = this->m_image->get_view();
         image_info.sampler = this->m_sampler;
-        VkWriteDescriptorSet write;
-        util::zero(write);
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = sets.find(set)->second.sets[current_image];
-        write.dstBinding = binding;
-        write.dstArrayElement = slot;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &image_info;
+        std::vector<VkWriteDescriptorSet> writes;
+        for (VkDescriptorSet current_set : sets[set].sets) {
+            VkWriteDescriptorSet write;
+            util::zero(write);
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = current_set;
+            write.dstBinding = binding;
+            write.dstArrayElement = slot;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.descriptorCount = 1;
+            write.pImageInfo = &image_info;
+            writes.push_back(write);
+        }
         VkDevice device = renderer::get_device();
-        vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+        vkUpdateDescriptorSets(device, writes.size(), writes.data(), 0, nullptr);
+        if (this->m_bound_pipelines.find(_pipeline.raw()) == this->m_bound_pipelines.end()) {
+            this->m_bound_pipelines.insert(_pipeline.raw());
+        }
+        pipeline::texture_binding_desc binding_desc;
+        binding_desc.set = set;
+        binding_desc.binding = binding;
+        binding_desc.slot = slot;
+        if (_pipeline->m_bound_textures[binding_desc] != this) {
+            _pipeline->m_bound_textures[binding_desc] = this;
+        }
     }
-    void texture::bind(ref<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot) {
+    void texture::bind(ref<pipeline> _pipeline, const std::string& name, uint32_t slot) {
         auto _shader = _pipeline->get_shader();
         auto& reflection_data = _shader->get_reflection_data();
         uint32_t set, binding;
         if (reflection_data.find_resource(name, set, binding)) {
-            this->bind(_pipeline, current_image, set, binding, slot);
+            this->bind(_pipeline, set, binding, slot);
         } else {
             throw std::runtime_error("the specified resource was not found!");
         }

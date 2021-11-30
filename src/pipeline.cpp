@@ -18,6 +18,8 @@
 #include "pipeline.h"
 #include "renderer.h"
 #include "util.h"
+#include "buffers.h"
+#include "texture.h"
 namespace vkrollercoaster {
     pipeline::pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec) {
         this->m_swapchain = _swapchain;
@@ -32,6 +34,21 @@ namespace vkrollercoaster {
         this->m_swapchain->add_reload_callbacks(this, destroy, recreate);
     }
     pipeline::~pipeline() {
+        for (const auto& [set, bindings] : this->m_bound_buffers) {
+            for (const auto& [binding, data] : bindings) {
+                switch (data.type) {
+                case buffer_type::ubo:
+                    {
+                        auto ubo = (uniform_buffer*)data.object;
+                        ubo->m_bound_pipelines.erase(this);
+                    }
+                    break;
+                }
+            }
+        }
+        for (const auto& [binding, tex] : this->m_bound_textures) {
+            tex->m_bound_pipelines.erase(this);
+        }
         this->m_swapchain->remove_reload_callbacks(this);
         this->m_shader->m_dependents.erase(this);
         this->destroy_pipeline();
@@ -50,6 +67,7 @@ namespace vkrollercoaster {
         if (descriptor_sets) {
             this->destroy_descriptor_sets();
             this->create_descriptor_sets();
+            this->rebind_objects();
         }
         this->create_pipeline();
     }
@@ -317,6 +335,25 @@ namespace vkrollercoaster {
         for (const auto& [_, set] : this->m_descriptor_sets) {
             vkFreeDescriptorSets(device, descriptor_pool, set.sets.size(), set.sets.data());
             vkDestroyDescriptorSetLayout(device, set.layout, nullptr);
+        }
+    }
+    void pipeline::rebind_objects() {
+        for (const auto& [set, bindings] : this->m_bound_buffers) {
+            for (const auto& [binding, data] : bindings) {
+                switch (data.type) {
+                case buffer_type::ubo:
+                    {
+                        auto ubo = (uniform_buffer*)data.object;
+                        ubo->bind(this);
+                    }
+                    break;
+                default:
+                    throw std::runtime_error("invalid buffer type!");
+                }
+            }
+        }
+        for (const auto& [binding, tex] : this->m_bound_textures) {
+            tex->bind(this, binding.set, binding.binding, binding.slot);
         }
     }
 }

@@ -148,33 +148,54 @@ namespace vkrollercoaster {
             this->m_buffer, this->m_memory);
     }
     uniform_buffer::~uniform_buffer() {
+        for (auto _pipeline : this->m_bound_pipelines) {
+            auto& set_data = _pipeline->m_bound_buffers[this->m_set];
+            if (set_data.find(this->m_binding) == set_data.end()) {
+                continue;
+            }
+            if (set_data[this->m_binding].object == this) {
+                set_data.erase(this->m_binding);
+            }
+        }
         VkDevice device = renderer::get_device();
         vkDestroyBuffer(device, this->m_buffer, nullptr);
         vkFreeMemory(device, this->m_memory, nullptr);
         renderer::remove_ref();
     }
-    void uniform_buffer::bind(ref<pipeline> _pipeline, size_t current_image) {
-        const auto& descriptor_sets = _pipeline->get_descriptor_sets();
+    void uniform_buffer::bind(ref<pipeline> _pipeline) {
+        auto& descriptor_sets = _pipeline->m_descriptor_sets;
         if (descriptor_sets.find(this->m_set) == descriptor_sets.end()) {
             throw std::runtime_error("attempted to bind to a nonexistent descriptor set!");
         }
-        VkDescriptorSet set = descriptor_sets.find(this->m_set)->second.sets[current_image];
         VkDescriptorBufferInfo buffer_info;
         util::zero(buffer_info);
         buffer_info.buffer = this->m_buffer;
         buffer_info.range = this->m_size;
         buffer_info.offset = 0;
-        VkWriteDescriptorSet descriptor_write;
-        util::zero(descriptor_write);
-        descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write.dstSet = set;
-        descriptor_write.dstBinding = this->m_binding;
-        descriptor_write.dstArrayElement = 0;
-        descriptor_write.pBufferInfo = &buffer_info;
-        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write.descriptorCount = 1;
+        std::vector<VkWriteDescriptorSet> descriptor_writes;
+        for (VkDescriptorSet set : descriptor_sets[this->m_set].sets) {
+            VkWriteDescriptorSet descriptor_write;
+            util::zero(descriptor_write);
+            descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptor_write.dstSet = set;
+            descriptor_write.dstBinding = this->m_binding;
+            descriptor_write.dstArrayElement = 0;
+            descriptor_write.pBufferInfo = &buffer_info;
+            descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptor_write.descriptorCount = 1;
+            descriptor_writes.push_back(descriptor_write);
+        }
         VkDevice device = renderer::get_device();
-        vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, nullptr);
+        vkUpdateDescriptorSets(device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
+        if (this->m_bound_pipelines.find(_pipeline.raw()) == this->m_bound_pipelines.end()) {
+            this->m_bound_pipelines.insert(_pipeline.raw());
+        }
+        if (_pipeline->m_bound_buffers[this->m_set][this->m_binding].object != this) {
+            pipeline::bound_buffer_desc desc;
+            desc.object = this;
+            desc.type = pipeline::buffer_type::ubo;
+            _pipeline->m_bound_buffers[this->m_set][this->m_binding] = desc;
+        }
     }
     void uniform_buffer::set_data(const void* data, size_t size, size_t offset) {
         VkDevice device = renderer::get_device();

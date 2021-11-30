@@ -24,12 +24,14 @@ namespace vkrollercoaster {
         ~texture();
         texture(const texture&) = delete;
         texture& operator=(const texture&) = delete;
-        void bind(ref<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot = 0);
-        void bind(ref<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot = 0);
+        void bind(ref<pipeline> _pipeline, uint32_t set, uint32_t binding, uint32_t slot = 0);
+        void bind(ref<pipeline> _pipeline, const std::string& name, uint32_t slot = 0);
         ref<image> get_image() { return this->m_image; }
     private:
         void create_sampler();
         ref<image> m_image;
         VkSampler m_sampler;
+        std::set<pipeline*> m_bound_pipelines;
+        friend class pipeline;
     };
 }
