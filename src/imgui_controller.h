@@ -18,13 +18,13 @@
 #include "swapchain.h"
 #include "command_buffer.h"
 namespace vkrollercoaster {
-    class imgui_controller {
+    class imgui_controller : public ref_counted {
     public:
-        imgui_controller(std::shared_ptr<swapchain> _swapchain);
+        imgui_controller(ref<swapchain> _swapchain);
         ~imgui_controller();
         void new_frame();
-        void render(std::shared_ptr<command_buffer> cmdbuffer);
+        void render(ref<command_buffer> cmdbuffer);
     private:
-        std::shared_ptr<swapchain> m_swapchain;
+        ref<swapchain> m_swapchain;
     };
 }

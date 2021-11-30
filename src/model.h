@@ -22,16 +22,16 @@ struct aiScene;
 struct aiNode;
 struct aiMesh;
 namespace vkrollercoaster {
-    class model {
+    class model : public ref_counted {
     public:
         struct material_data {
-            std::shared_ptr<material> _material;
-            std::shared_ptr<pipeline> _pipeline;
+            ref<material> _material;
+            ref<pipeline> _pipeline;
         };
         struct render_call_data {
             material_data _material;
-            std::shared_ptr<vertex_buffer> vbo;
-            std::shared_ptr<index_buffer> ibo;
+            ref<vertex_buffer> vbo;
+            ref<index_buffer> ibo;
         };
         struct vertex {
             glm::vec3 position, normal;
@@ -54,8 +54,8 @@ namespace vkrollercoaster {
         using material_map_t = std::map<size_t, std::vector<size_t>>;
         void process_node(aiNode* node, material_map_t& material_map);
         void process_mesh(aiMesh* mesh_, aiNode* node, material_map_t& material_map);
-        void process_materials(std::vector<std::shared_ptr<material>>& materials);
-        void create_render_call_data(const material_map_t& material_map, const std::vector<std::shared_ptr<material>>& materials);
+        void process_materials(std::vector<ref<material>>& materials);
+        void create_render_call_data(const material_map_t& material_map, const std::vector<ref<material>>& materials);
         std::vector<vertex> m_vertices;
         std::vector<uint32_t> m_indices;
         std::vector<mesh> m_meshes;

@@ -21,26 +21,26 @@
 #include "buffers.h"
 #include "pipeline.h"
 namespace vkrollercoaster {
-    class material {
+    class material : public ref_counted {
     public:
-        static void init(std::shared_ptr<swapchain> swap_chain);
+        static void init(ref<swapchain> swap_chain);
         static void shutdown();
-        material(std::shared_ptr<shader> _shader);
+        material(ref<shader> _shader);
         material(const std::string& shader_name) : material(shader_library::get(shader_name)) { }
         ~material() = default;
-        std::shared_ptr<pipeline> create_pipeline(const pipeline_spec& spec);
+        ref<pipeline> create_pipeline(const pipeline_spec& spec);
         void set(const std::string& name, int32_t data);
         void set(const std::string& name, uint32_t data);
         void set(const std::string& name, float data);
         void set(const std::string& name, const glm::vec3& data);
         void set(const std::string& name, const glm::vec4& data);
         void set(const std::string& name, const glm::mat4& data);
-        void set(const std::string& name, std::shared_ptr<texture> tex, uint32_t slot = 0);
+        void set(const std::string& name, ref<texture> tex, uint32_t slot = 0);
     private:
-        std::shared_ptr<swapchain> m_swapchain;
-        std::shared_ptr<uniform_buffer> m_buffer;
-        std::shared_ptr<shader> m_shader;
-        std::map<std::string, std::vector<std::shared_ptr<texture>>> m_textures;
+        ref<swapchain> m_swapchain;
+        ref<uniform_buffer> m_buffer;
+        ref<shader> m_shader;
+        std::map<std::string, std::vector<ref<texture>>> m_textures;
         uint32_t m_set, m_binding;
     };
 }

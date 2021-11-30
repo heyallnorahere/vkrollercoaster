@@ -17,7 +17,7 @@
 #pragma once
 namespace vkrollercoaster {
     class swapchain;
-    class window {
+    class window : public ref_counted {
     public:
         static void init();
         static void shutdown();

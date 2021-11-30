@@ -24,10 +24,10 @@ namespace vkrollercoaster {
         std::vector<uint8_t> data;
         int32_t width, height, channels;
     };
-    class image {
+    class image : public ref_counted {
     public:
         static bool load_image(const fs::path& path, image_data& data);
-        static std::shared_ptr<image> from_file(const fs::path& path);
+        static ref<image> from_file(const fs::path& path);
         image(const image_data& data);
         image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags image_aspect);
         ~image();

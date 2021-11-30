@@ -91,7 +91,7 @@ namespace vkrollercoaster {
         vkFreeMemory(device, this->m_memory, nullptr);
         renderer::remove_ref();
     }
-    void vertex_buffer::bind(std::shared_ptr<command_buffer> cmdbuffer, uint32_t slot) {
+    void vertex_buffer::bind(ref<command_buffer> cmdbuffer, uint32_t slot) {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(cmdbuffer->get(), slot, 1, &this->m_buffer, &offset);
     }
@@ -120,10 +120,10 @@ namespace vkrollercoaster {
         vkFreeMemory(device, this->m_memory, nullptr);
         renderer::remove_ref();
     }
-    void index_buffer::bind(std::shared_ptr<command_buffer> cmdbuffer) {
+    void index_buffer::bind(ref<command_buffer> cmdbuffer) {
         vkCmdBindIndexBuffer(cmdbuffer->get(), this->m_buffer, 0, VK_INDEX_TYPE_UINT32);
     }
-    std::shared_ptr<uniform_buffer> uniform_buffer::from_shader_data(std::shared_ptr<shader> _shader, uint32_t set, uint32_t binding) {
+    ref<uniform_buffer> uniform_buffer::from_shader_data(ref<shader> _shader, uint32_t set, uint32_t binding) {
         auto& reflection_data = _shader->get_reflection_data();
         if (reflection_data.resources.find(set) == reflection_data.resources.end()) {
             throw std::runtime_error("the specified set does not exist!");
@@ -137,7 +137,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("the specified binding is not a uniform buffer!");
         }
         size_t size = reflection_data.types[binding_data.type].size;
-        return std::make_shared<uniform_buffer>(set, binding, size);
+        return ref<uniform_buffer>::create(set, binding, size);
     }
     uniform_buffer::uniform_buffer(uint32_t set, uint32_t binding, size_t size) {
         renderer::add_ref();
@@ -153,7 +153,7 @@ namespace vkrollercoaster {
         vkFreeMemory(device, this->m_memory, nullptr);
         renderer::remove_ref();
     }
-    void uniform_buffer::bind(std::shared_ptr<pipeline> _pipeline, size_t current_image) {
+    void uniform_buffer::bind(ref<pipeline> _pipeline, size_t current_image) {
         const auto& descriptor_sets = _pipeline->get_descriptor_sets();
         if (descriptor_sets.find(this->m_set) == descriptor_sets.end()) {
             throw std::runtime_error("attempted to bind to a nonexistent descriptor set!");

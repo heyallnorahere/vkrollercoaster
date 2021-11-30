@@ -54,20 +54,20 @@ namespace vkrollercoaster {
         pipeline_front_face front_face = pipeline_front_face::clockwise;
         vertex_input_data input_layout;
     };
-    class pipeline {
+    class pipeline : public ref_counted {
     public:
         struct descriptor_set {
             VkDescriptorSetLayout layout;
             std::vector<VkDescriptorSet> sets;
         };
-        pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const pipeline_spec& spec);
+        pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec);
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
-        void bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image);
+        void bind(ref<command_buffer> cmdbuffer, size_t current_image);
         void reload(bool descriptor_sets = false);
-        std::shared_ptr<shader> get_shader() { return this->m_shader; }
-        std::shared_ptr<swapchain> get_swapchain() { return this->m_swapchain; }
+        ref<shader> get_shader() { return this->m_shader; }
+        ref<swapchain> get_swapchain() { return this->m_swapchain; }
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }
@@ -80,8 +80,8 @@ namespace vkrollercoaster {
         void destroy_pipeline();
         void destroy_descriptor_sets();
         pipeline_spec m_spec;
-        std::shared_ptr<swapchain> m_swapchain;
-        std::shared_ptr<shader> m_shader;
+        ref<swapchain> m_swapchain;
+        ref<shader> m_shader;
         VkViewport m_viewport;
         VkRect2D m_scissor;
         VkPipelineLayout m_layout;

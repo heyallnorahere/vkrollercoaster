@@ -24,40 +24,40 @@ namespace vkrollercoaster {
     void create_buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
     void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset = 0, size_t dest_offset = 0);
 #endif
-    class vertex_buffer {
+    class vertex_buffer : public ref_counted {
     public:
         template<typename T> vertex_buffer(const std::vector<T>& data) : vertex_buffer(data.data(), data.size() * sizeof(T)) { }
         vertex_buffer(const void* data, size_t size);
         ~vertex_buffer();
         vertex_buffer(const vertex_buffer&) = delete;
         vertex_buffer& operator=(const vertex_buffer&) = delete;
-        void bind(std::shared_ptr<command_buffer> cmdbuffer, uint32_t slot = 0);
+        void bind(ref<command_buffer> cmdbuffer, uint32_t slot = 0);
     private:
         VkBuffer m_buffer;
         VkDeviceMemory m_memory;
     };
-    class index_buffer {
+    class index_buffer : public ref_counted {
     public:
         index_buffer(const std::vector<uint32_t>& data) : index_buffer(data.data(), data.size()) { }
         index_buffer(const uint32_t* data, size_t index_count);
         ~index_buffer();
         index_buffer(const index_buffer&) = delete;
         index_buffer& operator=(const index_buffer&) = delete;
-        void bind(std::shared_ptr<command_buffer> cmdbuffer);
+        void bind(ref<command_buffer> cmdbuffer);
         size_t get_index_count() { return this->m_index_count; }
     private:
         VkBuffer m_buffer;
         VkDeviceMemory m_memory;
         size_t m_index_count;
     };
-    class uniform_buffer {
+    class uniform_buffer : public ref_counted {
     public:
-        static std::shared_ptr<uniform_buffer> from_shader_data(std::shared_ptr<shader> _shader, uint32_t set, uint32_t binding);
+        static ref<uniform_buffer> from_shader_data(ref<shader> _shader, uint32_t set, uint32_t binding);
         uniform_buffer(uint32_t set, uint32_t binding, size_t size);
         ~uniform_buffer();
         uniform_buffer(const uniform_buffer&) = delete;
         uniform_buffer& operator=(const uniform_buffer&) = delete;
-        void bind(std::shared_ptr<pipeline> _pipeline, size_t current_image);
+        void bind(ref<pipeline> _pipeline, size_t current_image);
         template<typename T> void set_data(const T& data, size_t offset = 0) {
             this->set_data(&data, sizeof(T), offset);
         }

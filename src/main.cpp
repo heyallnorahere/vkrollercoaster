@@ -37,17 +37,17 @@ struct vertex {
 };
 
 struct loaded_model_t {
-    std::shared_ptr<model> data;
+    ref<model> data;
     std::string name;
 };
 
 struct app_data_t {
-    std::shared_ptr<window> app_window;
-    std::shared_ptr<swapchain> swap_chain;
-    std::vector<std::shared_ptr<command_buffer>> command_buffers;
-    std::shared_ptr<uniform_buffer> camera_buffer;
-    std::shared_ptr<imgui_controller> imgui;
-    std::shared_ptr<scene> global_scene;
+    ref<window> app_window;
+    ref<swapchain> swap_chain;
+    std::vector<ref<command_buffer>> command_buffers;
+    ref<uniform_buffer> camera_buffer;
+    ref<imgui_controller> imgui;
+    ref<scene> global_scene;
     std::vector<loaded_model_t> loaded_models;
     int32_t current_model = 0;
     uint64_t frame_count = 0;
@@ -98,7 +98,7 @@ static void update(app_data_t& app_data) {
     }
 }
 
-static void draw(app_data_t& app_data, std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
+static void draw(app_data_t& app_data, ref<command_buffer> cmdbuffer, size_t current_image) {
     cmdbuffer->begin();
     cmdbuffer->begin_render_pass(app_data.swap_chain, glm::vec4(glm::vec3(0.1f), 1.f), current_image);
     // probably should optimize and batch render
@@ -115,17 +115,17 @@ int32_t main(int32_t argc, const char** argv) {
 
     // create window
     window::init();
-    app_data.app_window = std::make_shared<window>(1600, 900, "vkrollercoaster");
+    app_data.app_window = ref<window>::create(1600, 900, "vkrollercoaster");
 
     // set up vulkan
     renderer::init(app_data.app_window);
-    app_data.swap_chain = std::make_shared<swapchain>();
-    app_data.imgui = std::make_shared<imgui_controller>(app_data.swap_chain);
+    app_data.swap_chain = ref<swapchain>::create();
+    app_data.imgui = ref<imgui_controller>::create(app_data.swap_chain);
     material::init(app_data.swap_chain);
 
     // load app data
     shader_library::add("default_static");
-    app_data.camera_buffer = std::make_shared<uniform_buffer>(0, 0, sizeof(glm::mat4) * 2);
+    app_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(glm::mat4) * 2);
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (const auto& entry : fs::directory_iterator("assets/models")) {
         fs::path path = entry.path();
@@ -133,7 +133,7 @@ int32_t main(int32_t argc, const char** argv) {
             continue;
         }
         loaded_model_t loaded_model;
-        loaded_model.data = std::make_shared<model>(path);
+        loaded_model.data = ref<model>::create(path);
         loaded_model.name = path.filename().string();
         app_data.loaded_models.push_back(loaded_model);
     }
@@ -147,7 +147,7 @@ int32_t main(int32_t argc, const char** argv) {
             }
         }
     }
-    app_data.global_scene = std::make_shared<scene>();
+    app_data.global_scene = ref<scene>::create();
     entity object = app_data.global_scene->create("created-object");
     object.get_component<transform_component>().scale = glm::vec3(0.25f);
     object.add_component<model_component>(app_data.loaded_models[app_data.current_model].data);

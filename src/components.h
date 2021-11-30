@@ -34,7 +34,7 @@ namespace vkrollercoaster {
         }
     };
     struct model_component {
-        std::shared_ptr<model> data;
+        ref<model> data;
         // todo: animation data (when skinning)
     };
 }

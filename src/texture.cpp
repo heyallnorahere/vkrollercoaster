@@ -19,7 +19,7 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    texture::texture(std::shared_ptr<image> _image) {
+    texture::texture(ref<image> _image) {
         renderer::add_ref();
         this->m_image = _image;
         this->create_sampler();
@@ -29,7 +29,7 @@ namespace vkrollercoaster {
         vkDestroySampler(device, this->m_sampler, nullptr);
         renderer::remove_ref();
     }
-    void texture::bind(std::shared_ptr<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot) {
+    void texture::bind(ref<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot) {
         auto _shader = _pipeline->get_shader();
         auto& reflection_data = _shader->get_reflection_data();
         const auto& resource = reflection_data.resources[set][binding];
@@ -62,7 +62,7 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
     }
-    void texture::bind(std::shared_ptr<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot) {
+    void texture::bind(ref<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot) {
         auto _shader = _pipeline->get_shader();
         auto& reflection_data = _shader->get_reflection_data();
         uint32_t set, binding;

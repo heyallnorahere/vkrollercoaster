@@ -153,11 +153,11 @@ namespace vkrollercoaster {
         stbi_image_free(raw_data);
         return true;
     }
-    std::shared_ptr<image> image::from_file(const fs::path& path) {
-        std::shared_ptr<image> created_image;
+    ref<image> image::from_file(const fs::path& path) {
+        ref<image> created_image;
         image_data data;
         if (load_image(path, data)) {
-            created_image = std::make_shared<image>(data);
+            created_image = ref<image>::create(data);
         }
         return created_image;
     }

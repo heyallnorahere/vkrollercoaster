@@ -21,7 +21,7 @@
 #include "components.h"
 namespace vkrollercoaster {
     static struct {
-        std::shared_ptr<window> application_window;
+        ref<window> application_window;
         std::set<std::string> instance_extensions, device_extensions, layer_names;
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
@@ -33,7 +33,7 @@ namespace vkrollercoaster {
         VkDescriptorPool descriptor_pool = nullptr;
         VkCommandPool graphics_command_pool = nullptr;
         std::array<sync_objects, renderer::max_frame_count> frame_sync_objects;
-        std::shared_ptr<texture> white_texture;
+        ref<texture> white_texture;
         size_t current_frame = 0;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
@@ -356,7 +356,7 @@ namespace vkrollercoaster {
             }
         }
     }
-    void renderer::init(std::shared_ptr<window> _window) {
+    void renderer::init(ref<window> _window) {
         spdlog::info("initializing renderer...");
         renderer_data.application_window = _window;
         choose_extensions();
@@ -369,11 +369,11 @@ namespace vkrollercoaster {
         create_graphics_command_pool();
         create_sync_objects();
         image_data white_data;
-        int32_t channels = 3;
+        int32_t channels = 4;
         white_data.data.resize(channels, 1);
         white_data.channels = channels;
         white_data.width = white_data.height = 1;
-        renderer_data.white_texture = std::make_shared<texture>(std::make_shared<image>(white_data));
+        renderer_data.white_texture = ref<texture>::create(ref<image>::create(white_data));
     }
     static void shutdown_renderer() {
         spdlog::info("shutting down renderer...");
@@ -418,7 +418,7 @@ namespace vkrollercoaster {
             shutdown_renderer();
         }
     }
-    void renderer::render(std::shared_ptr<command_buffer> cmdbuffer, entity to_render) {
+    void renderer::render(ref<command_buffer> cmdbuffer, entity to_render) {
         if (!to_render.has_component<transform_component>() ||
             !to_render.has_component<model_component>()) {
             throw std::runtime_error("the given entity does not have necessary components for rendering!");
@@ -439,15 +439,15 @@ namespace vkrollercoaster {
             vkCmdDrawIndexed(cmdbuffer->get(), render_call.ibo->get_index_count(), 1, 0, 0, 0);
         }
     }
-    std::shared_ptr<command_buffer> renderer::create_render_command_buffer() {
+    ref<command_buffer> renderer::create_render_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, false, true);
-        return std::shared_ptr<command_buffer>(instance);
+        return ref<command_buffer>(instance);
     }
-    std::shared_ptr<command_buffer> renderer::create_single_time_command_buffer() {
+    ref<command_buffer> renderer::create_single_time_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, true, false);
-        return std::shared_ptr<command_buffer>(instance);
+        return ref<command_buffer>(instance);
     }
-    std::shared_ptr<window> renderer::get_window() { return renderer_data.application_window; }
+    ref<window> renderer::get_window() { return renderer_data.application_window; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }
     VkDevice renderer::get_device() { return renderer_data.device; }
@@ -455,7 +455,7 @@ namespace vkrollercoaster {
     VkQueue renderer::get_present_queue() { return renderer_data.present_queue; }
     VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
-    std::shared_ptr<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
+    ref<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
     queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
         uint32_t queue_family_count = 0;

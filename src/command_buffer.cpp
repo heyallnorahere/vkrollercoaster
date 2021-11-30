@@ -95,7 +95,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not allocate command buffer!");
         }
     }
-    void command_buffer::begin_render_pass(std::shared_ptr<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index) {
+    void command_buffer::begin_render_pass(ref<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index) {
         VkRenderPassBeginInfo begin_info;
         util::zero(begin_info);
         begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

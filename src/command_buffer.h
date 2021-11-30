@@ -19,7 +19,7 @@
 #include "shader.h"
 namespace vkrollercoaster {
     class renderer;
-    class command_buffer {
+    class command_buffer : public ref_counted {
     public:
         ~command_buffer();
         command_buffer(const command_buffer&) = delete;
@@ -28,7 +28,7 @@ namespace vkrollercoaster {
         void end();
         void submit();
         void reset();
-        void begin_render_pass(std::shared_ptr<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index);
+        void begin_render_pass(ref<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index);
         void end_render_pass();
         VkCommandBuffer get() { return this->m_buffer; }
     private:

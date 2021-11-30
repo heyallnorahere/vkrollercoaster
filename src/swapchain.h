@@ -18,7 +18,7 @@
 #include "window.h"
 #include "image.h"
 namespace vkrollercoaster {
-    class swapchain {
+    class swapchain : public ref_counted {
     public:
         struct swapchain_image {
             VkImage image;
@@ -40,7 +40,7 @@ namespace vkrollercoaster {
         VkExtent2D get_extent() { return this->m_extent; }
         VkRenderPass get_render_pass() { return this->m_render_pass; }
         uint32_t get_current_image() { return this->m_current_image; }
-        std::shared_ptr<window> get_window() { return this->m_window; }
+        ref<window> get_window() { return this->m_window; }
     private:
         struct swapchain_dependent {
             std::function<void()> destroy, recreate;
@@ -51,12 +51,12 @@ namespace vkrollercoaster {
         void create_render_pass();
         void fetch_images();
         void destroy();
-        std::shared_ptr<window> m_window;
+        ref<window> m_window;
         VkSwapchainKHR m_swapchain;
         VkFormat m_image_format;
         VkExtent2D m_extent;
         VkRenderPass m_render_pass;
-        std::shared_ptr<image> m_depth_image;
+        ref<image> m_depth_image;
         std::vector<swapchain_image> m_swapchain_images;
         std::map<void*, swapchain_dependent> m_dependents;
         uint32_t m_current_image;

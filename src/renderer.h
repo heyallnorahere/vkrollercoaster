@@ -52,15 +52,15 @@ namespace vkrollercoaster {
         static void add_layer(const std::string& name);
         static void add_instance_extension(const std::string& name);
         static void add_device_extension(const std::string& name);
-        static void init(std::shared_ptr<window> _window);
+        static void init(ref<window> _window);
         static void shutdown();
         static void new_frame();
         static void add_ref();
         static void remove_ref();
-        static void render(std::shared_ptr<command_buffer> cmdbuffer, entity to_render);
-        static std::shared_ptr<command_buffer> create_render_command_buffer();
-        static std::shared_ptr<command_buffer> create_single_time_command_buffer();
-        static std::shared_ptr<window> get_window();
+        static void render(ref<command_buffer> cmdbuffer, entity to_render);
+        static ref<command_buffer> create_render_command_buffer();
+        static ref<command_buffer> create_single_time_command_buffer();
+        static ref<window> get_window();
         static VkInstance get_instance();
         static VkPhysicalDevice get_physical_device();
         static VkDevice get_device();
@@ -68,7 +68,7 @@ namespace vkrollercoaster {
         static VkQueue get_present_queue();
         static VkSurfaceKHR get_window_surface();
         static VkDescriptorPool get_descriptor_pool();
-        static std::shared_ptr<texture> get_white_texture();
+        static ref<texture> get_white_texture();
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
         static queue_family_indices find_queue_families(VkPhysicalDevice device);

@@ -36,7 +36,7 @@ namespace vkrollercoaster {
         scene* m_scene;
         entt::entity m_id;
     };
-    class scene {
+    class scene : public ref_counted {
     public:
         entity create();
         entity create(const std::string& tag);

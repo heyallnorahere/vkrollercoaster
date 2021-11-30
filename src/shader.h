@@ -79,7 +79,7 @@ namespace vkrollercoaster {
         std::map<shader_stage, std::vector<shader_stage_io_field>> inputs, outputs;
     };
     class pipeline;
-    class shader {
+    class shader : public ref_counted {
     public:
         static VkShaderStageFlagBits get_stage_flags(shader_stage stage);
         shader(const fs::path& source);
@@ -104,20 +104,20 @@ namespace vkrollercoaster {
     };
     class shader_library {
     public:
-        static std::shared_ptr<shader> add(const std::string& name) {
+        static ref<shader> add(const std::string& name) {
             return add(name, "assets/shaders/" + name + ".glsl");
         }
-        static std::shared_ptr<shader> add(const std::string& name, const fs::path& path) {
-            std::shared_ptr<shader> _shader;
+        static ref<shader> add(const std::string& name, const fs::path& path) {
+            ref<shader> _shader;
             if (!get(name)) {
-                _shader = std::make_shared<shader>(path);
+                _shader = ref<shader>::create(path);
                 add(name, _shader);
             }
             return _shader;
         }
-        static bool add(const std::string& name, std::shared_ptr<shader> _shader);
+        static bool add(const std::string& name, ref<shader> _shader);
         static bool remove(const std::string& name);
-        static std::shared_ptr<shader> get(const std::string& name);
+        static ref<shader> get(const std::string& name);
         static void clear();
     private:
         shader_library() = default;

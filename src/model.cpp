@@ -75,7 +75,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not load model: " + std::string(this->m_importer->GetErrorString()));
         }
         material_map_t material_map;
-        std::vector<std::shared_ptr<material>> materials;
+        std::vector<ref<material>> materials;
         this->process_materials(materials);
         this->process_node(this->m_scene->mRootNode, material_map);
         this->create_render_call_data(material_map, materials);
@@ -126,13 +126,13 @@ namespace vkrollercoaster {
         util::append_vector(this->m_vertices, vertices);
         util::append_vector(this->m_indices, indices);
     }
-    void model::process_materials(std::vector<std::shared_ptr<material>>& materials) {
+    void model::process_materials(std::vector<ref<material>>& materials) {
         // todo: change when skinning
         const std::string shader_name = "default_static";
-        std::shared_ptr<shader> material_shader = shader_library::get(shader_name);
+        ref<shader> material_shader = shader_library::get(shader_name);
 
         for (size_t i = 0; i < this->m_scene->mNumMaterials; i++) {
-            auto _material = std::make_shared<material>(material_shader);
+            auto _material = ref<material>::create(material_shader);
             aiMaterial* ai_material = this->m_scene->mMaterials[i];
             aiString ai_path;
 
@@ -141,7 +141,7 @@ namespace vkrollercoaster {
                 auto path = this->m_path.parent_path() / fs::path(ai_path.C_Str());
                 auto img = image::from_file(path);
                 if (img) {
-                    auto tex = std::make_shared<texture>(img);
+                    auto tex = ref<texture>::create(img);
                     _material->set("albedo_texture", tex);
                 }
             }
@@ -164,7 +164,7 @@ namespace vkrollercoaster {
             materials.push_back(_material);
         }
     }
-    void model::create_render_call_data(const material_map_t& material_map, const std::vector<std::shared_ptr<material>>& materials) {
+    void model::create_render_call_data(const material_map_t& material_map, const std::vector<ref<material>>& materials) {
         pipeline_spec spec;
         spec.input_layout.stride = sizeof(vertex);
         spec.input_layout.attributes = {
@@ -196,8 +196,8 @@ namespace vkrollercoaster {
                     indices.push_back(index);
                 }
             }
-            render_call.vbo = std::make_shared<vertex_buffer>(vertices);
-            render_call.ibo = std::make_shared<index_buffer>(indices);
+            render_call.vbo = ref<vertex_buffer>::create(vertices);
+            render_call.ibo = ref<index_buffer>::create(indices);
         }
     }
 }

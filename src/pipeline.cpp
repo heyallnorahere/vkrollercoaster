@@ -19,7 +19,7 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    pipeline::pipeline(std::shared_ptr<swapchain> _swapchain, std::shared_ptr<shader> _shader, const pipeline_spec& spec) {
+    pipeline::pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec) {
         this->m_swapchain = _swapchain;
         this->m_shader = _shader;
         this->m_spec = spec;
@@ -38,7 +38,7 @@ namespace vkrollercoaster {
         this->destroy_descriptor_sets();
         renderer::remove_ref();
     }
-    void pipeline::bind(std::shared_ptr<command_buffer> cmdbuffer, size_t current_image) {
+    void pipeline::bind(ref<command_buffer> cmdbuffer, size_t current_image) {
         VkCommandBuffer vk_cmdbuffer = cmdbuffer->get();
         vkCmdBindPipeline(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
         for (const auto& [set, data] : this->m_descriptor_sets) {

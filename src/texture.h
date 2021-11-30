@@ -18,18 +18,18 @@
 #include "image.h"
 #include "pipeline.h"
 namespace vkrollercoaster {
-    class texture {
+    class texture : public ref_counted {
     public:
-        texture(std::shared_ptr<image> _image);
+        texture(ref<image> _image);
         ~texture();
         texture(const texture&) = delete;
         texture& operator=(const texture&) = delete;
-        void bind(std::shared_ptr<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot = 0);
-        void bind(std::shared_ptr<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot = 0);
-        std::shared_ptr<image> get_image() { return this->m_image; }
+        void bind(ref<pipeline> _pipeline, size_t current_image, uint32_t set, uint32_t binding, uint32_t slot = 0);
+        void bind(ref<pipeline> _pipeline, size_t current_image, const std::string& name, uint32_t slot = 0);
+        ref<image> get_image() { return this->m_image; }
     private:
         void create_sampler();
-        std::shared_ptr<image> m_image;
+        ref<image> m_image;
         VkSampler m_sampler;
     };
 }

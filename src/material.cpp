@@ -19,9 +19,9 @@
 #include "renderer.h"
 namespace vkrollercoaster {
     static struct {
-        std::shared_ptr<swapchain> swap_chain;
+        ref<swapchain> swap_chain;
     } material_data;
-    void material::init(std::shared_ptr<swapchain> swap_chain) {
+    void material::init(ref<swapchain> swap_chain) {
         if (material_data.swap_chain) {
             spdlog::warn("initializing the material system more than once is not recommended");
         }
@@ -33,7 +33,7 @@ namespace vkrollercoaster {
         }
         material_data.swap_chain.reset();
     }
-    material::material(std::shared_ptr<shader> _shader) {
+    material::material(ref<shader> _shader) {
         this->m_swapchain = material_data.swap_chain;
         if (!this->m_swapchain) {
             throw std::runtime_error("the material system has not been initialized!");
@@ -60,8 +60,8 @@ namespace vkrollercoaster {
             }
         }
     }
-    std::shared_ptr<pipeline> material::create_pipeline(const pipeline_spec& spec) {
-        auto _pipeline = std::make_shared<pipeline>(this->m_swapchain, this->m_shader, spec);
+    ref<pipeline> material::create_pipeline(const pipeline_spec& spec) {
+        auto _pipeline = ref<pipeline>::create(this->m_swapchain, this->m_shader, spec);
         size_t image_count = this->m_swapchain->get_swapchain_images().size();
         for (size_t i = 0; i < image_count; i++) {
             this->m_buffer->bind(_pipeline, i);
@@ -109,7 +109,7 @@ namespace vkrollercoaster {
         size_t offset = reflection_data.types[resource.type].find_offset(name);
         this->m_buffer->set_data(data, offset);
     }
-    void material::set(const std::string& name, std::shared_ptr<texture> tex, uint32_t slot) {
+    void material::set(const std::string& name, ref<texture> tex, uint32_t slot) {
         this->m_textures[name][slot] = tex;
     }
 }

@@ -22,7 +22,7 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
-    imgui_controller::imgui_controller(std::shared_ptr<swapchain> _swapchain) {
+    imgui_controller::imgui_controller(ref<swapchain> _swapchain) {
         this->m_swapchain = _swapchain;
         renderer::add_ref();
 
@@ -83,7 +83,7 @@ namespace vkrollercoaster {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
     }
-    void imgui_controller::render(std::shared_ptr<command_buffer> cmdbuffer) {
+    void imgui_controller::render(ref<command_buffer> cmdbuffer) {
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdbuffer->get());
 
