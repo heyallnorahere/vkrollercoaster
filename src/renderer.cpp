@@ -360,6 +360,7 @@ namespace vkrollercoaster {
     struct camera_buffer_data {
         glm::mat4 projection = glm::mat4(1.f);
         glm::mat4 view = glm::mat4(1.f);
+        glm::vec3 position = glm::vec3(0.f);
     };
     void renderer::init(ref<window> _window) {
         spdlog::info("initializing renderer...");
@@ -486,6 +487,7 @@ namespace vkrollercoaster {
             data.projection = glm::perspectiveRH(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
             glm::vec3 direction = glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
             data.view = glm::lookAtRH(transform.translation, transform.translation + glm::normalize(direction), camera.up);
+            data.position = transform.translation;
         }
         renderer_data.camera_buffer->set_data(data);
     }

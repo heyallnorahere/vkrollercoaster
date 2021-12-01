@@ -25,8 +25,7 @@ namespace vkrollercoaster {
             lights[_light].push_back(ent);
         }
         for (const auto& [_light, entities] : lights) {
-            _light->m_entities = entities;
-            _light->update_buffers();
+            _light->update_buffers(entities);
         }
     }
     entity scene::create()  {

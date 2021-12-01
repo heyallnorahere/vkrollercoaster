@@ -55,7 +55,7 @@ namespace vkrollercoaster {
             buffer.buffer->zero();
         }
     }
-    void light::update_buffers() {
+    void light::update_buffers(const std::vector<entity>& entities) {
         std::string light_type_name;
         switch (this->get_type()) {
         case light_type::spotlight:
@@ -88,7 +88,7 @@ namespace vkrollercoaster {
                 throw std::runtime_error(array_field_name + " is not an array!");
             }
             size_t count_offset = type.find_offset(count_field_name);
-            for (entity ent : this->m_entities) {
+            for (entity ent : entities) {
                 // get light index
                 int32_t count;
                 buffer.buffer->get_data(count, count_offset);
@@ -100,8 +100,9 @@ namespace vkrollercoaster {
 
                 // set up "set" lambda
                 std::string entry_prefix = array_field_name + "[" + std::to_string(light_index) + "].";
+                auto buffer_instance = buffer.buffer;
                 set_callback_t set = [&](const std::string& field_name, const void* data, size_t size, bool optional) {
-                    if (array_type.fields.find(field_name) != array_type.fields.end()) {
+                    if (array_type.fields.find(field_name) == array_type.fields.end()) {
                         if (optional) {
                             return;
                         } else {
@@ -109,16 +110,24 @@ namespace vkrollercoaster {
                         }
                     }
                     size_t offset = type.find_offset(entry_prefix + field_name);
+                    buffer_instance->set_data(data, size, offset);
                 };
 
+                // copy data
                 glm::vec3 position = ent.get_component<transform_component>().translation;
                 set("position", &position, sizeof(glm::vec3), true);
-                
                 set("color", &this->m_color, sizeof(glm::vec3), false);
+                set("specular_strength", &this->m_specular_strength, sizeof(float), false);
+                set("ambient_strength", &this->m_ambient_strength, sizeof(float), false);
 
                 // set data such as attenuation values for point lights or direction for spotlights and directional lights
                 this->update_typed_light_data(set);
             }
         }
+    }
+    void point_light::update_typed_light_data(set_callback_t set) {
+        set("_constant", &this->m_constant, sizeof(float), false);
+        set("_linear", &this->m_linear, sizeof(float), false);
+        set("_quadratic", &this->m_quadratic, sizeof(float), false);
     }
 }
