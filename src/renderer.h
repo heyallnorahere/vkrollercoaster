@@ -19,6 +19,7 @@
 #include "command_buffer.h"
 #include "scene.h"
 #include "texture.h"
+#include "buffers.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct swapchain_support_details {
@@ -69,6 +70,8 @@ namespace vkrollercoaster {
         static VkSurfaceKHR get_window_surface();
         static VkDescriptorPool get_descriptor_pool();
         static ref<texture> get_white_texture();
+        static ref<uniform_buffer> get_camera_buffer();
+        static void update_camera_buffer(ref<scene> _scene); // todo: add window parameter after window surface is moved to swapchain
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
         static queue_family_indices find_queue_families(VkPhysicalDevice device);

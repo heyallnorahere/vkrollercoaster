@@ -29,6 +29,7 @@
 #include "components.h"
 #include "imgui_controller.h"
 #include "material.h"
+#include "light.h"
 using namespace vkrollercoaster;
 
 struct vertex {
@@ -45,11 +46,11 @@ struct app_data_t {
     ref<window> app_window;
     ref<swapchain> swap_chain;
     std::vector<ref<command_buffer>> command_buffers;
-    ref<uniform_buffer> camera_buffer;
     ref<imgui_controller> imgui;
     ref<scene> global_scene;
     std::vector<loaded_model_t> loaded_models;
     int32_t current_model = 0;
+    int32_t current_entity = 0;
     uint64_t frame_count = 0;
 };
 
@@ -65,25 +66,16 @@ static void update(app_data_t& app_data) {
     last_frame = time;
     app_data.frame_count++;
 
-    static float distance = 2.5f;
-    glm::vec3 view_point = glm::vec3(0.f);
-    view_point.x = (float)cos(time) * distance;
-    view_point.z = (float)sin(time) * distance;
-    int32_t width, height;
-    app_data.app_window->get_size(&width, &height);
-    float aspect_ratio = (float)width / (float)height;
-    struct {
-        glm::mat4 projection, view;
-    } camera_data;
-    camera_data.projection = glm::perspective(glm::radians(45.f), aspect_ratio, 0.1f, 100.f);
-    camera_data.view = glm::lookAt(view_point, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
-    app_data.camera_buffer->set_data(camera_data);
-
     {
         ImGui::Begin("Settings");
         ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("FPS: %f", io.Framerate);
-        ImGui::SliderFloat("Distance from object", &distance, 0.5f, 10.f);
+
+        VkPhysicalDevice physical_device = renderer::get_physical_device();
+        VkPhysicalDeviceProperties device_properties;
+        vkGetPhysicalDeviceProperties(physical_device, &device_properties);
+        ImGui::Text("Selected device: %s", device_properties.deviceName);
+
         std::vector<const char*> names;
         for (const auto& loaded_model : app_data.loaded_models) {
             names.push_back(loaded_model.name.c_str());
@@ -94,8 +86,42 @@ static void update(app_data_t& app_data) {
                 model_data.data = app_data.loaded_models[app_data.current_model].data;
             }
         }
+
+        std::vector<entity> entities = app_data.global_scene->view<transform_component>();
+        if (!entities.empty()) {
+            if (app_data.current_entity >= entities.size()) {
+                app_data.current_entity = entities.size() - 1;
+            }
+            std::vector<const char*> names;
+            for (entity ent : entities) {
+                if (ent.has_component<tag_component>()) {
+                    names.push_back(ent.get_component<tag_component>().tag.c_str());
+                } else {
+                    names.push_back("Unnamed entity");
+                }
+            }
+            ImGui::Combo("Entity", &app_data.current_entity, names.data(), names.size());
+            auto& transform = entities[app_data.current_entity].get_component<transform_component>();
+            constexpr float speed = 0.05f;
+            ImGui::DragFloat3("Translation", &transform.translation.x, speed);
+            glm::vec3 degrees = glm::degrees(transform.rotation);
+            ImGui::DragFloat3("Rotation", &degrees.x, speed);
+            transform.rotation = glm::radians(degrees);
+            ImGui::DragFloat3("Scale", &transform.scale.x, speed, 0.05f);
+        }
+
+        if (ImGui::Button("Reload shaders")) {
+            std::vector<std::string> names;
+            shader_library::get_names(names);
+            for (const auto& name : names) {
+                shader_library::get(name)->reload();
+            }
+        }
+
         ImGui::End();
     }
+
+    renderer::update_camera_buffer(app_data.global_scene);
 }
 
 static void draw(app_data_t& app_data, ref<command_buffer> cmdbuffer, size_t current_image) {
@@ -123,9 +149,13 @@ int32_t main(int32_t argc, const char** argv) {
     app_data.imgui = ref<imgui_controller>::create(app_data.swap_chain);
     material::init(app_data.swap_chain);
 
-    // load app data
+    // load shader
     shader_library::add("default_static");
-    app_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(glm::mat4) * 2);
+
+    // create light uniform buffers
+    light::init();
+
+    // load app data
     size_t image_count = app_data.swap_chain->get_swapchain_images().size();
     for (const auto& entry : fs::directory_iterator("assets/models")) {
         fs::path path = entry.path();
@@ -141,16 +171,16 @@ int32_t main(int32_t argc, const char** argv) {
         auto cmdbuffer = renderer::create_render_command_buffer();
         app_data.command_buffers.push_back(cmdbuffer);
     }
-    // todo: not this
-    for (const auto& loaded_model : app_data.loaded_models) {
-        for (const auto& render_call : loaded_model.data->get_render_call_data()) {
-            app_data.camera_buffer->bind(render_call._material._pipeline);
-        }
-    }
     app_data.global_scene = ref<scene>::create();
     entity object = app_data.global_scene->create("created-object");
     object.get_component<transform_component>().scale = glm::vec3(0.25f);
     object.add_component<model_component>(app_data.loaded_models[app_data.current_model].data);
+    {
+        entity player = app_data.global_scene->create("player");
+        auto& transform = player.get_component<transform_component>();
+        transform.translation = glm::vec3(0.f, 0.f, 1.f);
+        player.add_component<camera_component>().primary = true;
+    }
 
     // game loop
     while (!app_data.app_window->should_close()) {
@@ -167,6 +197,7 @@ int32_t main(int32_t argc, const char** argv) {
     }
 
     // clean up
+    light::shutdown();
     material::shutdown();
     shader_library::clear();
     renderer::shutdown();

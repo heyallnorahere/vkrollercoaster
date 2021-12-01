@@ -26,7 +26,7 @@ namespace vkrollercoaster {
     }
     entity scene::create(const std::string& tag) {
         entity ent = this->create();
-        ent.add_component<tag_component>(tag);
+        ent.add_component<tag_component>().tag = tag;
         return ent;
     }
     std::vector<entity> scene::find_tag(const std::string& tag) {

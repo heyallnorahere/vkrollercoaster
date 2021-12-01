@@ -119,6 +119,7 @@ namespace vkrollercoaster {
         static bool add(const std::string& name, ref<shader> _shader);
         static bool remove(const std::string& name);
         static ref<shader> get(const std::string& name);
+        static void get_names(std::vector<std::string>& names);
         static void clear();
     private:
         shader_library() = default;

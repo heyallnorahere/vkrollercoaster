@@ -403,6 +403,12 @@ namespace vkrollercoaster {
         }
         return _shader;
     }
+    void shader_library::get_names(std::vector<std::string>& names) {
+        names.clear();
+        for (const auto& [name, _shader] : library) {
+            names.push_back(name);
+        }
+    }
     void shader_library::clear() {
         library.clear();
     }

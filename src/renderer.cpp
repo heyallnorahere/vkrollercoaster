@@ -34,6 +34,7 @@ namespace vkrollercoaster {
         VkCommandPool graphics_command_pool = nullptr;
         std::array<sync_objects, renderer::max_frame_count> frame_sync_objects;
         ref<texture> white_texture;
+        ref<uniform_buffer> camera_buffer;
         size_t current_frame = 0;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
@@ -356,6 +357,10 @@ namespace vkrollercoaster {
             }
         }
     }
+    struct camera_buffer_data {
+        glm::mat4 projection = glm::mat4(1.f);
+        glm::mat4 view = glm::mat4(1.f);
+    };
     void renderer::init(ref<window> _window) {
         spdlog::info("initializing renderer...");
         renderer_data.application_window = _window;
@@ -374,6 +379,7 @@ namespace vkrollercoaster {
         white_data.channels = channels;
         white_data.width = white_data.height = 1;
         renderer_data.white_texture = ref<texture>::create(ref<image>::create(white_data));
+        renderer_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(camera_buffer_data));
     }
     static void shutdown_renderer() {
         spdlog::info("shutting down renderer...");
@@ -399,6 +405,7 @@ namespace vkrollercoaster {
         renderer_data.application_window.reset();
     }
     void renderer::shutdown() {
+        renderer_data.camera_buffer.reset();
         renderer_data.white_texture.reset();
         vkDeviceWaitIdle(renderer_data.device);
         renderer_data.should_shutdown = true;
@@ -456,6 +463,32 @@ namespace vkrollercoaster {
     VkSurfaceKHR renderer::get_window_surface() { return renderer_data.window_surface; }
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
     ref<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
+    ref<uniform_buffer> renderer::get_camera_buffer() { return renderer_data.camera_buffer; }
+    void renderer::update_camera_buffer(ref<scene> _scene) {
+        const auto& cameras = _scene->view<camera_component>();
+        camera_buffer_data data;
+        if (!cameras.empty()) {
+            entity main_camera;
+            for (entity camera : cameras) {
+                if (camera.get_component<camera_component>().primary) {
+                    main_camera = camera;
+                    break;
+                }
+            }
+            if (!main_camera) {
+                main_camera = cameras[0];
+            }
+            int32_t width, height;
+            renderer_data.application_window->get_size(&width, &height);
+            float aspect_ratio = (float)width / (float)height;
+            const auto& camera = main_camera.get_component<camera_component>();
+            const auto& transform = main_camera.get_component<transform_component>();
+            data.projection = glm::perspectiveRH(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
+            glm::vec3 direction = glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
+            data.view = glm::lookAtRH(transform.translation, transform.translation + glm::normalize(direction), camera.up);
+        }
+        renderer_data.camera_buffer->set_data(data);
+    }
     queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
         uint32_t queue_family_count = 0;

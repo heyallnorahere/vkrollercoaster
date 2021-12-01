@@ -17,6 +17,7 @@
 #include "pch.h"
 #include "material.h"
 #include "renderer.h"
+#include "light.h"
 namespace vkrollercoaster {
     static struct {
         ref<swapchain> swap_chain;
@@ -42,11 +43,35 @@ namespace vkrollercoaster {
         if (!this->m_shader) {
             throw std::runtime_error("passed nullptr!");
         }
+
         auto& reflection_data = this->m_shader->get_reflection_data();
         if (!reflection_data.find_resource("material_data", this->m_set, this->m_binding)) {
             throw std::runtime_error("could not find material buffer!");
         }
         this->m_buffer = uniform_buffer::from_shader_data(this->m_shader, this->m_set, this->m_binding);
+        
+        std::string shader_name;
+        std::vector<std::string> shader_names;
+        shader_library::get_names(shader_names);
+        for (const auto& name : shader_names) {
+            if (shader_library::get(name) == this->m_shader) {
+                shader_name = name;
+            }
+        }
+        if (shader_name.empty()) {
+            // the passed shader was not in the library - vkrollercoaster::light has not created a buffer for it
+            uint32_t set, binding;
+            if (!reflection_data.find_resource("light_data", set, binding)) {
+                throw std::runtime_error("the passed shader does not have a light buffer!");
+            }
+            this->m_light_buffer = uniform_buffer::from_shader_data(this->m_shader, set, binding);
+        } else {
+            this->m_light_buffer = light::get_buffer(shader_name);
+            if (!this->m_light_buffer) {
+                throw std::runtime_error("the passed shader does not have a light buffer!");
+            }
+        }
+
         for (const auto& [set, resources] : reflection_data.resources) {
             for (const auto& [binding, resource] : resources) {
                 if (resource.resource_type == shader_resource_type::sampledimage) {
@@ -62,6 +87,8 @@ namespace vkrollercoaster {
     }
     ref<pipeline> material::create_pipeline(const pipeline_spec& spec) {
         auto _pipeline = ref<pipeline>::create(this->m_swapchain, this->m_shader, spec);
+        renderer::get_camera_buffer()->bind(_pipeline);
+        this->m_light_buffer->bind(_pipeline);
         this->m_buffer->bind(_pipeline);
         for (const auto& [resource_name, textures] : this->m_textures) {
             for (size_t slot = 0; slot < textures.size(); slot++) {

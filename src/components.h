@@ -18,13 +18,14 @@
 #include "model.h"
 namespace vkrollercoaster {
     struct tag_component {
+        tag_component() = default;
         std::string tag;
     };
     struct transform_component {
+        transform_component() = default;
         glm::vec3 translation = glm::vec3(0.f);
         glm::vec3 rotation = glm::vec3(0.f);
         glm::vec3 scale = glm::vec3(1.f);
-        transform_component() = default;
         glm::mat4 matrix() const {
             glm::mat4 rotation_matrix = glm::toMat4(glm::quat(this->rotation));
             return
@@ -34,7 +35,15 @@ namespace vkrollercoaster {
         }
     };
     struct model_component {
+        model_component() = default;
         ref<model> data;
         // todo: animation data (when skinning)
+    };
+    struct camera_component {
+        camera_component() = default;
+        // in degrees
+        float fov = 45.f;
+        bool primary = false;
+        glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
     };
 }

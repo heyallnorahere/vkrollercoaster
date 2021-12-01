@@ -38,7 +38,7 @@ namespace vkrollercoaster {
         void set(const std::string& name, ref<texture> tex, uint32_t slot = 0);
     private:
         ref<swapchain> m_swapchain;
-        ref<uniform_buffer> m_buffer;
+        ref<uniform_buffer> m_buffer, m_light_buffer;
         ref<shader> m_shader;
         std::map<std::string, std::vector<ref<texture>>> m_textures;
         uint32_t m_set, m_binding;
