@@ -61,7 +61,13 @@ namespace vkrollercoaster {
         template<typename T> void set_data(const T& data, size_t offset = 0) {
             this->set_data(&data, sizeof(T), offset);
         }
+        template<typename T> void get_data(T& data, size_t offset = 0) {
+            this->get_data(&data, sizeof(T), offset);
+        }
         void set_data(const void* data, size_t size, size_t offset = 0);
+        void get_data(void* data, size_t size, size_t offset = 0);
+        void zero();
+        size_t get_size() { return this->m_size; }
     private:
         VkBuffer m_buffer;
         VkDeviceMemory m_memory;

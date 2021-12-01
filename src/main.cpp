@@ -55,7 +55,9 @@ struct app_data_t {
 };
 
 static void new_frame(app_data_t& app_data) {
+    window::poll();
     renderer::new_frame();
+    light::reset_buffers();
     app_data.imgui->new_frame();
 }
 
@@ -65,6 +67,8 @@ static void update(app_data_t& app_data) {
     double delta_time = time - last_frame;
     last_frame = time;
     app_data.frame_count++;
+
+    app_data.global_scene->update();
 
     {
         ImGui::Begin("Settings");
@@ -178,13 +182,12 @@ int32_t main(int32_t argc, const char** argv) {
     {
         entity player = app_data.global_scene->create("player");
         auto& transform = player.get_component<transform_component>();
-        transform.translation = glm::vec3(0.f, 0.f, 1.f);
+        transform.translation = glm::vec3(0.f, 0.f, -2.5f);
         player.add_component<camera_component>().primary = true;
     }
 
     // game loop
     while (!app_data.app_window->should_close()) {
-        window::poll();
         new_frame(app_data);
         update(app_data);
         app_data.swap_chain->prepare_frame();

@@ -18,6 +18,17 @@
 #include "scene.h"
 #include "components.h"
 namespace vkrollercoaster {
+    void scene::update() {
+        std::unordered_map<ref<light>, std::vector<entity>> lights;
+        for (entity ent : this->view<transform_component, light_component>()) {
+            ref<light> _light = ent.get_component<light_component>().data;
+            lights[_light].push_back(ent);
+        }
+        for (const auto& [_light, entities] : lights) {
+            _light->m_entities = entities;
+            _light->update_buffers();
+        }
+    }
     entity scene::create()  {
         entt::entity id = this->m_registry.create();
         entity ent(id, this);

@@ -199,12 +199,29 @@ namespace vkrollercoaster {
     }
     void uniform_buffer::set_data(const void* data, size_t size, size_t offset) {
         VkDevice device = renderer::get_device();
-        if (size + offset > this->m_size) {
-            throw std::runtime_error("attempted to map memory outside the buffer's limits");
+        if (offset + size > this->m_size) {
+            throw std::runtime_error("attempted to map memory outside the buffer's limits!");
         }
         void* gpu_data;
         vkMapMemory(device, this->m_memory, offset, size, 0, &gpu_data);
         memcpy(gpu_data, data, size);
+        vkUnmapMemory(device, this->m_memory);
+    }
+    void uniform_buffer::get_data(void* data, size_t size, size_t offset) {
+        VkDevice device = renderer::get_device();
+        if (offset + size > this->m_size) {
+            throw std::runtime_error("attempted to map memory outside the buffer's limits!");
+        }
+        void* gpu_data;
+        vkMapMemory(device, this->m_memory, offset, size, 0, &gpu_data);
+        memcpy(data, gpu_data, size);
+        vkUnmapMemory(device, this->m_memory);
+    }
+    void uniform_buffer::zero() {
+        VkDevice device = renderer::get_device();
+        void* gpu_data;
+        vkMapMemory(device, this->m_memory, 0, this->m_size, 0, &gpu_data);
+        memset(gpu_data, 0, this->m_size);
         vkUnmapMemory(device, this->m_memory);
     }
 }

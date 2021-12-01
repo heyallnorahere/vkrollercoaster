@@ -16,6 +16,7 @@
 
 #pragma once
 #include "model.h"
+#include "light.h"
 namespace vkrollercoaster {
     struct tag_component {
         tag_component() = default;
@@ -45,5 +46,10 @@ namespace vkrollercoaster {
         float fov = 45.f;
         bool primary = false;
         glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
+    };
+    struct light_component {
+        light_component() = default;
+        ref<light> data;
+        // literally nothing else.
     };
 }

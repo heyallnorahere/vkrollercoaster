@@ -35,9 +35,11 @@ namespace vkrollercoaster {
     private:
         scene* m_scene;
         entt::entity m_id;
+        template<typename T> friend class ::std::hash;
     };
     class scene : public ref_counted {
     public:
+        void update();
         entity create();
         entity create(const std::string& tag);
         std::vector<entity> find_tag(const std::string& tag);
@@ -80,4 +82,11 @@ namespace vkrollercoaster {
     template<typename T> void scene::on_component_added(entity& ent, T& component) {
         // no behavior
     }
+}
+namespace std {
+    template<> struct hash<vkrollercoaster::entity> {
+        size_t operator()(const vkrollercoaster::entity& entity) const {
+            return (std::hash<vkrollercoaster::scene*>()(entity.m_scene) << 1) ^ std::hash<uint32_t>()((uint32_t)entity.m_id);
+        }
+    };
 }

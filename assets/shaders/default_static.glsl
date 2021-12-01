@@ -59,7 +59,7 @@ vec3 calculate_directional_light(int index, vec3 texture_color) {
     return vec3(0.0);
 }
 void main() {
-    vec4 texture_color = texture(albedo_texture, uv);
+    /*vec4 texture_color = texture(albedo_texture, uv);
     vec3 fragment_color = vec3(0.0);
     for (int i = 0; i < lights.spotlight_count; i++) {
         fragment_color += calculate_spotlight(i, texture_color.rgb);
@@ -70,5 +70,6 @@ void main() {
     for (int i = 0; i < lights.directional_light_count; i++) {
         fragment_color += calculate_directional_light(i, texture_color.rgb);
     }
-    color = vec4(fragment_color, texture_color.a);
+    color = vec4(fragment_color, texture_color.a);*/
+    color = texture(albedo_texture, uv) * vec4(material.albedo_color, 1.0);
 }
