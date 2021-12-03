@@ -62,6 +62,7 @@ static void new_frame(app_data_t& app_data) {
 static void attenuation_editor(attenuation_settings& attenuation) {
     // based off of https://wiki.ogre3d.org/Light+Attenuation+Shortcut
     if (ImGui::CollapsingHeader("Attenuation")) {
+        ImGui::Indent();
         ImGui::InputFloat("Target distance", &attenuation.target_distance);
 
         // constant
@@ -93,6 +94,8 @@ static void attenuation_editor(attenuation_settings& attenuation) {
             attenuation.quadratic.value = 75.f / glm::pow(attenuation.target_distance, 2.f);
         }
         ImGui::InputFloat("Quadratic", &attenuation.quadratic.value, 0.f, 0.f, "%.3f", flags);
+
+        ImGui::Unindent();
     }
 }
 struct type_name_pair {
@@ -112,7 +115,10 @@ static void light_editor(entity ent) {
     if (ent.has_component<light_component>()) {
         // if a light component exists on the passed entity, show fields for editing
         ref<light> _light = ent.get_component<light_component>().data;
-        ImGui::ColorEdit3("Color", &_light->color().x);
+
+        ImGui::ColorEdit3("Diffuse color", &_light->diffuse_color().x);
+        ImGui::ColorEdit3("Ambient color", &_light->ambient_color().x);
+        ImGui::ColorEdit3("Specular color", &_light->specular_color().x);
 
         switch (_light->get_type()) {
         case light_type::point:
@@ -284,7 +290,9 @@ static void update(app_data_t& app_data) {
             ImGui::DragFloat3("Scale", &transform.scale.x, speed);
 
             if (ImGui::CollapsingHeader("Light")) {
+                ImGui::Indent();
                 light_editor(ent);
+                ImGui::Unindent();
             }
         }
         ImGui::Separator();

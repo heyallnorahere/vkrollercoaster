@@ -116,9 +116,9 @@ namespace vkrollercoaster {
                 // copy data
                 glm::vec3 position = ent.get_component<transform_component>().translation;
                 set("position", &position, sizeof(glm::vec3), true);
-                set("color", &this->m_color, sizeof(glm::vec3), false);
-                set("specular_strength", &this->m_specular_strength, sizeof(float), false);
-                set("ambient_strength", &this->m_ambient_strength, sizeof(float), false);
+                set("diffuse_color", &this->m_diffuse_color, sizeof(glm::vec3), false);
+                set("specular_color", &this->m_specular_color, sizeof(glm::vec3), false);
+                set("ambient_color", &this->m_ambient_color, sizeof(glm::vec3), false);
 
                 // set data such as attenuation values for point lights or direction for spotlights and directional lights
                 this->update_typed_light_data(set);

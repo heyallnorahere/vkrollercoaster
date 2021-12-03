@@ -32,18 +32,18 @@ namespace vkrollercoaster {
         static void reset_buffers();
         light() = default;
         virtual ~light() = default;
-        glm::vec3& color() { return this->m_color; }
-        float& ambient_strength() { return this->m_ambient_strength; }
-        float& specular_strength() { return this->m_specular_strength; }
+        glm::vec3& diffuse_color() { return this->m_diffuse_color; }
+        glm::vec3& specular_color() { return this->m_specular_color; }
+        glm::vec3& ambient_color() { return this->m_ambient_color; }
         virtual light_type get_type() = 0;
     protected:
         using set_callback_t = std::function<void(const std::string&, const void*, size_t, bool)>;
         virtual void update_typed_light_data(set_callback_t set) = 0;
     private:
         void update_buffers(const std::vector<entity>& entities);
-        glm::vec3 m_color = glm::vec3(1.f);
-        float m_ambient_strength = 0.01f;
-        float m_specular_strength = 0.5f;
+        glm::vec3 m_diffuse_color = glm::vec3(0.8f);
+        glm::vec3 m_specular_color = glm::vec3(1.f);
+        glm::vec3 m_ambient_color = glm::vec3(0.05f);
         friend class scene;
         friend struct attenuation_settings;
     };

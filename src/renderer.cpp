@@ -420,7 +420,11 @@ namespace vkrollercoaster {
         }
         const auto& model_data = to_render.get_component<model_component>();
         const auto& transform = to_render.get_component<transform_component>();
-        glm::mat4 model_matrix = transform.matrix();
+        struct {
+            glm::mat4 model, normal;
+        } push_constant_data;
+        push_constant_data.model = transform.matrix();
+        push_constant_data.normal = glm::toMat4(glm::quat(transform.rotation));
         const auto& render_call_data = model_data.data->get_render_call_data();
         for (const auto& render_call : render_call_data) {
             auto _pipeline = render_call._material._pipeline;
@@ -440,10 +444,12 @@ namespace vkrollercoaster {
             // bind pipeline
             _pipeline->bind(cmdbuffer, current_image);
 
-            // set data
+            // set vertex data
             render_call.vbo->bind(cmdbuffer);
             render_call.ibo->bind(cmdbuffer);
-            vkCmdPushConstants(cmdbuffer->get(), _pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model_matrix);
+
+            // push constants
+            vkCmdPushConstants(cmdbuffer->get(), _pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constant_data), &push_constant_data);
 
             // render
             vkCmdDrawIndexed(cmdbuffer->get(), render_call.ibo->get_index_count(), 1, 0, 0, 0);

@@ -157,7 +157,7 @@ namespace vkrollercoaster {
             glm::vec3 albedo_color(1.f);
             aiColor3D ai_color;
             if (ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, ai_color) == aiReturn_SUCCESS) {
-                albedo_color = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
+                albedo_color = convert<3>(ai_color);
             }
             _material->set("albedo_color", albedo_color);
 
