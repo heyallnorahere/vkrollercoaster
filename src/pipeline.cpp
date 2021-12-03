@@ -276,7 +276,7 @@ namespace vkrollercoaster {
         color_blending.pAttachments = &color_blend_attachment;
         std::vector<VkDynamicState> dynamic_states = {
             VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_LINE_WIDTH
+            VK_DYNAMIC_STATE_SCISSOR
         };
         VkPipelineDynamicStateCreateInfo dynamic_state;
         util::zero(dynamic_state);
@@ -314,7 +314,7 @@ namespace vkrollercoaster {
         create_info.pMultisampleState = &multisampling;
         create_info.pDepthStencilState = &depth_stencil;
         create_info.pColorBlendState = &color_blending;
-        create_info.pDynamicState = nullptr;
+        create_info.pDynamicState = &dynamic_state;
         create_info.layout = this->m_layout;
         create_info.renderPass = this->m_swapchain->get_render_pass();
         create_info.subpass = 0;

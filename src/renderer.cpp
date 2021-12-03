@@ -427,10 +427,25 @@ namespace vkrollercoaster {
             auto swap_chain = _pipeline->get_swapchain();
             size_t current_image = swap_chain->get_current_image();
 
+            // set viewport
+            VkRect2D scissor = _pipeline->get_scissor();
+            vkCmdSetScissor(cmdbuffer->get(), 0, 1, &scissor);
+
+            // set viewport
+            VkViewport viewport = _pipeline->get_viewport();
+            viewport.y = (float)swap_chain->get_extent().height - viewport.y;
+            viewport.height *= -1.f;
+            vkCmdSetViewport(cmdbuffer->get(), 0, 1, &viewport);
+
+            // bind pipeline
+            _pipeline->bind(cmdbuffer, current_image);
+
+            // set data
             render_call.vbo->bind(cmdbuffer);
             render_call.ibo->bind(cmdbuffer);
-            _pipeline->bind(cmdbuffer, current_image);
             vkCmdPushConstants(cmdbuffer->get(), _pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model_matrix);
+
+            // render
             vkCmdDrawIndexed(cmdbuffer->get(), render_call.ibo->get_index_count(), 1, 0, 0, 0);
         }
     }
@@ -471,7 +486,7 @@ namespace vkrollercoaster {
             float aspect_ratio = (float)width / (float)height;
             const auto& camera = main_camera.get_component<camera_component>();
             const auto& transform = main_camera.get_component<transform_component>();
-            data.projection = glm::perspectiveRH(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
+            data.projection = glm::perspective(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
             glm::vec3 direction = glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
             data.view = glm::lookAtRH(transform.translation, transform.translation + glm::normalize(direction), camera.up);
             data.position = transform.translation;

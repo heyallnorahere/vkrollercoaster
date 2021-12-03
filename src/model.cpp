@@ -95,7 +95,7 @@ namespace vkrollercoaster {
         std::vector<uint32_t> indices;
         for (size_t i = 0; i < mesh_->mNumVertices; i++) {
             vertex v;
-            v.position = convert<3>(mesh_->mVertices[i]) * glm::vec3(1.f, -1.f, 1.f);
+            v.position = convert<3>(mesh_->mVertices[i]);
             v.normal = convert<3>(mesh_->mNormals[i]);
             if (mesh_->mTextureCoords[0] != nullptr) {
                 v.uv = convert<2>(mesh_->mTextureCoords[0][i]);
