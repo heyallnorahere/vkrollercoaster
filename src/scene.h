@@ -40,8 +40,7 @@ namespace vkrollercoaster {
     class scene : public ref_counted {
     public:
         void update();
-        entity create();
-        entity create(const std::string& tag);
+        entity create(const std::string& tag = "Entity");
         std::vector<entity> find_tag(const std::string& tag);
         template<typename... Components> std::vector<entity> view() {
             std::vector<entity> entities;
@@ -77,7 +76,7 @@ namespace vkrollercoaster {
         if (!this->has_component<T>()) {
             throw std::runtime_error("this entity does not have an instance of the specified component type!");
         }
-        this->m_scene->m_registry.remove<T>(this->m_scene);
+        this->m_scene->m_registry.remove<T>(this->m_id);
     }
     template<typename T> void scene::on_component_added(entity& ent, T& component) {
         // no behavior

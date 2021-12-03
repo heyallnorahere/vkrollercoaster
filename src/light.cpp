@@ -102,7 +102,7 @@ namespace vkrollercoaster {
                 std::string entry_prefix = array_field_name + "[" + std::to_string(light_index) + "].";
                 auto buffer_instance = buffer.buffer;
                 set_callback_t set = [&](const std::string& field_name, const void* data, size_t size, bool optional) {
-                    if (array_type.fields.find(field_name) == array_type.fields.end()) {
+                    if (!array_type.path_exists(field_name)) {
                         if (optional) {
                             return;
                         } else {
@@ -125,9 +125,28 @@ namespace vkrollercoaster {
             }
         }
     }
+    void attenuation_settings::update(light::set_callback_t set) {
+        const std::string prefix = "attenuation.";
+        set(prefix + "_constant", &this->constant.value, sizeof(float), false);
+        set(prefix + "_linear", &this->linear.value, sizeof(float), false);
+        set(prefix + "_quadratic", &this->quadratic.value, sizeof(float), false);
+    }
+    point_light::point_light(const attenuation_settings& attenuation) {
+        this->m_attenuation = attenuation;
+    }
     void point_light::update_typed_light_data(set_callback_t set) {
-        set("_constant", &this->m_constant, sizeof(float), false);
-        set("_linear", &this->m_linear, sizeof(float), false);
-        set("_quadratic", &this->m_quadratic, sizeof(float), false);
+        this->m_attenuation.update(set);
+    }
+    spotlight::spotlight(const glm::vec3& direction, float cutoff, float outer_cutoff, const attenuation_settings& attenuation) {
+        this->m_direction = direction;
+        this->m_cutoff = cutoff;
+        this->m_outer_cutoff = outer_cutoff;
+        this->m_attenuation = attenuation;
+    }
+    void spotlight::update_typed_light_data(set_callback_t set) {
+        this->m_attenuation.update(set);
+        set("direction", &this->m_direction, sizeof(glm::vec3), false);
+        set("cutoff", &this->m_cutoff, sizeof(float), false);
+        set("outer_cutoff", &this->m_outer_cutoff, sizeof(float), false);
     }
 }

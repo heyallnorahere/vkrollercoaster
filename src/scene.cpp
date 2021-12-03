@@ -28,15 +28,14 @@ namespace vkrollercoaster {
             _light->update_buffers(entities);
         }
     }
-    entity scene::create()  {
+    entity scene::create(const std::string& tag) {
         entt::entity id = this->m_registry.create();
         entity ent(id, this);
+
+        // add basic components
         ent.add_component<transform_component>();
-        return ent;
-    }
-    entity scene::create(const std::string& tag) {
-        entity ent = this->create();
         ent.add_component<tag_component>().tag = tag;
+
         return ent;
     }
     std::vector<entity> scene::find_tag(const std::string& tag) {

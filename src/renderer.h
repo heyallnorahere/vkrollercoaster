@@ -72,6 +72,7 @@ namespace vkrollercoaster {
         static ref<texture> get_white_texture();
         static ref<uniform_buffer> get_camera_buffer();
         static void update_camera_buffer(ref<scene> _scene); // todo: add window parameter after window surface is moved to swapchain
+        static void expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor, uint32_t& patch);
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
         static queue_family_indices find_queue_families(VkPhysicalDevice device);

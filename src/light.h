@@ -23,6 +23,7 @@ namespace vkrollercoaster {
         point,
         directional
     };
+    struct attentuation_settings;
     class light : public ref_counted {
     public:
         static void init();
@@ -44,20 +45,46 @@ namespace vkrollercoaster {
         float m_ambient_strength = 0.01f;
         float m_specular_strength = 0.5f;
         friend class scene;
+        friend struct attenuation_settings;
+    };
+    // for ui shenanigans
+    struct attenuation_value {
+        attenuation_value(float value) : value(value), edit(false) { }
+        float value;
+        bool edit;
+    };
+    struct attenuation_settings {
+        attenuation_value constant = attenuation_value(1.f);
+        attenuation_value linear = attenuation_value(0.7f);
+        attenuation_value quadratic = attenuation_value(1.8f);
+        float target_distance = 7.f;
+        void update(light::set_callback_t set);
     };
     class point_light : public light {
     public:
-        point_light() = default;
+        point_light(const attenuation_settings& attenuation = attenuation_settings());
         virtual ~point_light() override = default;
-        float& constant() { return this->m_constant; }
-        float& linear() { return this->m_linear; }
-        float& quadratic() { return this->m_quadratic; }
+        attenuation_settings& attenuation() { return this->m_attenuation; }
         virtual light_type get_type() override { return light_type::point; }
     protected:
         virtual void update_typed_light_data(set_callback_t set) override;
     private:
-        float m_constant = 1.f;
-        float m_linear = 0.05f;
-        float m_quadratic = 0.032f;
+        attenuation_settings m_attenuation;
+    };
+    class spotlight : public light {
+    public:
+        spotlight(const glm::vec3& direction, float cutoff, float outer_cutoff, const attenuation_settings& attenuation = attenuation_settings());
+        virtual ~spotlight() override = default;
+        attenuation_settings& attenuation() { return this->m_attenuation; }
+        glm::vec3& direction() { return this->m_direction; }
+        float& cutoff() { return this->m_cutoff; }
+        float& outer_cutoff() { return this->m_outer_cutoff; }
+        virtual light_type get_type() override { return light_type::spotlight; }
+    protected:
+        virtual void update_typed_light_data(set_callback_t set) override;
+    private:
+        attenuation_settings m_attenuation;
+        glm::vec3 m_direction;
+        float m_cutoff, m_outer_cutoff;
     };
 }

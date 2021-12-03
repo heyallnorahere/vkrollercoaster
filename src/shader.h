@@ -53,6 +53,7 @@ namespace vkrollercoaster {
         SAMPLER,
     };
     struct shader_type {
+        bool path_exists(const std::string& path) const;
         size_t find_offset(const std::string& field_name) const;
         std::string name;
         size_t size, array_stride, array_size, columns;

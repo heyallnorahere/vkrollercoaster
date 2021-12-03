@@ -318,6 +318,33 @@ namespace vkrollercoaster {
         }
         this->m_shader_data.clear();
     }
+    bool shader_type::path_exists(const std::string& path) const {
+        size_t separator_pos = path.find(".");
+        std::string field, subpath;
+        if (separator_pos != std::string::npos) {
+            field = path.substr(0, separator_pos);
+            subpath = path.substr(separator_pos + 1);
+            if (subpath.empty()) {
+                throw std::runtime_error("invalid field name");
+            }
+        } else {
+            field = path;
+        }
+        size_t open_bracket = field.find('[');
+        if (open_bracket != std::string::npos) {
+            // i dont have time to deal with this shit
+            field = field.substr(0, open_bracket);
+        }
+        if (this->fields.find(field) == this->fields.end()) {
+            return false;
+        }
+        if (subpath.empty()) {
+            return true;
+        } else {
+            size_t subpath_type = this->fields.find(field)->second.type;
+            return this->base_data->types[subpath_type].path_exists(subpath);
+        }
+    }
     size_t shader_type::find_offset(const std::string& field_name) const {
         size_t separator_pos = field_name.find('.');
         std::string name, subname;

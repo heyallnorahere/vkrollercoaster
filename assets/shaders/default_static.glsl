@@ -25,16 +25,27 @@ void main() {
 }
 #stage fragment
 #version 460
+
+// output color
 layout(location = 0) out vec4 color;
+
+// input data
 layout(location = 0) in vec3 normal;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 fragment_position;
 layout(location = 3) in vec3 camera_position;
+
+// material data
 layout(set = 1, binding = 0) uniform material_data {
     float shininess;
     vec3 albedo_color;
 } material;
 layout(set = 1, binding = 1) uniform sampler2D albedo_texture;
+
+// light data
+struct attenuation_settings {
+    float _constant, _linear, _quadratic;
+};
 struct directional_light {
     vec3 direction, color;
     float ambient_strength, specular_strength;
@@ -42,12 +53,13 @@ struct directional_light {
 struct point_light {
     vec3 position, color;
     float ambient_strength, specular_strength;
-    float _constant, _linear, _quadratic;
+    attenuation_settings attenuation;
 };
 struct spotlight {
     vec3 position, direction, color;
     float ambient_strength, specular_strength;
     float cutoff, outer_cutoff;
+    attenuation_settings attenuation;
 };
 layout(set = 1, binding = 2) uniform light_data {
     int spotlight_count, point_light_count, directional_light_count;
@@ -55,6 +67,12 @@ layout(set = 1, binding = 2) uniform light_data {
     point_light point_lights[30];
     spotlight spotlights[30];
 } lights;
+
+float calculate_attenuation(attenuation_settings attenuation, vec3 light_position) {
+    float distance_ = length(light_position - fragment_position);
+    float distance_2 = distance_ * distance_;
+    return 1.0 / (attenuation._constant + attenuation._linear * distance_ + attenuation._quadratic * distance_2);
+}
 
 float calculate_specular(vec3 light_direction, float strength) {
     vec3 view_direction = normalize(camera_position - fragment_position);
@@ -67,21 +85,32 @@ float calculate_diffuse(vec3 light_direction) {
 
 vec3 calculate_spotlight(int index, vec3 texture_color) {
     spotlight light = lights.spotlights[index];
-    float ambient = light.ambient_strength;
-    // todo: calculate spotlight
-    return vec3(0.0);
-}
-vec3 calculate_point_light(int index, vec3 texture_color) {
-    point_light light = lights.point_lights[index];
-    vec3 difference = light.position - fragment_position;
-    vec3 light_direction = normalize(difference);
-    float distance_ = length(difference);
-    float distance_2 = distance_ * distance_;
+    vec3 light_direction = normalize(light.position - fragment_position);
+
     float ambient = light.ambient_strength;
     float specular = calculate_specular(light_direction, light.specular_strength);
     float diffuse = calculate_diffuse(light_direction);
+
     vec3 color = (ambient + specular + diffuse) * light.color * texture_color;
-    float attenuation = 1.0 / (light._constant + light._linear * distance_ + light._quadratic * distance_2);
+    float attenuation = calculate_attenuation(light.attenuation, light.position);
+
+    float theta = dot(light_direction, normalize(-light.direction));
+    float epsilon = light.cutoff - light.outer_cutoff;
+    float intensity = clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0);
+    
+    return color * attenuation * intensity;
+}
+vec3 calculate_point_light(int index, vec3 texture_color) {
+    point_light light = lights.point_lights[index];
+    vec3 light_direction = normalize(light.position - fragment_position);
+
+    float ambient = light.ambient_strength;
+    float specular = calculate_specular(light_direction, light.specular_strength);
+    float diffuse = calculate_diffuse(light_direction);
+
+    vec3 color = (ambient + specular + diffuse) * light.color * texture_color;
+    float attenuation = calculate_attenuation(light.attenuation, light.position);
+
     return color * attenuation;
 }
 vec3 calculate_directional_light(int index, vec3 texture_color) {

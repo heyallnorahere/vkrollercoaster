@@ -63,14 +63,6 @@ namespace vkrollercoaster {
 #else
     constexpr bool enable_validation_layers = true;
 #endif
-    template<typename T> static void parse_vulkan_version(T version, T& major, T& minor, T& patch) {
-        // bit twiddling bullshit
-        constexpr T major_offset = 22;
-        constexpr T minor_offset = 12;
-        major = version >> major_offset;
-        minor = (version >> minor_offset) & util::create_mask<T>(major_offset - minor_offset);
-        patch = version & util::create_mask<T>(minor_offset);
-    }
     static bool check_layer_availability(const std::string& layer_name) {
         uint32_t layer_count;
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -251,11 +243,6 @@ namespace vkrollercoaster {
                 VkPhysicalDeviceProperties properties;
                 vkGetPhysicalDeviceProperties(device, &properties);
                 spdlog::info("chose physical device: {0}", properties.deviceName);
-                uint32_t major, minor, patch;
-                parse_vulkan_version(properties.driverVersion, major, minor, patch);
-                spdlog::info("\tdriver version: {0}.{1}.{2}", major, minor, patch);
-                parse_vulkan_version(properties.apiVersion, major, minor, patch);
-                spdlog::info("\tapi version: {0}.{1}.{2}", major, minor, patch);
                 renderer_data.physical_device = device;
                 return;
             }
@@ -490,6 +477,14 @@ namespace vkrollercoaster {
             data.position = transform.translation;
         }
         renderer_data.camera_buffer->set_data(data);
+    }
+    void renderer::expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor, uint32_t& patch) {
+        // bit twiddling bullshit
+        constexpr uint32_t major_offset = 22;
+        constexpr uint32_t minor_offset = 12;
+        major = version >> major_offset;
+        minor = (version >> minor_offset) & util::create_mask(major_offset - minor_offset);
+        patch = version & util::create_mask(minor_offset);
     }
     queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
