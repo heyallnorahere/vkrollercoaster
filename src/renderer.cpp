@@ -363,7 +363,7 @@ namespace vkrollercoaster {
         create_sync_objects();
         image_data white_data;
         int32_t channels = 4;
-        white_data.data.resize(channels, 1);
+        white_data.data.resize(channels, 255);
         white_data.channels = channels;
         white_data.width = white_data.height = 1;
         renderer_data.white_texture = ref<texture>::create(ref<image>::create(white_data));
