@@ -50,15 +50,20 @@ namespace vkrollercoaster {
 #endif
     class renderer {
     public:
+        renderer() = delete;
+
         static void add_layer(const std::string& name);
         static void add_instance_extension(const std::string& name);
         static void add_device_extension(const std::string& name);
+
         static void init(ref<window> _window);
         static void shutdown();
         static void new_frame();
+        static void render(ref<command_buffer> cmdbuffer, entity to_render);
+
         static void add_ref();
         static void remove_ref();
-        static void render(ref<command_buffer> cmdbuffer, entity to_render);
+
         static ref<command_buffer> create_render_command_buffer();
         static ref<command_buffer> create_single_time_command_buffer();
         static ref<window> get_window();
@@ -71,16 +76,18 @@ namespace vkrollercoaster {
         static VkDescriptorPool get_descriptor_pool();
         static ref<texture> get_white_texture();
         static ref<uniform_buffer> get_camera_buffer();
+
         static void update_camera_buffer(ref<scene> _scene); // todo: add window parameter after window surface is moved to swapchain
+
         static void expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor, uint32_t& patch);
+
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
         static queue_family_indices find_queue_families(VkPhysicalDevice device);
         static const sync_objects& get_sync_objects(size_t frame_index);
         static size_t get_current_frame();
+
         static constexpr size_t max_frame_count = 2;
 #endif
-    private:
-        renderer() = default;
     };
 }
