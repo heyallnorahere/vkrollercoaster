@@ -35,7 +35,7 @@ namespace vkrollercoaster {
     private:
         scene* m_scene;
         entt::entity m_id;
-        template<typename T> friend class ::std::hash;
+        template<typename T> friend struct ::std::hash;
     };
     class scene : public ref_counted {
     public:
