@@ -18,13 +18,27 @@
 #include "swapchain.h"
 #include "command_buffer.h"
 namespace vkrollercoaster {
+    class menu : public ref_counted {
+    public:
+        menu() = default;
+        virtual ~menu() = default;
+        virtual std::string get_title() = 0;
+        virtual void update() = 0;
+        bool& open() { return this->m_open; }
+    protected:
+        bool m_open = true;
+    };
     class imgui_controller : public ref_counted {
     public:
         imgui_controller(ref<swapchain> _swapchain);
         ~imgui_controller();
+        imgui_controller(const imgui_controller&) = delete;
+        imgui_controller& operator=(const imgui_controller&) = delete;
         void new_frame();
+        void update_menus();
         void render(ref<command_buffer> cmdbuffer);
     private:
         ref<swapchain> m_swapchain;
+        std::vector<ref<menu>> m_menus;
     };
 }

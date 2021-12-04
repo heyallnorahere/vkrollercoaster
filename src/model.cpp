@@ -51,8 +51,8 @@ namespace vkrollercoaster {
     model::model(const fs::path& path) {
         initialize_logger();
         this->m_path = path;
-        if (!this->m_path.has_parent_path()) {
-            this->m_path = fs::current_path() / this->m_path;
+        if (!this->m_path.is_absolute()) {
+            this->m_path = fs::absolute(this->m_path);
         }
         this->reload();
     }
@@ -138,7 +138,7 @@ namespace vkrollercoaster {
 
             // albedo map
             if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_path) == aiReturn_SUCCESS) {
-                auto path = this->m_path.parent_path() / fs::path(ai_path.C_Str());
+                auto path = this->get_resource_path(ai_path);
                 auto img = image::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
@@ -148,7 +148,7 @@ namespace vkrollercoaster {
 
             // specular map
             if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_path) == aiReturn_SUCCESS) {
-                auto path = this->m_path.parent_path() / fs::path(ai_path.C_Str());
+                auto path = this->get_resource_path(ai_path);
                 auto img = image::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
@@ -218,5 +218,12 @@ namespace vkrollercoaster {
             render_call.vbo = ref<vertex_buffer>::create(vertices);
             render_call.ibo = ref<index_buffer>::create(indices);
         }
+    }
+    fs::path model::get_resource_path(const aiString& ai_path) {
+        fs::path path = ai_path.C_Str();
+        if (path.is_relative()) {
+            path = this->m_path.parent_path() / path;
+        }
+        return path;
     }
 }

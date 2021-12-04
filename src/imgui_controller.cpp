@@ -19,6 +19,7 @@
 #define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
+#include "menus/menus.h"
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
@@ -129,6 +130,10 @@ namespace vkrollercoaster {
         cmdbuffer->end();
         cmdbuffer->submit();
         ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+        // add menus
+        this->m_menus.push_back(ref<inspector>::create());
+        this->m_menus.push_back(ref<renderer_info>::create());
     }
     imgui_controller::~imgui_controller() {
         ImGui_ImplVulkan_Shutdown();
@@ -140,6 +145,14 @@ namespace vkrollercoaster {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+    }
+    void imgui_controller::update_menus() {
+        // todo: dockspace
+        for (ref<menu> _menu : this->m_menus) {
+            if (_menu->open()) {
+                _menu->update();
+            }
+        }
     }
     void imgui_controller::render(ref<command_buffer> cmdbuffer) {
         ImGui::Render();
