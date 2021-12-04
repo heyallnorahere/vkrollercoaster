@@ -186,6 +186,7 @@ namespace vkrollercoaster {
                 } else {
                     auto _model = ref<model>::create(model_path);
                     ent.add_component<model_component>().data = _model;
+                    model_path.clear();
                 }
             }
         }

@@ -30,18 +30,12 @@
 #include "material.h"
 #include "light.h"
 namespace vkrollercoaster {
-    struct loaded_model_t {
-        ref<model> data;
-        std::string name;
-    };
-
     struct app_data_t {
         ref<window> app_window;
         ref<swapchain> swap_chain;
         std::vector<ref<command_buffer>> command_buffers;
         ref<imgui_controller> imgui;
         ref<scene> global_scene;
-        std::vector<loaded_model_t> loaded_models;
         bool running = false;
         bool should_stop = false;
     };
