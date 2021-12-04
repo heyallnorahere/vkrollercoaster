@@ -113,16 +113,13 @@ namespace vkrollercoaster {
         // cant do any checks without a physical device
         renderer_data.device_extensions.insert(name);
     }
-    static void choose_device_extensions() {
+    static void choose_extensions() {
         const std::vector<std::string> required_extensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
         for (const auto& extension : required_extensions) {
             renderer::add_device_extension(extension);
         }
-    }
-    static void choose_extensions() {
-        choose_device_extensions();
         uint32_t glfw_extension_count = 0;
         const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         if (glfw_extension_count > 0) {
@@ -139,6 +136,9 @@ namespace vkrollercoaster {
             }
             renderer::add_instance_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
+#ifdef VKROLLERCOASTER_MOLTENVK
+        renderer::add_instance_extension("VK_KHR_get_physical_device_properties2");
+#endif
     }
     static void create_instance() {
         VkApplicationInfo app_info;
@@ -277,6 +277,26 @@ namespace vkrollercoaster {
         }
         for (const auto& extension : renderer_data.device_extensions) {
             extensions.push_back(extension.c_str());
+        }
+        uint32_t supported_extension_count = 0;
+        vkEnumerateDeviceExtensionProperties(renderer_data.physical_device, nullptr, &supported_extension_count, nullptr);
+        std::vector<VkExtensionProperties> supported_extensions(supported_extension_count);
+        vkEnumerateDeviceExtensionProperties(renderer_data.physical_device, nullptr, &supported_extension_count, supported_extensions.data());
+        for (const auto& extension : supported_extensions) {
+            bool found = false;
+            for (auto enabled : extensions) {
+                if (strcmp(enabled, extension.extensionName) == 0) {
+                    found = true;
+                    break;
+                }
+            }
+#ifdef VKROLLERCOASTER_MOLTENVK
+            // https://vulkan.lunarg.com/doc/view/1.2.182.0/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+            static const char* const portability_subset_ext = "VK_KHR_portability_subset";
+            if (!found && strcmp(extension.extensionName, portability_subset_ext) == 0) {
+                extensions.push_back(portability_subset_ext);
+            }
+#endif
         }
         if (!layer_names.empty()) {
             create_info.enabledLayerCount = layer_names.size();
