@@ -514,7 +514,7 @@ namespace vkrollercoaster {
             const auto& transform = main_camera.get_component<transform_component>();
             data.projection = glm::perspective(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
             glm::vec3 direction = glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
-            data.view = glm::lookAtRH(transform.translation, transform.translation + glm::normalize(direction), camera.up);
+            data.view = glm::lookAt(transform.translation, transform.translation + glm::normalize(direction), camera.up);
             data.position = transform.translation;
         }
         renderer_data.camera_buffer->set_data(data);
