@@ -56,6 +56,7 @@ namespace vkrollercoaster {
     };
     class uniform_buffer;
     class texture;
+    class material;
     class pipeline : public ref_counted {
     public:
         struct descriptor_set {
@@ -117,9 +118,11 @@ namespace vkrollercoaster {
         std::vector<VkPushConstantRange> m_push_constant_ranges;
         std::unordered_map<texture_binding_desc, texture*, texture_binding_desc::hash> m_bound_textures;
         std::map<uint32_t, std::map<uint32_t, bound_buffer_desc>> m_bound_buffers;
+        material* m_material;
         friend class swapchain;
         friend class shader;
         friend class uniform_buffer;
         friend class texture;
+        friend class material;
     };
 }

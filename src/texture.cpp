@@ -18,10 +18,12 @@
 #include "texture.h"
 #include "renderer.h"
 #include "util.h"
+#include <backends/imgui_impl_vulkan.h>
 namespace vkrollercoaster {
     texture::texture(ref<image> _image) {
         renderer::add_ref();
         this->m_image = _image;
+        this->m_image->m_dependents.insert(this);
         this->create_sampler();
     }
     texture::~texture() {
@@ -38,6 +40,7 @@ namespace vkrollercoaster {
         }
         VkDevice device = renderer::get_device();
         vkDestroySampler(device, this->m_sampler, nullptr);
+        this->m_image->m_dependents.erase(this);
         renderer::remove_ref();
     }
     void texture::bind(ref<pipeline> _pipeline, uint32_t set, uint32_t binding, uint32_t slot) {
@@ -58,8 +61,8 @@ namespace vkrollercoaster {
         }
         VkDescriptorImageInfo image_info;
         util::zero(image_info);
-        image_info.imageLayout = this->m_image->get_layout();
-        image_info.imageView = this->m_image->get_view();
+        image_info.imageLayout = this->m_image->m_layout;
+        image_info.imageView = this->m_image->m_view;
         image_info.sampler = this->m_sampler;
         std::vector<VkWriteDescriptorSet> writes;
         for (VkDescriptorSet current_set : sets[set].sets) {
@@ -97,6 +100,12 @@ namespace vkrollercoaster {
             throw std::runtime_error("the specified resource was not found!");
         }
     }
+    ImTextureID texture::get_imgui_id() {
+        if (!this->m_imgui_id) {
+            this->m_imgui_id = ImGui_ImplVulkan_AddTexture(this->m_sampler, this->m_image->m_view, this->m_image->m_layout);
+        }
+        return this->m_imgui_id;
+    }
     void texture::create_sampler() {
         VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkPhysicalDeviceProperties properties;
@@ -130,6 +139,11 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         if (vkCreateSampler(device, &create_info, nullptr, &this->m_sampler) != VK_SUCCESS) {
             throw std::runtime_error("could not create sampler!");
+        }
+    }
+    void texture::update_imgui_texture() {
+        if (this->m_imgui_id) {
+            ImGui_ImplVulkan_UpdateTextureInfo(this->m_imgui_id, this->m_sampler, this->m_image->m_view, this->m_image->m_layout);
         }
     }
 }

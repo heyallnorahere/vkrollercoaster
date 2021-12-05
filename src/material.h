@@ -27,20 +27,42 @@ namespace vkrollercoaster {
         static void shutdown();
         material(ref<shader> _shader);
         material(const std::string& shader_name) : material(shader_library::get(shader_name)) { }
-        ~material() = default;
+        ~material();
         ref<pipeline> create_pipeline(const pipeline_spec& spec);
-        void set(const std::string& name, int32_t data);
-        void set(const std::string& name, uint32_t data);
-        void set(const std::string& name, float data);
-        void set(const std::string& name, const glm::vec3& data);
-        void set(const std::string& name, const glm::vec4& data);
-        void set(const std::string& name, const glm::mat4& data);
-        void set(const std::string& name, ref<texture> tex, uint32_t slot = 0);
+        void set_name(const std::string& name) { this->m_name = name; }
+        const std::string& get_name() { return this->m_name; }
+        template<typename T> void set_data(const std::string& name, const T& data) {
+            auto& reflection_data = this->m_shader->get_reflection_data();
+            auto& resource = reflection_data.resources[this->m_set][this->m_binding];
+            const auto& resource_type = reflection_data.types[resource.type];
+            if (!resource_type.path_exists(name)) {
+                throw std::runtime_error("could not find the specified field!");
+            }
+            size_t offset = resource_type.find_offset(name);
+            this->m_buffer->set_data(data, offset);
+        }
+        template<typename T> T get_data(const std::string& name) {
+            auto& reflection_data = this->m_shader->get_reflection_data();
+            const auto& resource = reflection_data.resources[this->m_set][this->m_binding];
+            const auto& resource_type = reflection_data.types[resource.type];
+            if (!resource_type.path_exists(name)) {
+                throw std::runtime_error("could not find the specified field!");
+            }
+            size_t offset = resource_type.find_offset(name);
+            T data;
+            this->m_buffer->get_data(data, offset);
+            return data;
+        }
+        void set_texture(const std::string& name, ref<texture> tex, uint32_t slot = 0);
+        ref<texture> get_texture(const std::string& name, uint32_t slot = 0);
     private:
         ref<swapchain> m_swapchain;
         ref<uniform_buffer> m_buffer, m_light_buffer;
         ref<shader> m_shader;
+        std::string m_name;
         std::map<std::string, std::vector<ref<texture>>> m_textures;
         uint32_t m_set, m_binding;
+        std::set<pipeline*> m_created_pipelines;
+        friend class pipeline;
     };
 }

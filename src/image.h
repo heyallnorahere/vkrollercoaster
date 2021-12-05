@@ -24,6 +24,7 @@ namespace vkrollercoaster {
         std::vector<uint8_t> data;
         int32_t width, height, channels;
     };
+    class texture;
     class image : public ref_counted {
     public:
         static bool load_image(const fs::path& path, image_data& data);
@@ -40,11 +41,13 @@ namespace vkrollercoaster {
     private:
         void create_image_from_data(const image_data& data);
         void create_view();
+        std::set<texture*> m_dependents;
         VkImage m_image;
         VkImageView m_view;
         VkDeviceMemory m_memory;
         VkFormat m_format;
         VkImageLayout m_layout;
         VkImageAspectFlags m_aspect;
+        friend class texture;
     };
 }

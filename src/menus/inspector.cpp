@@ -152,17 +152,39 @@ namespace vkrollercoaster {
         file_does_not_exist
     };
     static model_loading_error model_error = model_loading_error::none;
+    static ref<material> model_material;
     static void model_editor(entity ent) {
         if (ent.has_component<model_component>()) {
             ref<model> _model = ent.get_component<model_component>().data;
+
             std::string string_path = _model->get_path().string();
-            ImGui::Text("Model at path \"%s\" is attached to this entity", string_path.c_str());
+            ImGui::Text("Model: %s", string_path.c_str());
             if (ImGui::Button("Reload")) {
                 _model->reload();
             }
             if (ImGui::Button("Remove")) {
                 ent.remove_component<model_component>();
             }
+
+            const auto& render_call_data = _model->get_render_call_data();
+            static int32_t current_material = 0;
+            if (current_material >= render_call_data.size()) {
+                current_material = 0;
+            }
+            std::vector<const char*> material_names;
+            for (const auto& render_call : render_call_data) {
+                const auto& name = render_call._material._material->get_name();
+                material_names.push_back(name.c_str());
+            }
+            ImGui::Combo("Selected material", &current_material, material_names.data(), material_names.size());
+            model_material = render_call_data[current_material]._material._material;
+
+            float available_width = ImGui::GetContentRegionAvail().x;
+            float image_size = available_width / 8;
+
+            ImGui::Text("Albedo map");
+            ref<texture> albedo_map = model_material->get_texture("albedo_texture");
+            ImGui::Image(albedo_map->get_imgui_id(), ImVec2(image_size, image_size));
         } else {
             static std::string model_path;
             ImGui::InputText("Model path", &model_path);
@@ -189,6 +211,11 @@ namespace vkrollercoaster {
                     model_path.clear();
                 }
             }
+        }
+    }
+    inspector::~inspector() {
+        if (model_material) {
+            model_material.reset();
         }
     }
     void inspector::update() {
@@ -247,8 +274,13 @@ namespace vkrollercoaster {
                 ImGui::Indent();
                 model_editor(ent);
                 ImGui::Unindent();
-            } else if (model_error != model_loading_error::none) {
-                model_error = model_loading_error::none;
+            } else {
+                if (model_error != model_loading_error::none) {
+                    model_error = model_loading_error::none;
+                }
+                if (model_material) {
+                    model_material.reset();
+                }
             }
         }
 

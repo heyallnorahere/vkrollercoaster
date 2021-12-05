@@ -44,6 +44,9 @@ namespace vkrollercoaster {
             throw std::runtime_error("passed nullptr!");
         }
 
+        // default name
+        this->m_name = "Material";
+
         auto& reflection_data = this->m_shader->get_reflection_data();
         if (!reflection_data.find_resource("material_data", this->m_set, this->m_binding)) {
             throw std::runtime_error("could not find material buffer!");
@@ -85,6 +88,11 @@ namespace vkrollercoaster {
             }
         }
     }
+    material::~material() {
+        for (pipeline* _pipeline : this->m_created_pipelines) {
+            _pipeline->m_material = nullptr;
+        }
+    }
     ref<pipeline> material::create_pipeline(const pipeline_spec& spec) {
         auto _pipeline = ref<pipeline>::create(this->m_swapchain, this->m_shader, spec);
         renderer::get_camera_buffer()->bind(_pipeline);
@@ -95,45 +103,23 @@ namespace vkrollercoaster {
                 textures[slot]->bind(_pipeline, resource_name, slot);
             }
         }
+        _pipeline->m_material = this;
+        this->m_created_pipelines.insert(_pipeline.raw());
         return _pipeline;
     }
-    void material::set(const std::string& name, int32_t data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, uint32_t data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, float data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, const glm::vec3& data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, const glm::vec4& data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, const glm::mat4& data) {
-        auto& reflection_data = this->m_shader->get_reflection_data();
-        auto& resource = reflection_data.resources[this->m_set][this->m_binding];
-        size_t offset = reflection_data.types[resource.type].find_offset(name);
-        this->m_buffer->set_data(data, offset);
-    }
-    void material::set(const std::string& name, ref<texture> tex, uint32_t slot) {
+    void material::set_texture(const std::string& name, ref<texture> tex, uint32_t slot) {
+        if (this->m_textures.find(name) == this->m_textures.end()) {
+            throw std::runtime_error("the specified texture resource does not exist!");
+        }
         this->m_textures[name][slot] = tex;
+        for (pipeline* _pipeline : this->m_created_pipelines) {
+            tex->bind(_pipeline, name, slot);
+        }
+    }
+    ref<texture> material::get_texture(const std::string& name, uint32_t slot) {
+        if (this->m_textures.find(name) == this->m_textures.end()) {
+            throw std::runtime_error("the specified texture resource does not exist!");
+        }
+        return this->m_textures[name][slot];
     }
 }

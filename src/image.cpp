@@ -20,6 +20,7 @@
 #include "buffers.h"
 #include "renderer.h"
 #include "util.h"
+#include "texture.h"
 #define STBI_NO_SIMD
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -188,6 +189,9 @@ namespace vkrollercoaster {
     void image::transition(VkImageLayout new_layout) {
         transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout);
         this->m_layout = new_layout;
+        for (texture* tex : this->m_dependents) {
+            tex->update_imgui_texture();
+        }
     }
     void image::create_image_from_data(const image_data& data) {
         switch (data.channels) {

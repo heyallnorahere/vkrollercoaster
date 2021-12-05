@@ -134,25 +134,29 @@ namespace vkrollercoaster {
         for (size_t i = 0; i < this->m_scene->mNumMaterials; i++) {
             auto _material = ref<material>::create(material_shader);
             aiMaterial* ai_material = this->m_scene->mMaterials[i];
-            aiString ai_path;
+            aiString ai_string;
+
+            // name
+            ai_string = ai_material->GetName();
+            _material->set_name(ai_string.C_Str());
 
             // albedo map
-            if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_path) == aiReturn_SUCCESS) {
-                auto path = this->get_resource_path(ai_path);
+            if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_string) == aiReturn_SUCCESS) {
+                auto path = this->get_resource_path(ai_string);
                 auto img = image::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
-                    _material->set("albedo_texture", tex);
+                    _material->set_texture("albedo_texture", tex);
                 }
             }
 
             // specular map
-            if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_path) == aiReturn_SUCCESS) {
-                auto path = this->get_resource_path(ai_path);
+            if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_string) == aiReturn_SUCCESS) {
+                auto path = this->get_resource_path(ai_string);
                 auto img = image::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
-                    _material->set("specular_texture", tex);
+                    _material->set_texture("specular_texture", tex);
                 }
             }
             
@@ -164,8 +168,8 @@ namespace vkrollercoaster {
             if (ai_material->Get(AI_MATKEY_OPACITY, opacity) != aiReturn_SUCCESS) {
                 opacity = 1.f;
             }
-            _material->set("shininess", shininess);
-            _material->set("opacity", opacity);
+            _material->set_data("shininess", shininess);
+            _material->set_data("opacity", opacity);
 
             // albedo and specular colors
             glm::vec3 albedo_color = glm::vec3(1.f);
@@ -177,8 +181,8 @@ namespace vkrollercoaster {
             if (ai_material->Get(AI_MATKEY_COLOR_SPECULAR, ai_color) == aiReturn_SUCCESS) {
                 specular_color = convert<3>(ai_color);
             }
-            _material->set("albedo_color", albedo_color);
-            _material->set("specular_color", specular_color);
+            _material->set_data("albedo_color", albedo_color);
+            _material->set_data("specular_color", specular_color);
 
             materials.push_back(_material);
         }

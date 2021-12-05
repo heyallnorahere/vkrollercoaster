@@ -27,11 +27,15 @@ namespace vkrollercoaster {
         void bind(ref<pipeline> _pipeline, uint32_t set, uint32_t binding, uint32_t slot = 0);
         void bind(ref<pipeline> _pipeline, const std::string& name, uint32_t slot = 0);
         ref<image> get_image() { return this->m_image; }
+        ImTextureID get_imgui_id();
     private:
         void create_sampler();
+        void update_imgui_texture();
         ref<image> m_image;
         VkSampler m_sampler;
         std::set<pipeline*> m_bound_pipelines;
+        ImTextureID m_imgui_id = (ImTextureID)0;
         friend class pipeline;
+        friend class image;
     };
 }

@@ -17,7 +17,6 @@
 #include "pch.h"
 #include "application.h"
 #include "renderer.h"
-#include "swapchain.h"
 #include "shader.h"
 #include "pipeline.h"
 #include "command_buffer.h"
@@ -165,4 +164,5 @@ namespace vkrollercoaster {
 
     ref<window> application::get_window() { return app_data->app_window; }
     ref<scene> application::get_scene() { return app_data->global_scene; }
+    ref<swapchain> application::get_swapchain() { return app_data->swap_chain; }
 }

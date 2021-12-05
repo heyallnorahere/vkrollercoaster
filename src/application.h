@@ -17,6 +17,7 @@
 #pragma once
 #include "window.h"
 #include "scene.h"
+#include "swapchain.h"
 namespace vkrollercoaster {
     class application {
     public:
@@ -30,5 +31,6 @@ namespace vkrollercoaster {
 
         static ref<window> get_window();
         static ref<scene> get_scene();
+        static ref<swapchain> get_swapchain();
     };
 }

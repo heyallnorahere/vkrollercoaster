@@ -20,8 +20,10 @@
 #include "util.h"
 #include "buffers.h"
 #include "texture.h"
+#include "material.h"
 namespace vkrollercoaster {
     pipeline::pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec) {
+        this->m_material = nullptr;
         this->m_swapchain = _swapchain;
         this->m_shader = _shader;
         this->m_spec = spec;
@@ -34,6 +36,9 @@ namespace vkrollercoaster {
         this->m_swapchain->add_reload_callbacks(this, destroy, recreate);
     }
     pipeline::~pipeline() {
+        if (this->m_material) {
+            this->m_material->m_created_pipelines.erase(this);
+        }
         for (const auto& [set, bindings] : this->m_bound_buffers) {
             for (const auto& [binding, data] : bindings) {
                 switch (data.type) {

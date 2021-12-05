@@ -19,6 +19,7 @@
 namespace vkrollercoaster {
     class inspector : public menu {
     public:
+        virtual ~inspector() override;
         virtual std::string get_title() override { return "Inspector"; }
         virtual void update() override;
     };
