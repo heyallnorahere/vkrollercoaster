@@ -15,7 +15,7 @@
 */
 
 #pragma once
-#include "swapchain.h"
+#include "framebuffer.h"
 #include "texture.h"
 #include "shader.h"
 #include "buffers.h"
@@ -23,12 +23,10 @@
 namespace vkrollercoaster {
     class material : public ref_counted {
     public:
-        static void init(ref<swapchain> swap_chain);
-        static void shutdown();
         material(ref<shader> _shader);
         material(const std::string& shader_name) : material(shader_library::get(shader_name)) { }
         ~material();
-        ref<pipeline> create_pipeline(const pipeline_spec& spec);
+        ref<pipeline> create_pipeline(ref<render_target> target, const pipeline_spec& spec);
         void set_name(const std::string& name) { this->m_name = name; }
         const std::string& get_name() { return this->m_name; }
         template<typename T> void set_data(const std::string& name, const T& data) {
@@ -56,7 +54,6 @@ namespace vkrollercoaster {
         void set_texture(const std::string& name, ref<texture> tex, uint32_t slot = 0);
         ref<texture> get_texture(const std::string& name, uint32_t slot = 0);
     private:
-        ref<swapchain> m_swapchain;
         ref<uniform_buffer> m_buffer, m_light_buffer;
         ref<shader> m_shader;
         std::string m_name;

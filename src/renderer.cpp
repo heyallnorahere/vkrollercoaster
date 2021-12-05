@@ -438,6 +438,10 @@ namespace vkrollercoaster {
             !to_render.has_component<model_component>()) {
             throw std::runtime_error("the given entity does not have necessary components for rendering!");
         }
+        auto target = cmdbuffer->get_current_render_target();
+        if (!target) {
+            throw std::runtime_error("cannot render outside of a render pass!");
+        }
         const auto& model_data = to_render.get_component<model_component>();
         const auto& transform = to_render.get_component<transform_component>();
         struct {
@@ -447,9 +451,19 @@ namespace vkrollercoaster {
         push_constant_data.normal = glm::toMat4(glm::quat(transform.rotation));
         const auto& render_call_data = model_data.data->get_render_call_data();
         for (const auto& render_call : render_call_data) {
-            auto _pipeline = render_call._material._pipeline;
-            auto swap_chain = _pipeline->get_swapchain();
-            size_t current_image = swap_chain->get_current_image();
+            auto _material = render_call._material;
+            
+            ref<pipeline> _pipeline;
+            {
+                pipeline_spec spec;
+
+                spec.input_layout = model_data.data->get_input_layout();
+                spec.enable_blending = true;
+                spec.enable_depth_testing = true;
+                
+                _pipeline = _material->create_pipeline(target, spec);
+            }
+            cmdbuffer->m_rendered_pipelines.push_back(new ref<pipeline>(_pipeline));
 
             // set viewport
             VkRect2D scissor = _pipeline->get_scissor();
@@ -457,12 +471,12 @@ namespace vkrollercoaster {
 
             // set viewport
             VkViewport viewport = _pipeline->get_viewport();
-            viewport.y = (float)swap_chain->get_extent().height - viewport.y;
+            viewport.y = (float)target->get_extent().height - viewport.y;
             viewport.height *= -1.f;
             vkCmdSetViewport(cmdbuffer->get(), 0, 1, &viewport);
 
             // bind pipeline
-            _pipeline->bind(cmdbuffer, current_image);
+            _pipeline->bind(cmdbuffer);
 
             // set vertex data
             render_call.vbo->bind(cmdbuffer);

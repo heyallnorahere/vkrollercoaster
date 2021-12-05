@@ -19,6 +19,7 @@
 #define EXPOSE_RENDERER_INTERNALS
 #include "renderer.h"
 #include "util.h"
+#include "pipeline.h"
 namespace vkrollercoaster {
     command_buffer::~command_buffer() {
         VkDevice device = renderer::get_device();
@@ -37,6 +38,9 @@ namespace vkrollercoaster {
         }
     }
     void command_buffer::end() {
+        if (this->m_current_render_target) {
+            throw std::runtime_error("cannot end recording of a command buffer during a render pass!");
+        }
         if (vkEndCommandBuffer(this->m_buffer) != VK_SUCCESS) {
             throw std::runtime_error("could not end recording of command buffer!");
         }
@@ -77,6 +81,50 @@ namespace vkrollercoaster {
     void command_buffer::reset() {
         vkQueueWaitIdle(this->m_queue);
         vkResetCommandBuffer(this->m_buffer, 0);
+
+        // way too hacky
+        for (void* ptr : this->m_rendered_pipelines) {
+            delete (ref<pipeline>*)ptr;
+        }
+        this->m_rendered_pipelines.clear();
+    }
+    void command_buffer::begin_render_pass(ref<render_target> target, const glm::vec4& clear_color) {
+        if (this->m_current_render_target) {
+            throw std::runtime_error("a render pass is already being recorded!");
+        }
+        VkRenderPassBeginInfo begin_info;
+        util::zero(begin_info);
+        begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        begin_info.renderPass = target->get_render_pass();
+        begin_info.framebuffer = target->get_framebuffer();
+        begin_info.renderArea.offset = { 0, 0 };
+        begin_info.renderArea.extent = target->get_extent();
+        std::vector<VkClearValue> clear_values;
+        std::set<framebuffer_attachment_type> attachment_types;
+        target->get_attachment_types(attachment_types);
+        if (attachment_types.find(framebuffer_attachment_type::color) != attachment_types.end()) {
+            VkClearValue clear_value;
+            util::zero(clear_value);
+            memcpy(clear_value.color.float32, &clear_color, sizeof(glm::vec4));
+            clear_values.push_back(clear_value);
+        }
+        if (attachment_types.find(framebuffer_attachment_type::depth_stencil) != attachment_types.end()) {
+            VkClearValue clear_value;
+            util::zero(clear_value);
+            clear_value.depthStencil = { 1.f, 0 };
+            clear_values.push_back(clear_value);
+        }
+        begin_info.clearValueCount = clear_values.size();
+        begin_info.pClearValues = clear_values.data();
+        vkCmdBeginRenderPass(this->m_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        this->m_current_render_target = target;
+    }
+    void command_buffer::end_render_pass() {
+        if (!this->m_current_render_target) {
+            throw std::runtime_error("no render pass is being recorded!");
+        }
+        vkCmdEndRenderPass(this->m_buffer);
+        this->m_current_render_target.reset();
     }
     command_buffer::command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render) {
         this->m_single_time = single_time;
@@ -94,25 +142,5 @@ namespace vkrollercoaster {
         if (vkAllocateCommandBuffers(device, &alloc_info, &this->m_buffer) != VK_SUCCESS) {
             throw std::runtime_error("could not allocate command buffer!");
         }
-    }
-    void command_buffer::begin_render_pass(ref<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index) {
-        VkRenderPassBeginInfo begin_info;
-        util::zero(begin_info);
-        begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        begin_info.renderPass = swap_chain->get_render_pass();
-        const auto& swapchain_images = swap_chain->get_swapchain_images();
-        begin_info.framebuffer = swapchain_images[image_index].framebuffer;
-        begin_info.renderArea.offset = { 0, 0 };
-        begin_info.renderArea.extent = swap_chain->get_extent();
-        std::array<VkClearValue, 2> clear_values;
-        util::zero(clear_values.data(), clear_values.size() * sizeof(VkClearValue));
-        memcpy(clear_values[0].color.float32, &clear_color, sizeof(glm::vec4));
-        clear_values[1].depthStencil = { 1.f, 0 };
-        begin_info.clearValueCount = clear_values.size();
-        begin_info.pClearValues = clear_values.data();
-        vkCmdBeginRenderPass(this->m_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-    }
-    void command_buffer::end_render_pass() {
-        vkCmdEndRenderPass(this->m_buffer);
     }
 }

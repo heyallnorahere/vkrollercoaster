@@ -57,13 +57,15 @@ namespace vkrollercoaster {
         renderer::update_camera_buffer(app_data->global_scene);
     }
 
-    static void draw(ref<command_buffer> cmdbuffer, size_t current_image) {
+    static void draw(ref<command_buffer> cmdbuffer) {
         cmdbuffer->begin();
-        cmdbuffer->begin_render_pass(app_data->swap_chain, glm::vec4(glm::vec3(0.1f), 1.f), current_image);
+        cmdbuffer->begin_render_pass(app_data->swap_chain, glm::vec4(glm::vec3(0.1f), 1.f));
+
         // probably should optimize and batch render
         for (entity ent : app_data->global_scene->view<transform_component, model_component>()) {
             renderer::render(cmdbuffer, ent);
         }
+
         imgui_controller::render(cmdbuffer);
         cmdbuffer->end_render_pass();
         cmdbuffer->end();
@@ -81,7 +83,6 @@ namespace vkrollercoaster {
         renderer::init(app_data->app_window);
         app_data->swap_chain = ref<swapchain>::create();
         imgui_controller::init(app_data->swap_chain);
-        material::init(app_data->swap_chain);
 
         // load shader
         shader_library::add("default_static");
@@ -109,7 +110,6 @@ namespace vkrollercoaster {
     void application::shutdown() {
         // shut down subsystems
         light::shutdown();
-        material::shutdown();
         imgui_controller::shutdown();
         shader_library::clear();
         renderer::shutdown();
@@ -140,7 +140,7 @@ namespace vkrollercoaster {
             // add draw commands
             size_t current_image = app_data->swap_chain->get_current_image();
             auto cmdbuffer = app_data->command_buffers[current_image];
-            draw(cmdbuffer, current_image);
+            draw(cmdbuffer);
 
             // render and present
             cmdbuffer->submit();

@@ -21,10 +21,11 @@
 #include "buffers.h"
 #include "texture.h"
 #include "material.h"
+#include "swapchain.h"
 namespace vkrollercoaster {
-    pipeline::pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec) {
+    pipeline::pipeline(ref<render_target> target, ref<shader> _shader, const pipeline_spec& spec) {
         this->m_material = nullptr;
-        this->m_swapchain = _swapchain;
+        this->m_render_target = target;
         this->m_shader = _shader;
         this->m_spec = spec;
         renderer::add_ref();
@@ -33,7 +34,7 @@ namespace vkrollercoaster {
         this->m_shader->m_dependents.insert(this);
         auto destroy = [this]() mutable { this->destroy_pipeline(); };
         auto recreate = [this]() mutable { this->create_pipeline(); };
-        this->m_swapchain->add_reload_callbacks(this, destroy, recreate);
+        this->m_render_target->add_reload_callbacks(this, destroy, recreate);
     }
     pipeline::~pipeline() {
         if (this->m_material) {
@@ -54,17 +55,22 @@ namespace vkrollercoaster {
         for (const auto& [binding, tex] : this->m_bound_textures) {
             tex->m_bound_pipelines.erase(this);
         }
-        this->m_swapchain->remove_reload_callbacks(this);
+        this->m_render_target->remove_reload_callbacks(this);
         this->m_shader->m_dependents.erase(this);
         this->destroy_pipeline();
         this->destroy_descriptor_sets();
         renderer::remove_ref();
     }
-    void pipeline::bind(ref<command_buffer> cmdbuffer, size_t current_image) {
+    void pipeline::bind(ref<command_buffer> cmdbuffer) {
+        size_t set_index = 0;
+        if (this->m_render_target->get_render_target_type() == render_target_type::swapchain) {
+            ref<swapchain> swap_chain = this->m_render_target.as<swapchain>();
+            set_index = swap_chain->get_current_image();
+        }
         VkCommandBuffer vk_cmdbuffer = cmdbuffer->get();
         vkCmdBindPipeline(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
         for (const auto& [set, data] : this->m_descriptor_sets) {
-            vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout, set, 1, &data.sets[current_image], 0, nullptr);
+            vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout, set, 1, &data.sets[set_index], 0, nullptr);
         }
     }
     void pipeline::reload(bool descriptor_sets) {
@@ -115,7 +121,11 @@ namespace vkrollercoaster {
                 bindings[set].push_back(set_binding);
             }
         }
-        size_t swapchain_image_count = this->m_swapchain->get_swapchain_images().size();
+        size_t set_count = 1;
+        if (this->m_render_target->get_render_target_type() == render_target_type::swapchain) {
+            ref<swapchain> swap_chain = this->m_render_target.as<swapchain>();
+            set_count = swap_chain->get_swapchain_images().size(); 
+        }
         VkDevice device = renderer::get_device();
         VkDescriptorPool descriptor_pool = renderer::get_descriptor_pool();
         for (const auto& [set, set_bindings] : bindings) {
@@ -130,8 +140,8 @@ namespace vkrollercoaster {
             }
             auto& set_data = this->m_descriptor_sets[set];
             set_data.layout = layout;
-            set_data.sets.resize(swapchain_image_count);
-            std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, layout);
+            set_data.sets.resize(set_count);
+            std::vector<VkDescriptorSetLayout> layouts(set_count, layout);
             VkDescriptorSetAllocateInfo alloc_info;
             util::zero(alloc_info);
             alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -145,7 +155,7 @@ namespace vkrollercoaster {
     }
     void pipeline::create_pipeline() {
         VkDevice device = renderer::get_device();
-        VkExtent2D swapchain_extent = this->m_swapchain->get_extent();
+        VkExtent2D extent = this->m_render_target->get_extent();
         VkPipelineVertexInputStateCreateInfo vertex_input_info;
         util::zero(vertex_input_info);
         vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -207,12 +217,12 @@ namespace vkrollercoaster {
         input_assembly.primitiveRestartEnable = false;
         util::zero(this->m_viewport);
         this->m_viewport.x = this->m_viewport.y = 0.f;
-        this->m_viewport.width = (float)swapchain_extent.width;
-        this->m_viewport.height = (float)swapchain_extent.height;
+        this->m_viewport.width = (float)extent.width;
+        this->m_viewport.height = (float)extent.height;
         this->m_viewport.minDepth = 0.f;
         this->m_viewport.maxDepth = 1.f;
         util::zero(this->m_scissor);
-        this->m_scissor.extent = swapchain_extent;
+        this->m_scissor.extent = extent;
         VkPipelineViewportStateCreateInfo viewport_state;
         util::zero(viewport_state);
         viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -321,7 +331,7 @@ namespace vkrollercoaster {
         create_info.pColorBlendState = &color_blending;
         create_info.pDynamicState = &dynamic_state;
         create_info.layout = this->m_layout;
-        create_info.renderPass = this->m_swapchain->get_render_pass();
+        create_info.renderPass = this->m_render_target->get_render_pass();
         create_info.subpass = 0;
         create_info.basePipelineHandle = nullptr;
         create_info.basePipelineIndex = -1;

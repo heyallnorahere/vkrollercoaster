@@ -174,11 +174,11 @@ namespace vkrollercoaster {
             }
             std::vector<const char*> material_names;
             for (const auto& render_call : render_call_data) {
-                const auto& name = render_call._material._material->get_name();
+                const auto& name = render_call._material->get_name();
                 material_names.push_back(name.c_str());
             }
             ImGui::Combo("Selected material", &current_material, material_names.data(), material_names.size());
-            model_material = render_call_data[current_material]._material._material;
+            model_material = render_call_data[current_material]._material;
 
             float available_width = ImGui::GetContentRegionAvail().x;
             float image_size = available_width / 8;

@@ -24,12 +24,8 @@ struct aiMesh;
 namespace vkrollercoaster {
     class model : public ref_counted {
     public:
-        struct material_data {
-            ref<material> _material;
-            ref<pipeline> _pipeline;
-        };
         struct render_call_data {
-            material_data _material;
+            ref<material> _material;
             ref<vertex_buffer> vbo;
             ref<index_buffer> ibo;
         };
@@ -52,6 +48,7 @@ namespace vkrollercoaster {
         const std::vector<mesh>& get_meshes() { return this->m_meshes; }
         const std::vector<render_call_data>& get_render_call_data() { return this->m_render_call_data; }
         const fs::path& get_path() { return this->m_path; }
+        const vertex_input_data& get_input_layout() { return this->m_input_layout; }
     private:
         using material_map_t = std::map<size_t, std::vector<size_t>>;
         void process_node(aiNode* node, material_map_t& material_map);
@@ -62,10 +59,11 @@ namespace vkrollercoaster {
         std::vector<vertex> m_vertices;
         std::vector<uint32_t> m_indices;
         std::vector<mesh> m_meshes;
-        std::vector<material_data> m_materials;
+        std::vector<ref<material>> m_materials;
         std::vector<render_call_data> m_render_call_data;
         fs::path m_path;
         const aiScene* m_scene;
         std::unique_ptr<Assimp::Importer> m_importer;
+        vertex_input_data m_input_layout;
     };
 }

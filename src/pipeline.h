@@ -16,7 +16,7 @@
 
 #pragma once
 #include "shader.h"
-#include "swapchain.h"
+#include "framebuffer.h"
 #include "command_buffer.h"
 namespace vkrollercoaster {
     enum class vertex_attribute_type {
@@ -63,14 +63,14 @@ namespace vkrollercoaster {
             VkDescriptorSetLayout layout;
             std::vector<VkDescriptorSet> sets;
         };
-        pipeline(ref<swapchain> _swapchain, ref<shader> _shader, const pipeline_spec& spec);
+        pipeline(ref<render_target> target, ref<shader> _shader, const pipeline_spec& spec);
         ~pipeline();    
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
-        void bind(ref<command_buffer> cmdbuffer, size_t current_image);
+        void bind(ref<command_buffer> cmdbuffer);
         void reload(bool descriptor_sets = false);
         ref<shader> get_shader() { return this->m_shader; }
-        ref<swapchain> get_swapchain() { return this->m_swapchain; }
+        ref<render_target> get_render_target() { return this->m_render_target; }
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }
@@ -108,7 +108,7 @@ namespace vkrollercoaster {
         void destroy_descriptor_sets();
         void rebind_objects();
         pipeline_spec m_spec;
-        ref<swapchain> m_swapchain;
+        ref<render_target> m_render_target;
         ref<shader> m_shader;
         VkViewport m_viewport;
         VkRect2D m_scissor;

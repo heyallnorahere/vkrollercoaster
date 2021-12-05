@@ -15,7 +15,7 @@
 */
 
 #pragma once
-#include "swapchain.h"
+#include "framebuffer.h"
 #include "shader.h"
 namespace vkrollercoaster {
     class renderer;
@@ -28,11 +28,14 @@ namespace vkrollercoaster {
         void end();
         void submit();
         void reset();
-        void begin_render_pass(ref<swapchain> swap_chain, const glm::vec4& clear_color, size_t image_index);
+        void begin_render_pass(ref<render_target> target, const glm::vec4& clear_color);
         void end_render_pass();
         VkCommandBuffer get() { return this->m_buffer; }
+        ref<render_target> get_current_render_target() { return this->m_current_render_target; }
     private:
         command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render);
+        ref<render_target> m_current_render_target;
+        std::vector<void*> m_rendered_pipelines;
         VkCommandPool m_pool;
         VkQueue m_queue;
         VkCommandBuffer m_buffer;

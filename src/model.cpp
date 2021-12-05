@@ -78,6 +78,14 @@ namespace vkrollercoaster {
         this->process_materials(materials);
         this->process_node(this->m_scene->mRootNode, material_map);
         this->create_render_call_data(material_map, materials);
+
+        // todo: use different vertex structure if animated
+        this->m_input_layout.stride = sizeof(vertex);
+        this->m_input_layout.attributes = {
+            { vertex_attribute_type::VEC3, offsetof(vertex, position) },
+            { vertex_attribute_type::VEC3, offsetof(vertex, normal) },
+            { vertex_attribute_type::VEC2, offsetof(vertex, uv) },
+        };
     }
     void model::process_node(aiNode* node, material_map_t& material_map) {
         for (size_t i = 0; i < node->mNumMeshes; i++) {
@@ -188,21 +196,13 @@ namespace vkrollercoaster {
         }
     }
     void model::create_render_call_data(const material_map_t& material_map, const std::vector<ref<material>>& materials) {
-        pipeline_spec spec;
-        spec.input_layout.stride = sizeof(vertex);
-        spec.input_layout.attributes = {
-            { vertex_attribute_type::VEC3, offsetof(vertex, position) },
-            { vertex_attribute_type::VEC3, offsetof(vertex, normal) },
-            { vertex_attribute_type::VEC2, offsetof(vertex, uv) },
-        };
         for (const auto& [material_index, mesh_indices] : material_map) {
             if (mesh_indices.empty()) {
                 continue;
             }
             auto _material = materials[material_index];
             auto& render_call = this->m_render_call_data.emplace_back();
-            render_call._material._material = _material;
-            render_call._material._pipeline = _material->create_pipeline(spec);
+            render_call._material = _material;
             std::vector<vertex> vertices;
             std::vector<uint32_t> indices;
             for (size_t mesh_index : mesh_indices) {

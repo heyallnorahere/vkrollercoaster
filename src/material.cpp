@@ -19,26 +19,7 @@
 #include "renderer.h"
 #include "light.h"
 namespace vkrollercoaster {
-    static struct {
-        ref<swapchain> swap_chain;
-    } material_data;
-    void material::init(ref<swapchain> swap_chain) {
-        if (material_data.swap_chain) {
-            spdlog::warn("initializing the material system more than once is not recommended");
-        }
-        material_data.swap_chain = swap_chain;
-    }
-    void material::shutdown() {
-        if (!material_data.swap_chain) {
-            spdlog::warn("the material system has not been initialized");
-        }
-        material_data.swap_chain.reset();
-    }
     material::material(ref<shader> _shader) {
-        this->m_swapchain = material_data.swap_chain;
-        if (!this->m_swapchain) {
-            throw std::runtime_error("the material system has not been initialized!");
-        }
         this->m_shader = _shader;
         if (!this->m_shader) {
             throw std::runtime_error("passed nullptr!");
@@ -93,8 +74,8 @@ namespace vkrollercoaster {
             _pipeline->m_material = nullptr;
         }
     }
-    ref<pipeline> material::create_pipeline(const pipeline_spec& spec) {
-        auto _pipeline = ref<pipeline>::create(this->m_swapchain, this->m_shader, spec);
+    ref<pipeline> material::create_pipeline(ref<render_target> target, const pipeline_spec& spec) {
+        auto _pipeline = ref<pipeline>::create(target, this->m_shader, spec);
         renderer::get_camera_buffer()->bind(_pipeline);
         this->m_light_buffer->bind(_pipeline);
         this->m_buffer->bind(_pipeline);
