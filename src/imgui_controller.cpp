@@ -23,6 +23,12 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
+    static struct {
+        ref<swapchain> swap_chain;
+        std::vector<ref<menu>> menus;
+        uint32_t dependent_count = 0;
+        bool should_shutdown = false;
+    } imgui_data;
     static void set_style() {
         ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_Text]                   = ImVec4(0.86f, 0.93f, 0.89f, 0.78f);
@@ -81,8 +87,8 @@ namespace vkrollercoaster {
         colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.17f, 0.11f, 0.30f, 0.73f);
     }
-    imgui_controller::imgui_controller(ref<swapchain> _swapchain) {
-        this->m_swapchain = _swapchain;
+    void imgui_controller::init(ref<swapchain> _swapchain) {
+        imgui_data.swap_chain = _swapchain;
         renderer::add_ref();
 
         // initialize core imgui
@@ -102,7 +108,7 @@ namespace vkrollercoaster {
         }
 
         // init glfw (window) backend
-        GLFWwindow* glfw_window = this->m_swapchain->get_window()->get();
+        GLFWwindow* glfw_window = imgui_data.swap_chain->get_window()->get();
         ImGui_ImplGlfw_InitForVulkan(glfw_window, true);
 
         // init vulkan (rendering) backend
@@ -118,8 +124,8 @@ namespace vkrollercoaster {
         init_info.DescriptorPool = renderer::get_descriptor_pool();
         auto support_details = renderer::query_swapchain_support(physical_device);
         init_info.MinImageCount = support_details.capabilities.minImageCount;
-        init_info.ImageCount = this->m_swapchain->get_swapchain_images().size();
-        ImGui_ImplVulkan_Init(&init_info, this->m_swapchain->get_render_pass());
+        init_info.ImageCount = imgui_data.swap_chain->get_swapchain_images().size();
+        ImGui_ImplVulkan_Init(&init_info, imgui_data.swap_chain->get_render_pass());
 
         // todo: load type faces
 
@@ -132,14 +138,23 @@ namespace vkrollercoaster {
         ImGui_ImplVulkan_DestroyFontUploadObjects();
 
         // add menus
-        this->m_menus.push_back(ref<inspector>::create());
-        this->m_menus.push_back(ref<renderer_info>::create());
+        imgui_data.menus.push_back(ref<inspector>::create());
+        imgui_data.menus.push_back(ref<renderer_info>::create());
     }
-    imgui_controller::~imgui_controller() {
+    static void shutdown_imgui() {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+
+        imgui_data.swap_chain.reset();
         renderer::remove_ref();
+    }
+    void imgui_controller::shutdown() {
+        imgui_data.menus.clear();
+        imgui_data.should_shutdown = true;
+        if (imgui_data.dependent_count == 0) {
+            shutdown_imgui();
+        }
     }
     void imgui_controller::new_frame() {
         ImGui_ImplVulkan_NewFrame();
@@ -148,7 +163,7 @@ namespace vkrollercoaster {
     }
     void imgui_controller::update_menus() {
         // todo: dockspace
-        for (ref<menu> _menu : this->m_menus) {
+        for (ref<menu> _menu : imgui_data.menus) {
             if (_menu->open()) {
                 _menu->update();
             }
@@ -162,6 +177,15 @@ namespace vkrollercoaster {
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
+        }
+    }
+    void imgui_controller::add_dependent() {
+        imgui_data.dependent_count++;
+    }
+    void imgui_controller::remove_dependent() {
+        imgui_data.dependent_count--;
+        if (imgui_data.dependent_count == 0 && imgui_data.should_shutdown) {
+            shutdown_imgui();
         }
     }
 }

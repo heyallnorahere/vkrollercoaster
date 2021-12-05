@@ -33,7 +33,6 @@ namespace vkrollercoaster {
         ref<window> app_window;
         ref<swapchain> swap_chain;
         std::vector<ref<command_buffer>> command_buffers;
-        ref<imgui_controller> imgui;
         ref<scene> global_scene;
         bool running = false;
         bool should_stop = false;
@@ -44,7 +43,7 @@ namespace vkrollercoaster {
         window::poll();
         renderer::new_frame();
         light::reset_buffers();
-        app_data->imgui->new_frame();
+        imgui_controller::new_frame();
     }
 
     static void update() {
@@ -53,7 +52,7 @@ namespace vkrollercoaster {
         double delta_time = time - last_frame;
         last_frame = time;
 
-        app_data->imgui->update_menus();
+        imgui_controller::update_menus();
         app_data->global_scene->update();
         renderer::update_camera_buffer(app_data->global_scene);
     }
@@ -65,7 +64,7 @@ namespace vkrollercoaster {
         for (entity ent : app_data->global_scene->view<transform_component, model_component>()) {
             renderer::render(cmdbuffer, ent);
         }
-        app_data->imgui->render(cmdbuffer);
+        imgui_controller::render(cmdbuffer);
         cmdbuffer->end_render_pass();
         cmdbuffer->end();
     }
@@ -81,7 +80,7 @@ namespace vkrollercoaster {
         renderer::add_device_extension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
         renderer::init(app_data->app_window);
         app_data->swap_chain = ref<swapchain>::create();
-        app_data->imgui = ref<imgui_controller>::create(app_data->swap_chain);
+        imgui_controller::init(app_data->swap_chain);
         material::init(app_data->swap_chain);
 
         // load shader
@@ -90,12 +89,14 @@ namespace vkrollercoaster {
         // create light uniform buffers
         light::init();
 
-        // load app data
+        // create command buffers
         size_t image_count = app_data->swap_chain->get_swapchain_images().size();
         for (size_t i = 0; i < image_count; i++) {
             auto cmdbuffer = renderer::create_render_command_buffer();
             app_data->command_buffers.push_back(cmdbuffer);
         }
+
+        // create scene and player
         app_data->global_scene = ref<scene>::create();
         {
             entity player = app_data->global_scene->create("player");
@@ -109,6 +110,7 @@ namespace vkrollercoaster {
         // shut down subsystems
         light::shutdown();
         material::shutdown();
+        imgui_controller::shutdown();
         shader_library::clear();
         renderer::shutdown();
         window::shutdown();

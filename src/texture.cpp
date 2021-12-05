@@ -18,6 +18,7 @@
 #include "texture.h"
 #include "renderer.h"
 #include "util.h"
+#include "imgui_controller.h"
 #include <backends/imgui_impl_vulkan.h>
 namespace vkrollercoaster {
     texture::texture(ref<image> _image) {
@@ -40,6 +41,10 @@ namespace vkrollercoaster {
         }
         VkDevice device = renderer::get_device();
         vkDestroySampler(device, this->m_sampler, nullptr);
+        if (this->m_imgui_id) {
+            ImGui_ImplVulkan_RemoveTexture(this->m_imgui_id);
+            imgui_controller::remove_dependent();
+        }
         this->m_image->m_dependents.erase(this);
         renderer::remove_ref();
     }
@@ -102,6 +107,7 @@ namespace vkrollercoaster {
     }
     ImTextureID texture::get_imgui_id() {
         if (!this->m_imgui_id) {
+            imgui_controller::add_dependent();
             this->m_imgui_id = ImGui_ImplVulkan_AddTexture(this->m_sampler, this->m_image->m_view, this->m_image->m_layout);
         }
         return this->m_imgui_id;

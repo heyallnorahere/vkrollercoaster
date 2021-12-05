@@ -28,17 +28,15 @@ namespace vkrollercoaster {
     protected:
         bool m_open = true;
     };
-    class imgui_controller : public ref_counted {
+    class imgui_controller {
     public:
-        imgui_controller(ref<swapchain> _swapchain);
-        ~imgui_controller();
-        imgui_controller(const imgui_controller&) = delete;
-        imgui_controller& operator=(const imgui_controller&) = delete;
-        void new_frame();
-        void update_menus();
-        void render(ref<command_buffer> cmdbuffer);
-    private:
-        ref<swapchain> m_swapchain;
-        std::vector<ref<menu>> m_menus;
+        imgui_controller() = delete;
+        static void init(ref<swapchain> _swapchain);
+        static void shutdown();
+        static void new_frame();
+        static void update_menus();
+        static void render(ref<command_buffer> cmdbuffer);
+        static void add_dependent();
+        static void remove_dependent();
     };
 }
