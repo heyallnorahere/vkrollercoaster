@@ -165,6 +165,7 @@ namespace vkrollercoaster {
             if (ImGui::Button("Remove")) {
                 ent.remove_component<model_component>();
             }
+            ImGui::Separator();
 
             const auto& render_call_data = _model->get_render_call_data();
             static int32_t current_material = 0;
@@ -183,8 +184,40 @@ namespace vkrollercoaster {
             float image_size = available_width / 8;
 
             ImGui::Text("Albedo map");
-            ref<texture> albedo_map = model_material->get_texture("albedo_texture");
-            ImGui::Image(albedo_map->get_imgui_id(), ImVec2(image_size, image_size));
+            ref<texture> tex = model_material->get_texture("albedo_texture");
+            ImGui::Image(tex->get_imgui_id(), ImVec2(image_size, image_size));
+
+            ImGui::Text("Specular map");
+            tex = model_material->get_texture("specular_texture");
+            ImGui::Image(tex->get_imgui_id(), ImVec2(image_size, image_size));
+
+            glm::vec3 ref_color = model_material->get_data<glm::vec3>("albedo_color");
+            glm::vec3 color = ref_color;
+            ImGui::ColorEdit3("Albedo color", &color.x);
+            if (glm::length(color - ref_color) > 0.01f) {
+                model_material->set_data("albedo_color", color);
+            }
+
+            ref_color = model_material->get_data<glm::vec3>("specular_color");
+            color = ref_color;
+            ImGui::ColorEdit3("Specular color", &color.x);
+            if (glm::length(color - ref_color) > 0.01f) {
+                model_material->set_data("specular_color", color);
+            }
+
+            const float ref_shininess = model_material->get_data<float>("shininess");
+            float shininess = ref_shininess;
+            ImGui::SliderFloat("Shininess", &shininess, 0.f, 360.f);
+            if (glm::abs(shininess - ref_shininess) > 0.001f) {
+                model_material->set_data("shininess", shininess);
+            }
+
+            const float ref_opacity = model_material->get_data<float>("opacity");
+            float opacity = ref_opacity;
+            ImGui::SliderFloat("Opacity", &opacity, 0.f, 1.f);
+            if (glm::abs(opacity - ref_opacity) > 0.001f) {
+                model_material->set_data("opacity", opacity);
+            }
         } else {
             static std::string model_path;
             ImGui::InputText("Model path", &model_path);
