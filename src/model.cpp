@@ -136,8 +136,9 @@ namespace vkrollercoaster {
             aiString ai_string;
 
             // name
-            ai_string = ai_material->GetName();
-            _material->set_name(ai_string.C_Str());
+            if (ai_material->Get(AI_MATKEY_NAME, ai_string) == aiReturn_SUCCESS) {
+                _material->set_name(ai_string.C_Str());
+            }
 
             // albedo map
             if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_string) == aiReturn_SUCCESS) {
