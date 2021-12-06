@@ -45,6 +45,7 @@ namespace vkrollercoaster {
         virtual render_target_type get_render_target_type() override { return render_target_type::swapchain; }
         uint32_t get_current_image() { return this->m_current_image; }
         ref<window> get_window() { return this->m_window; }
+        ref<image> get_depth_image() { return this->m_depth_image; }
     private:
         struct swapchain_dependent {
             std::function<void()> destroy, recreate;

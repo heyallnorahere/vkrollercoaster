@@ -38,13 +38,14 @@ namespace vkrollercoaster {
         spec.height = swapchain_extent.height;
 
         // we want both a color and depth attachment
-        spec.requested_attachments[framebuffer_attachment_type::color] = VK_FORMAT_R8G8B8A8_UNORM;
-        spec.requested_attachments[framebuffer_attachment_type::depth_stencil] = VK_FORMAT_D32_SFLOAT;
+        ref<image> swapchain_depth_image = swap_chain->get_depth_image();
+        spec.requested_attachments[framebuffer_attachment_type::color] = swap_chain->get_image_format();
+        spec.requested_attachments[framebuffer_attachment_type::depth_stencil] = swapchain_depth_image->get_format();
 
         this->m_framebuffer = ref<framebuffer>::create(spec);
 
         // create texture for displaying
-        this->m_color_attachment = ref<texture>::create(this->m_framebuffer->get_attachment(framebuffer_attachment_type::color));
+        this->update_color_attachment();
     }
     
     viewport::~viewport() {
@@ -52,6 +53,8 @@ namespace vkrollercoaster {
     }
 
     void viewport::update() {
+        this->update_framebuffer_size();
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         ImGui::Begin("Viewport", &this->m_open);
         ImGui::PopStyleVar();
@@ -76,4 +79,27 @@ namespace vkrollercoaster {
 
         ImGui::End();
     }
+
+   void viewport::update_framebuffer_size() {
+       // let's make sure the framebuffer is the same size as the window
+       ref<swapchain> swap_chain = application::get_swapchain();
+       VkExtent2D swapchain_extent = swap_chain->get_extent();
+       VkExtent2D framebuffer_extent = this->m_framebuffer->get_extent();
+
+       if (framebuffer_extent.width != swapchain_extent.width || framebuffer_extent.height != swapchain_extent.height) {
+           // resize the framebuffer
+           this->m_framebuffer->resize(swapchain_extent);
+
+           // update the color attachment texture
+           this->update_color_attachment();
+       }
+   }
+
+   void viewport::update_color_attachment() {
+       // we don't want ImGui to access a destroyed descriptor set
+       this->m_previous_color_attachment = this->m_color_attachment;
+
+       ref<image> attachment = this->m_framebuffer->get_attachment(framebuffer_attachment_type::color);
+       this->m_color_attachment = ref<texture>::create(attachment);
+   }
 }
