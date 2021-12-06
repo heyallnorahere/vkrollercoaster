@@ -59,6 +59,7 @@ namespace vkrollercoaster {
         ref<image> get_attachment(framebuffer_attachment_type type);
         void set_attachment(framebuffer_attachment_type type, ref<image> attachment);
         void reload();
+        void resize(VkExtent2D new_size);
     private:
         struct framebuffer_dependent {
             std::function<void()> destroy, recreate;

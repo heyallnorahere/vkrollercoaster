@@ -140,6 +140,7 @@ namespace vkrollercoaster {
         // add menus
         imgui_data.menus.push_back(ref<inspector>::create());
         imgui_data.menus.push_back(ref<renderer_info>::create());
+        imgui_data.menus.push_back(ref<viewport>::create());
     }
     static void shutdown_imgui() {
         ImGui_ImplVulkan_Shutdown();

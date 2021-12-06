@@ -76,12 +76,8 @@ namespace vkrollercoaster {
             access_mask = VK_ACCESS_SHADER_READ_BIT;
             break;
         case VK_IMAGE_LAYOUT_GENERAL:
-            stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-            access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            break;
-        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-            stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+            access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
             break;
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
             stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
@@ -91,7 +87,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("unimplemented/unsupported image layout!");
         }
     }
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout) {
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags image_aspect) {
         VkImageMemoryBarrier barrier;
         util::zero(barrier);
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -100,15 +96,7 @@ namespace vkrollercoaster {
         barrier.newLayout = new_layout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        // todo: take image aspect flags
-        if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT) {
-                barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-            }
-        } else {
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        }
+        barrier.subresourceRange.aspectMask = image_aspect;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
         barrier.subresourceRange.baseArrayLayer = 0;
@@ -191,7 +179,7 @@ namespace vkrollercoaster {
         renderer::remove_ref();
     }
     void image::transition(VkImageLayout new_layout) {
-        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout);
+        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout, this->m_aspect);
         this->m_layout = new_layout;
         for (texture* tex : this->m_dependents) {
             tex->update_imgui_texture();

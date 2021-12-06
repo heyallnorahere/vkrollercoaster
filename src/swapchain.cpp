@@ -211,7 +211,13 @@ namespace vkrollercoaster {
     void swapchain::create_depth_image() {
         VkFormat depth_format = find_supported_format({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
             VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-        this->m_depth_image = ref<image>::create(depth_format, this->m_extent.width, this->m_extent.height, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+        VkImageAspectFlags image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (depth_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_format == VK_FORMAT_D24_UNORM_S8_UINT) {
+            image_aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        
+        this->m_depth_image = ref<image>::create(depth_format, this->m_extent.width, this->m_extent.height, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, image_aspect);
         this->m_depth_image->transition(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     }
     void swapchain::create_render_pass() {

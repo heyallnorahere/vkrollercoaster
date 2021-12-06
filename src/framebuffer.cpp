@@ -100,9 +100,24 @@ namespace vkrollercoaster {
         this->create_framebuffer();
     }
 
-    void framebuffer::acquire_attachments(const framebuffer_spec& spec) {
-        this->m_attachments.insert(spec.provided_attachments.begin(), spec.provided_attachments.end());
+    void framebuffer::resize(VkExtent2D new_size) {
+        this->destroy_framebuffer();
+        this->m_extent = new_size;
+        framebuffer_spec spec;
+        spec.width = new_size.width;
+        spec.height = new_size.height;
+        for (auto [type, attachment] : this->m_attachments) {
+            spec.requested_attachments[type] = attachment->get_format();
+        }
+        this->acquire_attachments(spec);
+        this->create_framebuffer();
+    }
 
+    void framebuffer::acquire_attachments(const framebuffer_spec& spec) {
+        // copy the provided attachment images
+        this->m_attachments = spec.provided_attachments;
+
+        // create images for the requested attachments
         for (const auto& [type, format] : spec.requested_attachments) {
             if (this->m_attachments.find(type) != this->m_attachments.end()) {
                 continue;
@@ -110,22 +125,22 @@ namespace vkrollercoaster {
 
             VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
             VkImageAspectFlags image_aspect = 0;
-            VkImageLayout image_layout = VK_IMAGE_LAYOUT_MAX_ENUM;
             switch (type) {
             case framebuffer_attachment_type::color:
                 usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 image_aspect |= VK_IMAGE_ASPECT_COLOR_BIT;
-                image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 break;
             case framebuffer_attachment_type::depth_stencil:
                 usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 image_aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
-                image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT) {
+                    image_aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+                }
                 break;
             }
 
             ref<image> attachment = ref<image>::create(format, spec.width, spec.height, usage, image_aspect);
-            attachment->transition(image_layout);
+            attachment->transition(VK_IMAGE_LAYOUT_GENERAL);
             this->m_attachments[type] = attachment;
         }
     }

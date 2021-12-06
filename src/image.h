@@ -18,7 +18,7 @@
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout);
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags image_aspect);
 #endif
     struct image_data {
         std::vector<uint8_t> data;

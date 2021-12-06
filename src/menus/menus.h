@@ -16,6 +16,8 @@
 
 #pragma once
 #include "../imgui_controller.h"
+#include "../framebuffer.h"
+#include "texture.h"
 namespace vkrollercoaster {
     class inspector : public menu {
     public:
@@ -27,5 +29,18 @@ namespace vkrollercoaster {
     public:
         virtual std::string get_title() override { return "Renderer info"; }
         virtual void update() override;
+    };
+    class viewport : public menu {
+    public:
+        static ref<viewport> get_instance();
+        viewport();
+        virtual ~viewport() override;
+        virtual std::string get_title() override { return "Viewport"; }
+        virtual void update() override;
+        ref<framebuffer> get_framebuffer() { return this->m_framebuffer; }
+    private:
+        void verify_size(ImVec2 available_content_region);
+        ref<framebuffer> m_framebuffer;
+        ref<texture> m_previous_color_attachment, m_color_attachment;
     };
 }

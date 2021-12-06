@@ -26,8 +26,8 @@
 #include "model.h"
 #include "components.h"
 #include "imgui_controller.h"
-#include "material.h"
 #include "light.h"
+#include "menus/menus.h"
 namespace vkrollercoaster {
     struct app_data_t {
         ref<window> app_window;
@@ -59,14 +59,21 @@ namespace vkrollercoaster {
 
     static void draw(ref<command_buffer> cmdbuffer) {
         cmdbuffer->begin();
-        cmdbuffer->begin_render_pass(app_data->swap_chain, glm::vec4(glm::vec3(0.1f), 1.f));
+
+        // render to the viewport's framebuffer
+        ref<framebuffer> render_framebuffer = viewport::get_instance()->get_framebuffer();
+        cmdbuffer->begin_render_pass(render_framebuffer, glm::vec4(glm::vec3(0.1f), 1.f));
 
         // probably should optimize and batch render
         for (entity ent : app_data->global_scene->view<transform_component, model_component>()) {
             renderer::render(cmdbuffer, ent);
         }
 
+        cmdbuffer->end_render_pass();
+        cmdbuffer->begin_render_pass(app_data->swap_chain, glm::vec4(glm::vec3(0.f), 1.f));
+
         imgui_controller::render(cmdbuffer);
+
         cmdbuffer->end_render_pass();
         cmdbuffer->end();
     }
