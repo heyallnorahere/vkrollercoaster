@@ -157,28 +157,30 @@ namespace vkrollercoaster {
         if (ent.has_component<model_component>()) {
             ref<model> _model = ent.get_component<model_component>().data;
 
-            std::string string_path = _model->get_path().string();
-            ImGui::Text("Model: %s", string_path.c_str());
-            if (ImGui::Button("Reload")) {
-                _model->reload();
+            ref<model_source> source = _model->get_source();
+            if (source) {
+                if (ImGui::Button("Reload")) {
+                    source->reload();
+                }
             }
+
             if (ImGui::Button("Remove")) {
                 ent.remove_component<model_component>();
             }
             ImGui::Separator();
 
-            const auto& render_call_data = _model->get_render_call_data();
+            const auto& materials = _model->get_materials();
             static int32_t current_material = 0;
-            if (current_material >= render_call_data.size()) {
+            if (current_material >= materials.size()) {
                 current_material = 0;
             }
             std::vector<const char*> material_names;
-            for (const auto& render_call : render_call_data) {
-                const auto& name = render_call._material->get_name();
+            for (const auto& _material : materials) {
+                const auto& name = _material->get_name();
                 material_names.push_back(name.c_str());
             }
             ImGui::Combo("Selected material", &current_material, material_names.data(), material_names.size());
-            model_material = render_call_data[current_material]._material;
+            model_material = materials[current_material];
 
             float available_width = ImGui::GetContentRegionAvail().x;
             float image_size = available_width / 8;
@@ -239,7 +241,7 @@ namespace vkrollercoaster {
                 } else if (!fs::exists(model_path)) {
                     model_error = model_loading_error::file_does_not_exist;
                 } else {
-                    auto _model = ref<model>::create(model_path);
+                    auto _model = ref<model>::create(ref<model_source>::create(model_path));
                     ent.add_component<model_component>().data = _model;
                     model_path.clear();
                 }

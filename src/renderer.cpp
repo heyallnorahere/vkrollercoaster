@@ -442,28 +442,31 @@ namespace vkrollercoaster {
         if (!target) {
             throw std::runtime_error("cannot render outside of a render pass!");
         }
-        const auto& model_data = to_render.get_component<model_component>();
+        ref<model> _model = to_render.get_component<model_component>().data;
         const auto& transform = to_render.get_component<transform_component>();
         struct {
             glm::mat4 model, normal;
         } push_constant_data;
         push_constant_data.model = transform.matrix();
         push_constant_data.normal = glm::toMat4(glm::quat(transform.rotation));
-        const auto& render_call_data = model_data.data->get_render_call_data();
-        for (const auto& render_call : render_call_data) {
-            auto _material = render_call._material;
+        auto vbo = ref<vertex_buffer>::create(_model->get_vertices());
+
+        const auto& index_map = _model->get_index_map();
+        const auto& materials = _model->get_materials();
+        for (const auto& [material_index, indices] : index_map) {
+            auto ibo = ref<index_buffer>::create(indices);
             
             ref<pipeline> _pipeline;
             {
                 pipeline_spec spec;
 
-                spec.input_layout = model_data.data->get_input_layout();
+                spec.input_layout = _model->get_input_layout();
                 spec.enable_blending = true;
                 spec.enable_depth_testing = true;
                 
+                ref<material> _material = materials[material_index];
                 _pipeline = _material->create_pipeline(target, spec);
             }
-            cmdbuffer->m_rendered_pipelines.push_back(new ref<pipeline>(_pipeline));
 
             // set viewport
             VkRect2D scissor = _pipeline->get_scissor();
@@ -479,14 +482,20 @@ namespace vkrollercoaster {
             _pipeline->bind(cmdbuffer);
 
             // set vertex data
-            render_call.vbo->bind(cmdbuffer);
-            render_call.ibo->bind(cmdbuffer);
+            vbo->bind(cmdbuffer);
+            ibo->bind(cmdbuffer);
 
             // push constants
             vkCmdPushConstants(cmdbuffer->get(), _pipeline->get_layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constant_data), &push_constant_data);
 
             // render
-            vkCmdDrawIndexed(cmdbuffer->get(), render_call.ibo->get_index_count(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(cmdbuffer->get(), indices.size(), 1, 0, 0, 0);
+
+            submitted_render_call submitted_call;
+            submitted_call._pipeline = _pipeline;
+            submitted_call.vbo = vbo;
+            submitted_call.ibo = ibo;
+            cmdbuffer->m_internal_data->submitted_calls.push_back(submitted_call);
         }
     }
     ref<command_buffer> renderer::create_render_command_buffer() {

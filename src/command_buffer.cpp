@@ -25,6 +25,7 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         vkFreeCommandBuffers(device, this->m_pool, 1, &this->m_buffer);
         renderer::remove_ref();
+        delete this->m_internal_data;
     }
     void command_buffer::begin() {
         VkCommandBufferBeginInfo begin_info;
@@ -82,11 +83,7 @@ namespace vkrollercoaster {
         vkQueueWaitIdle(this->m_queue);
         vkResetCommandBuffer(this->m_buffer, 0);
 
-        // way too hacky
-        for (void* ptr : this->m_rendered_pipelines) {
-            delete (ref<pipeline>*)ptr;
-        }
-        this->m_rendered_pipelines.clear();
+        this->m_internal_data->submitted_calls.clear();
     }
     void command_buffer::begin_render_pass(ref<render_target> target, const glm::vec4& clear_color) {
         if (this->m_current_render_target) {
@@ -127,6 +124,7 @@ namespace vkrollercoaster {
         this->m_current_render_target.reset();
     }
     command_buffer::command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render) {
+        this->m_internal_data = new internal_cmdbuffer_data;
         this->m_single_time = single_time;
         this->m_render = render;
         this->m_pool = command_pool;

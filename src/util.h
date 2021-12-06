@@ -51,5 +51,8 @@ namespace vkrollercoaster {
         template<typename T> inline void append_vector(std::vector<T>& destination, const std::vector<T>& source) {
             destination.insert(destination.end(), source.begin(), source.end());
         }
+        template<typename T> inline T lerp(const T& p0, const T& p1, float t) {
+            return (1.f - t) * p0 + t * p1;
+        };
     }
 }

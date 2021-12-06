@@ -18,12 +18,7 @@
 #include "application.h"
 #include "renderer.h"
 #include "shader.h"
-#include "pipeline.h"
 #include "command_buffer.h"
-#include "buffers.h"
-#include "util.h"
-#include "texture.h"
-#include "model.h"
 #include "components.h"
 #include "imgui_controller.h"
 #include "light.h"
@@ -47,11 +42,6 @@ namespace vkrollercoaster {
     }
 
     static void update() {
-        double time = util::get_time<double>();
-        static double last_frame = time;
-        double delta_time = time - last_frame;
-        last_frame = time;
-
         imgui_controller::update_menus();
         app_data->global_scene->update();
         renderer::update_camera_buffer(app_data->global_scene);

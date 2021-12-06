@@ -19,6 +19,7 @@
 #include "shader.h"
 namespace vkrollercoaster {
     class renderer;
+    struct internal_cmdbuffer_data;
     class command_buffer : public ref_counted {
     public:
         ~command_buffer();
@@ -35,7 +36,7 @@ namespace vkrollercoaster {
     private:
         command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render);
         ref<render_target> m_current_render_target;
-        std::vector<void*> m_rendered_pipelines;
+        internal_cmdbuffer_data* m_internal_data;
         VkCommandPool m_pool;
         VkQueue m_queue;
         VkCommandBuffer m_buffer;

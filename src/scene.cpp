@@ -19,6 +19,7 @@
 #include "components.h"
 namespace vkrollercoaster {
     void scene::update() {
+        // light data
         std::unordered_map<ref<light>, std::vector<entity>> lights;
         for (entity ent : this->view<transform_component, light_component>()) {
             ref<light> _light = ent.get_component<light_component>().data;

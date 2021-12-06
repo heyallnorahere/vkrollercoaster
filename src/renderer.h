@@ -20,6 +20,7 @@
 #include "scene.h"
 #include "texture.h"
 #include "buffers.h"
+#include "pipeline.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct swapchain_support_details {
@@ -46,6 +47,14 @@ namespace vkrollercoaster {
         VkSemaphore image_available_semaphore = nullptr;
         VkSemaphore render_finished_semaphore = nullptr;
         VkFence fence = nullptr;
+    };
+    struct submitted_render_call {
+        ref<pipeline> _pipeline;
+        ref<vertex_buffer> vbo;
+        ref<index_buffer> ibo;
+    };
+    struct internal_cmdbuffer_data {
+        std::vector<submitted_render_call> submitted_calls;
     };
 #endif
     class renderer {
