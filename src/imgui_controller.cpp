@@ -20,6 +20,7 @@
 #include "renderer.h"
 #include "util.h"
 #include "menus/menus.h"
+#include "application.h"
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
@@ -162,8 +163,81 @@ namespace vkrollercoaster {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
     }
+    static void update_dockspace_menu_bar() {
+        if (ImGui::BeginMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Exit")) {
+                    application::quit();
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("View")) {
+                for (ref<menu> _menu : imgui_data.menus) {
+                    std::string title = _menu->get_title();
+                    ImGui::MenuItem(title.c_str(), "", &_menu->open());
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+    }
+    static void update_dockspace() {
+        // if docking isn't enabled, we can't use a dockspace
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable == ImGuiConfigFlags_None) {
+            return;
+        }
+
+        constexpr bool fullscreen = true;
+        constexpr bool padding = false;
+        
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        if (fullscreen) {
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowViewport(viewport->ID);
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+
+            window_flags |=
+                ImGuiWindowFlags_NoTitleBar |
+                ImGuiWindowFlags_NoCollapse |
+                ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoBringToFrontOnFocus |
+                ImGuiWindowFlags_NoNavFocus;
+        }
+
+        if (!padding) {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+        }
+        ImGui::Begin("Dockspace", nullptr, window_flags);
+        if (!padding) {
+            ImGui::PopStyleVar();
+        }
+
+        if (fullscreen) {
+            ImGui::PopStyleVar(2);
+        }
+
+        ImGuiID dockspace_id = ImGui::GetID("vkrollercoaster-dockspace");
+        ImGui::DockSpace(dockspace_id); // we don't need any flags
+
+        // submit menu bar
+        update_dockspace_menu_bar();
+
+        ImGui::End();
+    }
     void imgui_controller::update_menus() {
-        // todo: dockspace
+        update_dockspace();
+
         for (ref<menu> _menu : imgui_data.menus) {
             if (_menu->open()) {
                 _menu->update();

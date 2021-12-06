@@ -39,8 +39,7 @@ namespace vkrollercoaster {
         virtual void update() override;
         ref<framebuffer> get_framebuffer() { return this->m_framebuffer; }
     private:
-        void verify_size(ImVec2 available_content_region);
         ref<framebuffer> m_framebuffer;
-        ref<texture> m_previous_color_attachment, m_color_attachment;
+        ref<texture> m_color_attachment;
     };
 }

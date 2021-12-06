@@ -52,37 +52,28 @@ namespace vkrollercoaster {
     }
 
     void viewport::update() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         ImGui::Begin("Viewport", &this->m_open);
+        ImGui::PopStyleVar();
 
-        ImVec2 available_content_region = ImGui::GetContentRegionAvail();
-        ImGui::Image(this->m_color_attachment->get_imgui_id(), available_content_region);
+        VkExtent2D framebuffer_extent = this->m_framebuffer->get_extent();
+        float aspect_ratio = (float)framebuffer_extent.width / (float)framebuffer_extent.height;
+        ImVec2 available_region = ImGui::GetContentRegionAvail();
+        float window_aspect_ratio = available_region.x / available_region.y;
+
+        ImVec2 cursor_pos = ImVec2(0.f, 0.f);
+        if (window_aspect_ratio > 1.f) {
+            cursor_pos.x = available_region.x * (1.f - aspect_ratio / window_aspect_ratio) / 2.f;
+        } else {
+            cursor_pos.y = available_region.y * (1.f - window_aspect_ratio / aspect_ratio) / 2.f;
+        }
+        ImGui::SetCursorPos(cursor_pos);
+
+        ImVec2 image_size;
+        image_size.x = available_region.x - cursor_pos.x * 2.f;
+        image_size.y = available_region.y - cursor_pos.y * 2.f;
+        ImGui::Image(this->m_color_attachment->get_imgui_id(), image_size);
 
         ImGui::End();
-
-        this->verify_size(available_content_region);
-    }
-
-    void viewport::verify_size(ImVec2 available_content_region) {
-        VkExtent2D framebuffer_extent = this->m_framebuffer->get_extent();
-        VkExtent2D window_size;
-        window_size.width = (uint32_t)available_content_region.x;
-        if (window_size.width == 0) {
-            window_size.width = 100;
-        }
-        window_size.height = (uint32_t)available_content_region.y;
-        if (window_size.height == 0) {
-            window_size.height = 100;
-        }
-
-        if (framebuffer_extent.width != window_size.width || framebuffer_extent.height != window_size.height) {
-            // resize the framebuffer
-            this->m_framebuffer->resize(window_size);
-            
-            // save the previous color attachment so it doesn't get deleted
-            this->m_previous_color_attachment = this->m_color_attachment;
-
-            // recreate the texture
-            this->m_color_attachment = ref<texture>::create(this->m_framebuffer->get_attachment(framebuffer_attachment_type::color));
-        }
     }
 }
