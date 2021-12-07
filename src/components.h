@@ -17,6 +17,8 @@
 #pragma once
 #include "model.h"
 #include "light.h"
+#include "script.h"
+#include "scene.h"
 namespace vkrollercoaster {
     struct tag_component {
         tag_component() = default;
@@ -52,4 +54,25 @@ namespace vkrollercoaster {
         ref<light> data;
         // literally nothing else.
     };
+    struct script_component {
+        script_component() = default;
+
+        entity parent;
+        std::vector<ref<script>> scripts;
+
+        template<typename T, typename... Args> void bind(Args&&... args) {
+            static_assert(std::is_base_of_v<script, T>, "the given type is not derived from \"script!\"");
+
+            ref<script> _script = ref<T>::create(std::forward<Args>(args)...);
+            _script->m_parent = this->parent;
+            _script->on_added();
+
+            this->scripts.push_back(_script);
+        }
+    };
+
+    //==== scene::on_component_added overloads ====
+    template<> inline void scene::on_component_added<script_component>(entity& ent, script_component& component) {
+        component.parent = ent;
+    }
 }

@@ -24,6 +24,14 @@
 #include "light.h"
 #include "menus/menus.h"
 namespace vkrollercoaster {
+    // temporary player script
+    class player_behavior : public script {
+    public:
+        virtual void update() override {
+            // todo: take input
+        }
+    };
+
     struct app_data_t {
         ref<window> app_window;
         ref<swapchain> swap_chain;
@@ -101,6 +109,7 @@ namespace vkrollercoaster {
             auto& transform = player.get_component<transform_component>();
             transform.translation = glm::vec3(0.f, 0.f, -2.5f);
             player.add_component<camera_component>().primary = true;
+            player.add_component<script_component>().bind<player_behavior>();
         }
     }
 

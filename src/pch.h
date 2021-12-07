@@ -46,7 +46,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <spdlog/spdlog.h>
-#include <entt/entt.hpp>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #if __has_include(<filesystem>)

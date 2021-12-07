@@ -15,6 +15,7 @@
 */
 
 #pragma once
+#include <entt/entt.hpp>
 namespace vkrollercoaster {
     class scene;
     class entity {

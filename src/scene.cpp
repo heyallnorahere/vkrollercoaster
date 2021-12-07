@@ -28,6 +28,14 @@ namespace vkrollercoaster {
         for (const auto& [_light, entities] : lights) {
             _light->update_buffers(entities);
         }
+
+        // scripts
+        for (entity ent : this->view<script_component>()) {
+            const auto& scripts = ent.get_component<script_component>();
+            for (ref<script> _script : scripts.scripts) {
+                _script->update();
+            }
+        }
     }
     entity scene::create(const std::string& tag) {
         entt::entity id = this->m_registry.create();
