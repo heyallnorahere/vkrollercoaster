@@ -23,15 +23,8 @@
 #include "imgui_controller.h"
 #include "light.h"
 #include "menus/menus.h"
+#include "input_manager.h"
 namespace vkrollercoaster {
-    // temporary player script
-    class player_behavior : public script {
-    public:
-        virtual void update() override {
-            // todo: take input
-        }
-    };
-
     struct app_data_t {
         ref<window> app_window;
         ref<swapchain> swap_chain;
@@ -41,6 +34,30 @@ namespace vkrollercoaster {
         bool should_stop = false;
     };
     static std::unique_ptr<app_data_t> app_data;
+
+    // temporary player script
+    class player_behavior : public script {
+    public:
+        player_behavior() {
+            this->m_input_manager = ref<input_manager>::create(app_data->app_window);
+        }
+        virtual void update() override {
+            this->m_input_manager->update();
+
+            double current_time = window::get_time();
+            static double last_frame = current_time;
+            float delta_time = static_cast<float>(current_time - last_frame);
+            last_frame = current_time;
+
+            auto& transform = this->get_component<transform_component>();
+            glm::vec2 mouse_offset = this->m_input_manager->get_mouse_offset();
+
+            // camera direction
+            transform.rotation += glm::vec3(-mouse_offset.y, mouse_offset.x, 0.f) * 0.001f;
+        }
+    private:
+        ref<input_manager> m_input_manager;
+    };
 
     static void new_frame() {
         window::poll();

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <stddef.h>
 #include <vector>
+#include <list>
 #include <array>
 #include <map>
 #include <unordered_map>
@@ -36,8 +37,6 @@
 #include <thread>
 #include <chrono>
 #include <vulkan/vulkan.h>
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED

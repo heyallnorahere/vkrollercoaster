@@ -21,10 +21,12 @@
 #include "util.h"
 #include "menus/menus.h"
 #include "application.h"
+#include "input_manager.h"
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
     static struct {
+        ref<input_manager> im;
         ref<swapchain> swap_chain;
         std::vector<ref<menu>> menus;
         uint32_t dependent_count = 0;
@@ -90,6 +92,7 @@ namespace vkrollercoaster {
     }
     void imgui_controller::init(ref<swapchain> _swapchain) {
         imgui_data.swap_chain = _swapchain;
+        imgui_data.im = ref<input_manager>::create(_swapchain->get_window());
         renderer::add_ref();
 
         // initialize core imgui
@@ -153,6 +156,7 @@ namespace vkrollercoaster {
     }
     void imgui_controller::shutdown() {
         imgui_data.menus.clear();
+        imgui_data.im.reset();
         imgui_data.should_shutdown = true;
         if (imgui_data.dependent_count == 0) {
             shutdown_imgui();
@@ -163,11 +167,37 @@ namespace vkrollercoaster {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
     }
+    struct shortcut_state {
+        bool exit, toggle_cursor;
+    };
+    static bool get_shortcut_state(int32_t key, int32_t mods) {
+        auto key_state = imgui_data.im->get_key(key);
+        if (key_state.down) {
+            return (key_state.mods & mods) == mods;
+        }
+        return false;
+    }
+    static void handle_shortcuts(shortcut_state& state) {
+        imgui_data.im->update();
+
+        // exit
+        state.exit = get_shortcut_state(GLFW_KEY_Q, GLFW_MOD_CONTROL);
+
+        // cursor toggle
+        state.toggle_cursor = get_shortcut_state(GLFW_KEY_E, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT);
+    }
     static void update_dockspace_menu_bar() {
+        shortcut_state state;
+        handle_shortcuts(state);
+
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Exit")) {
-                    application::quit();
+                if (ImGui::MenuItem("Exit", "Ctrl+Q")) {
+                    state.exit = true;
+                }
+
+                if (ImGui::MenuItem("Toggle cursor visibility", "Ctrl+Shift+E")) {
+                    state.toggle_cursor = true;
                 }
 
                 ImGui::EndMenu();
@@ -183,6 +213,18 @@ namespace vkrollercoaster {
             }
 
             ImGui::EndMenuBar();
+        }
+
+        if (state.exit) {
+            application::quit();
+        }
+
+        if (state.toggle_cursor) {
+            if (imgui_data.im->is_cursor_enabled()) {
+                imgui_data.im->disable_cursor();
+            } else {
+                imgui_data.im->enable_cursor();
+            }
         }
     }
     static void update_dockspace() {

@@ -15,6 +15,8 @@
 */
 
 #pragma once
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 namespace vkrollercoaster {
     class swapchain;
     class window : public ref_counted {
@@ -22,6 +24,7 @@ namespace vkrollercoaster {
         static void init();
         static void shutdown();
         static void poll();
+        static double get_time();
         window(int32_t width, int32_t height, const std::string& title);
         ~window();
         window(const window&) = delete;

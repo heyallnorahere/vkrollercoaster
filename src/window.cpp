@@ -17,6 +17,7 @@
 #include "pch.h"
 #include "window.h"
 #include "swapchain.h"
+#include "input_manager.h"
 namespace vkrollercoaster {
     static struct {
         bool initialized = false;
@@ -46,6 +47,10 @@ namespace vkrollercoaster {
         glfwPollEvents();
     }
 
+    double window::get_time() {
+        return glfwGetTime();
+    }
+
     window::window(int32_t width, int32_t height, const std::string& title) {
         if (!window_data.initialized) {
             throw std::runtime_error("glfw has not been initialized!");
@@ -59,6 +64,7 @@ namespace vkrollercoaster {
             int32_t error_code = glfwGetError(&desc);
             throw std::runtime_error("glfw error " + std::to_string(error_code) + ": " + desc);
         }
+
         window_data.window_map.insert({ this->m_window, this });
         glfwSetFramebufferSizeCallback(this->m_window, glfw_resize_callback);
     }
