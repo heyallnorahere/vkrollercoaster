@@ -53,7 +53,7 @@ namespace vkrollercoaster {
             glm::vec2 mouse_offset = this->m_input_manager->get_mouse_offset();
 
             // camera direction
-            transform.rotation += glm::vec3(-mouse_offset.y, mouse_offset.x, 0.f) * 0.001f;
+            transform.rotation += glm::vec3(mouse_offset.y, mouse_offset.x, 0.f) * 0.001f;
         }
     private:
         ref<input_manager> m_input_manager;

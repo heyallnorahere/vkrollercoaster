@@ -16,7 +16,6 @@
 
 #include "pch.h"
 #include "input_manager.h"
-#include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
     struct window_input_data {
         std::list<input_manager*> ims;
