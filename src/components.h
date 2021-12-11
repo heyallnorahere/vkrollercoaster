@@ -29,13 +29,6 @@ namespace vkrollercoaster {
         glm::vec3 translation = glm::vec3(0.f);
         glm::vec3 rotation = glm::vec3(0.f);
         glm::vec3 scale = glm::vec3(1.f);
-        glm::mat4 matrix() const {
-            glm::mat4 rotation_matrix = glm::toMat4(glm::quat(this->rotation));
-            return
-                glm::translate(glm::mat4(1.f), this->translation) *
-                rotation_matrix *
-                glm::scale(glm::mat4(1.f), this->scale);
-        }
     };
     struct model_component {
         model_component() = default;

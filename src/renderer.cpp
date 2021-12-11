@@ -444,18 +444,27 @@ namespace vkrollercoaster {
         }
         ref<model> _model = to_render.get_component<model_component>().data;
         const auto& transform = to_render.get_component<transform_component>();
+
+        // calculate transformation matrices
         struct {
             glm::mat4 model, normal;
         } push_constant_data;
-        push_constant_data.model = transform.matrix();
         push_constant_data.normal = glm::toMat4(glm::quat(transform.rotation));
+        push_constant_data.model =
+            glm::translate(glm::mat4(1.f), transform.translation) *
+            push_constant_data.normal *
+            glm::scale(glm::mat4(1.f), transform.scale);
+
+        // create vertex buffer
         auto vbo = ref<vertex_buffer>::create(_model->get_vertices());
 
         const auto& index_map = _model->get_index_map();
         const auto& materials = _model->get_materials();
         for (const auto& [material_index, indices] : index_map) {
+            // create index buffer
             auto ibo = ref<index_buffer>::create(indices);
             
+            // create pipeline
             ref<pipeline> _pipeline;
             {
                 pipeline_spec spec;
@@ -468,7 +477,7 @@ namespace vkrollercoaster {
                 _pipeline = _material->create_pipeline(target, spec);
             }
 
-            // set viewport
+            // set scissor
             VkRect2D scissor = _pipeline->get_scissor();
             vkCmdSetScissor(cmdbuffer->get(), 0, 1, &scissor);
 
