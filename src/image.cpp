@@ -191,8 +191,8 @@ namespace vkrollercoaster {
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
         size_t total_size = (size_t)data.width * data.height * data.channels;
-        create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+        create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+            staging_buffer, staging_allocation);
         
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data.data.data(), total_size);
