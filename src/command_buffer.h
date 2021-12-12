@@ -28,19 +28,23 @@ namespace vkrollercoaster {
         void begin();
         void end();
         void submit();
+        void wait();
         void reset();
         void begin_render_pass(ref<render_target> target, const glm::vec4& clear_color);
         void end_render_pass();
         VkCommandBuffer get() { return this->m_buffer; }
         ref<render_target> get_current_render_target() { return this->m_current_render_target; }
+        bool recording() { return this->m_recording; }
     private:
         command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render);
         ref<render_target> m_current_render_target;
         internal_cmdbuffer_data* m_internal_data;
+
         VkCommandPool m_pool;
         VkQueue m_queue;
         VkCommandBuffer m_buffer;
-        bool m_single_time, m_render;
+
+        bool m_single_time, m_render, m_recorded, m_recording;
         friend class renderer;
     };
 }
