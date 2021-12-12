@@ -15,7 +15,7 @@
 */
 
 #pragma once
-#include "framebuffer.h"
+#include "render_target.h"
 #include "texture.h"
 #include "shader.h"
 #include "buffers.h"

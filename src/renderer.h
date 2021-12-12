@@ -31,7 +31,7 @@ namespace vkrollercoaster {
     struct queue_family_indices {
         std::optional<uint32_t> graphics_family, present_family;
         bool complete() const {
-            const std::vector<bool> families_found{
+            const std::vector<bool> families_found = {
                 this->graphics_family.has_value(),
                 this->present_family.has_value(),
             };

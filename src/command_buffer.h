@@ -38,6 +38,7 @@ namespace vkrollercoaster {
 
     private:
         command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render);
+        
         ref<render_target> m_current_render_target;
         internal_cmdbuffer_data* m_internal_data;
 

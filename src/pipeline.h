@@ -16,7 +16,7 @@
 
 #pragma once
 #include "shader.h"
-#include "framebuffer.h"
+#include "render_target.h"
 #include "command_buffer.h"
 namespace vkrollercoaster {
     enum class vertex_attribute_type {

@@ -90,7 +90,7 @@ namespace vkrollercoaster {
         }
 
     private:
-        virtual void on_enable() override { this->m_input_manager->disable_cursor(); }
+        //virtual void on_enable() override { this->m_input_manager->disable_cursor(); }
         virtual void on_disable() override { this->m_input_manager->enable_cursor(); }
         ref<input_manager> m_input_manager;
     };
