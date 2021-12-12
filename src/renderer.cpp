@@ -19,6 +19,7 @@
 #include "renderer.h"
 #include "util.h"
 #include "components.h"
+#include "allocator.h"
 namespace vkrollercoaster {
     static struct {
         ref<window> application_window;
@@ -38,6 +39,7 @@ namespace vkrollercoaster {
         size_t current_frame = 0;
         uint32_t ref_count = 0;
         bool should_shutdown = false;
+        uint32_t vulkan_version = 0;
     } renderer_data;
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -144,7 +146,7 @@ namespace vkrollercoaster {
         VkApplicationInfo app_info;
         util::zero(app_info);
         app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        app_info.apiVersion = VK_API_VERSION_1_0;
+        app_info.apiVersion = renderer_data.vulkan_version;
         app_info.pApplicationName = app_info.pEngineName = "vkrollercoaster";
         app_info.applicationVersion = app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0); // todo: git tags
         VkInstanceCreateInfo create_info;
@@ -369,9 +371,14 @@ namespace vkrollercoaster {
         glm::mat4 view = glm::mat4(1.f);
         glm::vec3 position = glm::vec3(0.f);
     };
-    void renderer::init(ref<window> _window) {
-        spdlog::info("initializing renderer...");
+    void renderer::init(ref<window> _window, uint32_t vulkan_version) {
+        uint32_t major, minor, patch;
+        expand_vulkan_version(vulkan_version, major, minor, patch);
+        spdlog::info("initializing renderer... (with vulkan version {0}.{1}.{2})", major, minor, patch);
+
+        renderer_data.vulkan_version = vulkan_version;
         renderer_data.application_window = _window;
+
         choose_extensions();
         create_instance();
         create_debug_messenger();
@@ -381,12 +388,15 @@ namespace vkrollercoaster {
         create_descriptor_pool();
         create_graphics_command_pool();
         create_sync_objects();
+        allocator::init();
+
         image_data white_data;
         int32_t channels = 4;
         white_data.data.resize(channels, 255);
         white_data.channels = channels;
         white_data.width = white_data.height = 1;
         renderer_data.white_texture = ref<texture>::create(ref<image>::create(white_data));
+
         renderer_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(camera_buffer_data));
     }
     static void shutdown_renderer() {
@@ -415,7 +425,10 @@ namespace vkrollercoaster {
     void renderer::shutdown() {
         renderer_data.camera_buffer.reset();
         renderer_data.white_texture.reset();
+
+        allocator::shutdown();
         vkDeviceWaitIdle(renderer_data.device);
+        
         renderer_data.should_shutdown = true;
         if (renderer_data.ref_count == 0) {
             shutdown_renderer();
@@ -515,6 +528,7 @@ namespace vkrollercoaster {
         auto instance = new command_buffer(renderer_data.graphics_command_pool, renderer_data.graphics_queue, true, false);
         return ref<command_buffer>(instance);
     }
+    uint32_t renderer::get_vulkan_version() { return renderer_data.vulkan_version; }
     ref<window> renderer::get_window() { return renderer_data.application_window; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }

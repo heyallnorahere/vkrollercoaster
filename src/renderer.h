@@ -65,7 +65,7 @@ namespace vkrollercoaster {
         static void add_instance_extension(const std::string& name);
         static void add_device_extension(const std::string& name);
 
-        static void init(ref<window> _window);
+        static void init(ref<window> _window, uint32_t vulkan_version = VK_API_VERSION_1_0);
         static void shutdown();
         static void new_frame();
         static void render(ref<command_buffer> cmdbuffer, entity to_render);
@@ -75,6 +75,8 @@ namespace vkrollercoaster {
 
         static ref<command_buffer> create_render_command_buffer();
         static ref<command_buffer> create_single_time_command_buffer();
+
+        static uint32_t get_vulkan_version();
         static ref<window> get_window();
         static VkInstance get_instance();
         static VkPhysicalDevice get_physical_device();

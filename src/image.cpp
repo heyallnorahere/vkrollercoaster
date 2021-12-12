@@ -16,6 +16,8 @@
 
 #include "pch.h"
 #define EXPOSE_RENDERER_INTERNALS
+#define EXPOSE_IMAGE_UTILS
+#define EXPOSE_BUFFER_UTILS
 #include "image.h"
 #include "buffers.h"
 #include "renderer.h"
@@ -25,7 +27,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 namespace vkrollercoaster {
-    void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory) {
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation) {
         VkDevice device = renderer::get_device();
         VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkImageCreateInfo create_info;
@@ -45,21 +47,7 @@ namespace vkrollercoaster {
         // todo: if graphics_family and compute_family arent similar, use VK_SHARING_MODE_CONCURRENT
         //auto indices = renderer::find_queue_families(physical_device);
         create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateImage(device, &create_info, nullptr, &image) != VK_SUCCESS) {
-            throw std::runtime_error("could not create image!");
-        }
-        VkMemoryRequirements requirements;
-        vkGetImageMemoryRequirements(device, image, &requirements);
-        VkMemoryAllocateInfo alloc_info;
-        util::zero(alloc_info);
-        alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        alloc_info.allocationSize = requirements.size;
-        alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
-        // todo: use vma
-        if (vkAllocateMemory(device, &alloc_info, nullptr, &memory) != VK_SUCCESS) {
-            throw std::runtime_error("could not allocate memory for image!");
-        }
-        vkBindImageMemory(device, image, memory, 0);
+        _allocator.alloc(create_info, memory_usage, image, allocation);
     }
     static void get_stage_and_mask(VkImageLayout layout, VkPipelineStageFlags& stage, VkAccessFlags& access_mask) {
         switch (layout) {
@@ -156,26 +144,25 @@ namespace vkrollercoaster {
     }
     image::image(const image_data& data) {
         renderer::add_ref();
-        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        this->init_basic();
         this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
         this->create_image_from_data(data);
         this->create_view();
     }
     image::image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags aspect) {
-        // only use this constructor for things such as depth buffering
+        // only use this constructor for internal things such as depth buffering
         renderer::add_ref();
+        this->init_basic();
         this->m_format = format;
         this->m_aspect = aspect;
-        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-        create_image(width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            this->m_image, this->m_memory);
+        create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
         this->create_view();
     }
     image::~image() {
         VkDevice device = renderer::get_device();
         vkDestroyImageView(device, this->m_view, nullptr);
-        vkDestroyImage(device, this->m_image, nullptr);
-        vkFreeMemory(device, this->m_memory, nullptr);
+        this->m_allocator.free(this->m_image, this->m_allocation);
         renderer::remove_ref();
     }
     void image::transition(VkImageLayout new_layout) {
@@ -184,6 +171,10 @@ namespace vkrollercoaster {
         for (texture* tex : this->m_dependents) {
             tex->update_imgui_texture();
         }
+    }
+    void image::init_basic() {
+        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        this->m_allocator.set_source("image");
     }
     void image::create_image_from_data(const image_data& data) {
         switch (data.channels) {
@@ -196,36 +187,40 @@ namespace vkrollercoaster {
         default:
             throw std::runtime_error("invalid image format!");
         }
+
         VkBuffer staging_buffer;
-        VkDeviceMemory staging_memory;
+        VmaAllocation staging_allocation;
         size_t total_size = (size_t)data.width * data.height * data.channels;
-        create_buffer(total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            staging_buffer, staging_memory);
-        VkDevice device = renderer::get_device();
-        void* gpu_data;
-        vkMapMemory(device, staging_memory, 0, total_size, 0, &gpu_data);
+        create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+        
+        void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data.data.data(), total_size);
-        vkUnmapMemory(device, staging_memory);
-        create_image(data.width, data.height, this->m_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->m_image, this->m_memory);
+        this->m_allocator.unmap(staging_allocation);
+        create_image(this->m_allocator, data.width, data.height, this->m_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
+        
         this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
         this->transition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        vkDestroyBuffer(device, staging_buffer, nullptr);
-        vkFreeMemory(device, staging_memory, nullptr);
+
+        this->m_allocator.free(staging_buffer, staging_allocation);
     }
     void image::create_view() {
         VkImageViewCreateInfo create_info;
         util::zero(create_info);
+
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         create_info.image = this->m_image;
         create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         create_info.format = this->m_format;
+        
         create_info.subresourceRange.aspectMask = this->m_aspect;
         create_info.subresourceRange.baseMipLevel = 0;
         create_info.subresourceRange.levelCount = 1;
         create_info.subresourceRange.baseArrayLayer = 0;
         create_info.subresourceRange.layerCount = 1;
+
         VkDevice device = renderer::get_device();
         if (vkCreateImageView(device, &create_info, nullptr, &this->m_view) != VK_SUCCESS) {
             throw std::runtime_error("could not create image view!");

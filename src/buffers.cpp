@@ -15,46 +15,19 @@
 */
 
 #include "pch.h"
-#define EXPOSE_RENDERER_INTERNALS
+#define EXPOSE_BUFFER_UTILS
 #include "buffers.h"
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    uint32_t find_memory_type(uint32_t filter, VkMemoryPropertyFlags properties) {
-        VkPhysicalDeviceMemoryProperties memory_properties;
-        VkPhysicalDevice physical_device = renderer::get_physical_device();
-        vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
-        for (uint32_t i = 0; i < memory_properties.memoryTypeCount; i++) {
-            if ((filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-        throw std::runtime_error("could not find suitable memory type!");
-        return 0;
-    }
-    void create_buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory) {
-        VkDevice device = renderer::get_device();
+    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation) {
         VkBufferCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         create_info.size = size;
         create_info.usage = usage;
         create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(device, &create_info, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("could not create GPU buffer!");
-        }
-        VkMemoryRequirements requirements;
-        vkGetBufferMemoryRequirements(device, buffer, &requirements);
-        VkMemoryAllocateInfo alloc_info;
-        util::zero(alloc_info);
-        alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        alloc_info.allocationSize = requirements.size;
-        alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
-        // todo: use vma or something
-        if (vkAllocateMemory(device, &alloc_info, nullptr, &memory) != VK_SUCCESS) {
-            throw std::runtime_error("could not allocate memory on the GPU!");
-        }
-        vkBindBufferMemory(device, buffer, memory, 0);
+        _allocator.alloc(create_info, memory_usage, buffer, allocation);
     }
     void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset, size_t dest_offset) {
         VkBufferCopy region;
@@ -69,27 +42,25 @@ namespace vkrollercoaster {
         cmdbuffer->submit();
     }
     vertex_buffer::vertex_buffer(const void* data, size_t size) {
-        renderer::add_ref();
+        this->m_allocator.set_source("vertex buffer");
+
         VkBuffer staging_buffer;
-        VkDeviceMemory staging_memory;
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            staging_buffer, staging_memory);
-        void* gpu_data;
-        VkDevice device = renderer::get_device();
-        vkMapMemory(device, staging_memory, 0, size, 0, &gpu_data);
+        VmaAllocation staging_allocation;
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+
+        void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
-        vkUnmapMemory(device, staging_memory);
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            this->m_buffer, this->m_memory);
+        this->m_allocator.unmap(staging_allocation);
+
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY, this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
-        vkDestroyBuffer(device, staging_buffer, nullptr);
-        vkFreeMemory(device, staging_memory, nullptr);
+
+        this->m_allocator.free(staging_buffer, staging_allocation);
     }
     vertex_buffer::~vertex_buffer() {
-        VkDevice device = renderer::get_device();
-        vkDestroyBuffer(device, this->m_buffer, nullptr);
-        vkFreeMemory(device, this->m_memory, nullptr);
-        renderer::remove_ref();
+        this->m_allocator.free(this->m_buffer, this->m_allocation);
     }
     void vertex_buffer::bind(ref<command_buffer> cmdbuffer, uint32_t slot) {
         VkDeviceSize offset = 0;
@@ -98,27 +69,20 @@ namespace vkrollercoaster {
     index_buffer::index_buffer(const uint32_t* data, size_t index_count) {
         this->m_index_count = index_count;
         size_t size = index_count * sizeof(uint32_t);
-        renderer::add_ref();
         VkBuffer staging_buffer;
-        VkDeviceMemory staging_memory;
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            staging_buffer, staging_memory);
-        void* gpu_data;
-        VkDevice device = renderer::get_device();
-        vkMapMemory(device, staging_memory, 0, size, 0, &gpu_data);
+        VmaAllocation staging_allocation;
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+        void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
-        vkUnmapMemory(device, staging_memory);
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            this->m_buffer, this->m_memory);
+        this->m_allocator.unmap(staging_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY,  this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
-        vkDestroyBuffer(device, staging_buffer, nullptr);
-        vkFreeMemory(device, staging_memory, nullptr);
+        this->m_allocator.free(staging_buffer, staging_allocation);
     }
     index_buffer::~index_buffer() {
-        VkDevice device = renderer::get_device();
-        vkDestroyBuffer(device, this->m_buffer, nullptr);
-        vkFreeMemory(device, this->m_memory, nullptr);
-        renderer::remove_ref();
+        this->m_allocator.free(this->m_buffer, this->m_allocation);
     }
     void index_buffer::bind(ref<command_buffer> cmdbuffer) {
         vkCmdBindIndexBuffer(cmdbuffer->get(), this->m_buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -140,12 +104,12 @@ namespace vkrollercoaster {
         return ref<uniform_buffer>::create(set, binding, size);
     }
     uniform_buffer::uniform_buffer(uint32_t set, uint32_t binding, size_t size) {
-        renderer::add_ref();
+        this->m_allocator.set_source("uniform buffer");
         this->m_set = set;
         this->m_binding = binding;
         this->m_size = size;
-        create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            this->m_buffer, this->m_memory);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            VMA_MEMORY_USAGE_CPU_ONLY, this->m_buffer, this->m_allocation);
     }
     uniform_buffer::~uniform_buffer() {
         for (auto _pipeline : this->m_bound_pipelines) {
@@ -157,10 +121,7 @@ namespace vkrollercoaster {
                 set_data.erase(this->m_binding);
             }
         }
-        VkDevice device = renderer::get_device();
-        vkDestroyBuffer(device, this->m_buffer, nullptr);
-        vkFreeMemory(device, this->m_memory, nullptr);
-        renderer::remove_ref();
+        this->m_allocator.free(this->m_buffer, this->m_allocation);
     }
     void uniform_buffer::bind(ref<pipeline> _pipeline) {
         auto& descriptor_sets = _pipeline->m_descriptor_sets;
@@ -198,30 +159,26 @@ namespace vkrollercoaster {
         }
     }
     void uniform_buffer::set_data(const void* data, size_t size, size_t offset) {
-        VkDevice device = renderer::get_device();
         if (offset + size > this->m_size) {
             throw std::runtime_error("attempted to map memory outside the buffer's limits!");
         }
-        void* gpu_data;
-        vkMapMemory(device, this->m_memory, offset, size, 0, &gpu_data);
-        memcpy(gpu_data, data, size);
-        vkUnmapMemory(device, this->m_memory);
+        void* gpu_data = this->m_allocator.map(this->m_allocation);
+        void* dst = (void*)((size_t)gpu_data + offset);
+        memcpy(dst, data, size);
+        this->m_allocator.unmap(this->m_allocation);
     }
     void uniform_buffer::get_data(void* data, size_t size, size_t offset) {
-        VkDevice device = renderer::get_device();
         if (offset + size > this->m_size) {
             throw std::runtime_error("attempted to map memory outside the buffer's limits!");
         }
-        void* gpu_data;
-        vkMapMemory(device, this->m_memory, offset, size, 0, &gpu_data);
-        memcpy(data, gpu_data, size);
-        vkUnmapMemory(device, this->m_memory);
+        void* gpu_data = this->m_allocator.map(this->m_allocation);
+        void* src = (void*)((size_t)gpu_data + offset);
+        memcpy(data, src, size);
+        this->m_allocator.unmap(this->m_allocation);
     }
     void uniform_buffer::zero() {
-        VkDevice device = renderer::get_device();
-        void* gpu_data;
-        vkMapMemory(device, this->m_memory, 0, this->m_size, 0, &gpu_data);
+        void* gpu_data = this->m_allocator.map(this->m_allocation);
         memset(gpu_data, 0, this->m_size);
-        vkUnmapMemory(device, this->m_memory);
+        this->m_allocator.unmap(this->m_allocation);
     }
 }

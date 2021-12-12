@@ -15,9 +15,10 @@
 */
 
 #pragma once
+#include "allocator.h"
 namespace vkrollercoaster {
-#ifdef EXPOSE_RENDERER_INTERNALS
-    void create_image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
+#ifdef EXPOSE_IMAGE_UTILS
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation);
     void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags image_aspect);
 #endif
     struct image_data {
@@ -39,15 +40,17 @@ namespace vkrollercoaster {
         VkImageView get_view() { return this->m_view; }
         VkImageLayout get_layout() { return this->m_layout; }
     private:
+        void init_basic();
         void create_image_from_data(const image_data& data);
         void create_view();
         std::set<texture*> m_dependents;
         VkImage m_image;
         VkImageView m_view;
-        VkDeviceMemory m_memory;
+        VmaAllocation m_allocation;
         VkFormat m_format;
         VkImageLayout m_layout;
         VkImageAspectFlags m_aspect;
+        allocator m_allocator;
         friend class texture;
     };
 }

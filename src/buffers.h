@@ -18,10 +18,10 @@
 #include "command_buffer.h"
 #include "pipeline.h"
 #include "shader.h"
+#include "allocator.h"
 namespace vkrollercoaster {
-#ifdef EXPOSE_RENDERER_INTERNALS
-    uint32_t find_memory_type(uint32_t filter, VkMemoryPropertyFlags properties);
-    void create_buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
+#ifdef EXPOSE_BUFFER_UTILS
+    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation);
     void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset = 0, size_t dest_offset = 0);
 #endif
     class vertex_buffer : public ref_counted {
@@ -34,7 +34,8 @@ namespace vkrollercoaster {
         void bind(ref<command_buffer> cmdbuffer, uint32_t slot = 0);
     private:
         VkBuffer m_buffer;
-        VkDeviceMemory m_memory;
+        VmaAllocation m_allocation;
+        allocator m_allocator;
     };
     class index_buffer : public ref_counted {
     public:
@@ -47,8 +48,9 @@ namespace vkrollercoaster {
         size_t get_index_count() { return this->m_index_count; }
     private:
         VkBuffer m_buffer;
-        VkDeviceMemory m_memory;
+        VmaAllocation m_allocation;
         size_t m_index_count;
+        allocator m_allocator;
     };
     class uniform_buffer : public ref_counted {
     public:
@@ -70,10 +72,11 @@ namespace vkrollercoaster {
         size_t get_size() { return this->m_size; }
     private:
         VkBuffer m_buffer;
-        VkDeviceMemory m_memory;
+        VmaAllocation m_allocation;
         uint32_t m_set, m_binding;
         size_t m_size;
         std::set<pipeline*> m_bound_pipelines;
+        allocator m_allocator;
         friend class pipeline;
     };
 }
