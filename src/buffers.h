@@ -22,11 +22,8 @@
 namespace vkrollercoaster {
 
 #ifdef EXPOSE_BUFFER_UTILS
-    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage,
-                       VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage,
-                       VkBuffer& buffer, VmaAllocation& allocation);
-    void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset = 0,
-                     size_t dest_offset = 0);
+    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation);
+    void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset = 0, size_t dest_offset = 0);
 #endif
 
     class vertex_buffer : public ref_counted {

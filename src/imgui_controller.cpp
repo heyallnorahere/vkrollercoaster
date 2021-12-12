@@ -22,6 +22,7 @@
 #include "menus/menus.h"
 #include "application.h"
 #include "input_manager.h"
+#include "components.h"
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
@@ -170,7 +171,7 @@ namespace vkrollercoaster {
         ImGui::NewFrame();
     }
     struct shortcut_state {
-        bool exit, toggle_cursor;
+        bool exit, disable_scripts;
     };
     static bool get_shortcut_state(int32_t key, int32_t mods) {
         auto key_state = imgui_data.im->get_key(key);
@@ -185,8 +186,8 @@ namespace vkrollercoaster {
         // exit
         state.exit = get_shortcut_state(GLFW_KEY_Q, GLFW_MOD_CONTROL);
 
-        // cursor toggle
-        state.toggle_cursor = get_shortcut_state(GLFW_KEY_E, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT);
+        // disable all scripts
+        state.disable_scripts = get_shortcut_state(GLFW_KEY_D, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT);
     }
     static void update_dockspace_menu_bar() {
         shortcut_state state;
@@ -198,8 +199,8 @@ namespace vkrollercoaster {
                     state.exit = true;
                 }
 
-                if (ImGui::MenuItem("Toggle cursor visibility", "Ctrl+Shift+E")) {
-                    state.toggle_cursor = true;
+                if (ImGui::MenuItem("Disable all scripts", "Ctrl+Shift+D")) {
+                    state.disable_scripts = true;
                 }
 
                 ImGui::EndMenu();
@@ -223,11 +224,17 @@ namespace vkrollercoaster {
             application::quit();
         }
 
-        if (state.toggle_cursor) {
-            if (imgui_data.im->is_cursor_enabled()) {
-                imgui_data.im->disable_cursor();
-            } else {
-                imgui_data.im->enable_cursor();
+        if (state.disable_scripts) {
+            ref<scene> _scene = application::get_scene();
+
+            for (entity ent : _scene->view<script_component>()) {
+                const auto& scripts = ent.get_component<script_component>().scripts;
+
+                for (ref<script> _script : scripts) {
+                    if (_script->enabled()) {
+                        _script->disable();
+                    }
+                }
             }
         }
     }

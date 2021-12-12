@@ -71,15 +71,15 @@ namespace vkrollercoaster {
         }
 
         for (int32_t key : keys) {
-            if (this->m_current.keys.find(key) == this->m_current.keys.end()) {
-                this->m_current.keys.insert(std::make_pair(key, key_state()));
-            }
-            auto& current_key = this->m_current.keys[key];
-
             key_state last_key;
             if (last.keys.find(key) != last.keys.end()) {
                 last_key = last.keys[key];
             }
+
+            if (this->m_current.keys.find(key) == this->m_current.keys.end()) {
+                this->m_current.keys.insert(std::make_pair(key, last_key));
+            }
+            auto& current_key = this->m_current.keys[key];
 
             current_key.down = current_key.held && !last_key.held;
             current_key.up = !current_key.held && last_key.held;
@@ -123,17 +123,13 @@ namespace vkrollercoaster {
             previous_callback(glfw_window, key, scancode, action, mods);
         }
 
-        if (action != GLFW_PRESS) {
-            return;
-        }
-
         for (input_manager* im : input_data.window_map[glfw_window].ims) {
             if (im->m_writing.keys.find(key) == im->m_writing.keys.end()) {
                 im->m_writing.keys.insert(std::make_pair(key, key_state()));
             }
 
             auto& state = im->m_writing.keys[key];
-            state.held = true;
+            state.held = (action != GLFW_RELEASE);
             state.mods |= mods;
         }
     }
