@@ -19,9 +19,8 @@
 namespace vkrollercoaster {
 #ifdef EXPOSE_IMAGE_UTILS
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
-                      VkImageTiling tiling, VkImageUsageFlags usage,
-                      VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image,
-                      VmaAllocation& allocation);
+                      VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
+                      VkImage& image, VmaAllocation& allocation);
     void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
                                  VkImageLayout new_layout, VkImageAspectFlags image_aspect);
 #endif

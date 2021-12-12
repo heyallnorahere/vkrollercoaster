@@ -52,16 +52,10 @@ namespace vkrollercoaster {
             auto& transform = this->get_component<transform_component>();
             glm::vec2 mouse_offset = this->m_input_manager->get_mouse_offset();
 
-            // camera direction
-            transform.rotation += glm::vec3(mouse_offset.y, mouse_offset.x, 0.f) * 0.001f;
-
-            // clamp pitch to -89 to 89
-            if (transform.rotation.x > 89.f) {
-                transform.rotation.x = 89.f;
-            }
-            if (transform.rotation.x < -89.f) {
-                transform.rotation.x = -89.f;
-            }
+            glm::vec2 camera_angle = glm::degrees(transform.rotation);
+            camera_angle += glm::vec2(mouse_offset.y, mouse_offset.x) * 0.05f;
+            camera_angle.x = glm::clamp(camera_angle.x, -89.f, 89.f);
+            transform.rotation = glm::radians(glm::vec3(camera_angle, 0.f));
 
             float speed = 2.5f * delta_time;
             glm::vec3 movement_direction =
@@ -70,7 +64,7 @@ namespace vkrollercoaster {
 
             const auto& camera = this->get_component<camera_component>();
             glm::vec3 forward = movement_direction * speed;
-            glm::vec3 right = glm::normalize(glm::cross(movement_direction, camera.up)) * speed;
+            glm::vec3 left = glm::normalize(glm::cross(movement_direction, camera.up)) * speed;
             glm::vec3 up = glm::normalize(camera.up) * speed;
 
             if (this->m_input_manager->get_key(GLFW_KEY_W).held) {
@@ -80,11 +74,11 @@ namespace vkrollercoaster {
                 transform.translation -= forward;
             }
 
-            if (this->m_input_manager->get_key(GLFW_KEY_D).held) {
-                transform.translation += right;
-            }
             if (this->m_input_manager->get_key(GLFW_KEY_A).held) {
-                transform.translation -= right;
+                transform.translation += left;
+            }
+            if (this->m_input_manager->get_key(GLFW_KEY_D).held) {
+                transform.translation -= left;
             }
 
             if (this->m_input_manager->get_key(GLFW_KEY_SPACE).held) {

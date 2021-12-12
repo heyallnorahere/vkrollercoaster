@@ -28,9 +28,8 @@
 #include <stb_image.h>
 namespace vkrollercoaster {
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
-                      VkImageTiling tiling, VkImageUsageFlags usage,
-                      VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image,
-                      VmaAllocation& allocation) {
+                      VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
+                      VkImage& image, VmaAllocation& allocation) {
         VkDevice device = renderer::get_device();
         VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkImageCreateInfo create_info;
@@ -166,8 +165,7 @@ namespace vkrollercoaster {
         this->m_format = format;
         this->m_aspect = aspect;
         create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL,
-                     usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                     this->m_image, this->m_allocation);
+                     usage, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
         this->create_view();
     }
     image::~image() {
@@ -212,8 +210,7 @@ namespace vkrollercoaster {
         create_image(this->m_allocator, data.width, data.height, this->m_format,
                      VK_IMAGE_TILING_OPTIMAL,
                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
-                     this->m_allocation);
+                     VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
 
         this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
