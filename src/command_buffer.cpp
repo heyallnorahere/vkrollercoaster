@@ -148,18 +148,17 @@ namespace vkrollercoaster {
         begin_info.renderArea.extent = target->get_extent();
 
         std::vector<VkClearValue> clear_values;
-        std::set<framebuffer_attachment_type> attachment_types;
+        std::set<attachment_type> attachment_types;
         target->get_attachment_types(attachment_types);
 
-        if (attachment_types.find(framebuffer_attachment_type::color) != attachment_types.end()) {
+        if (attachment_types.find(attachment_type::color) != attachment_types.end()) {
             VkClearValue clear_value;
             util::zero(clear_value);
             memcpy(clear_value.color.float32, &clear_color, sizeof(glm::vec4));
             clear_values.push_back(clear_value);
         }
 
-        if (attachment_types.find(framebuffer_attachment_type::depth_stencil) !=
-            attachment_types.end()) {
+        if (attachment_types.find(attachment_type::depth_stencil) != attachment_types.end()) {
             VkClearValue clear_value;
             util::zero(clear_value);
             clear_value.depthStencil = { 1.f, 0 };

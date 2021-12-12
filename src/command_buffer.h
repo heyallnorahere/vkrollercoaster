@@ -15,7 +15,7 @@
 */
 
 #pragma once
-#include "framebuffer.h"
+#include "render_target.h"
 #include "shader.h"
 namespace vkrollercoaster {
     class renderer;

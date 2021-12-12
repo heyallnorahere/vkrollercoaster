@@ -87,6 +87,8 @@ namespace vkrollercoaster {
         model(ref<model_source> source);
         model(const model_data& data);
         ~model();
+        model(const model&) = delete;
+        model& operator=(const model&) = delete;
 
         void set_data(const model_data& data);
 

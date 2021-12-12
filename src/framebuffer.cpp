@@ -67,14 +67,14 @@ namespace vkrollercoaster {
 
     void framebuffer::remove_reload_callbacks(void* id) { this->m_dependents.erase(id); }
 
-    void framebuffer::get_attachment_types(std::set<framebuffer_attachment_type>& types) {
+    void framebuffer::get_attachment_types(std::set<attachment_type>& types) {
         types.clear();
         for (const auto& [type, attachment] : this->m_attachments) {
             types.insert(type);
         }
     }
 
-    ref<image> framebuffer::get_attachment(framebuffer_attachment_type type) {
+    ref<image> framebuffer::get_attachment(attachment_type type) {
         ref<image> attachment;
         if (this->m_attachments.find(type) != this->m_attachments.end()) {
             attachment = this->m_attachments[type];
@@ -82,7 +82,7 @@ namespace vkrollercoaster {
         return attachment;
     }
 
-    void framebuffer::set_attachment(framebuffer_attachment_type type, ref<image> attachment) {
+    void framebuffer::set_attachment(attachment_type type, ref<image> attachment) {
         bool recreate = false;
         if (this->m_framebuffer) {
             this->destroy_framebuffer();
@@ -125,11 +125,11 @@ namespace vkrollercoaster {
             VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
             VkImageAspectFlags image_aspect = 0;
             switch (type) {
-            case framebuffer_attachment_type::color:
+            case attachment_type::color:
                 usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 image_aspect |= VK_IMAGE_ASPECT_COLOR_BIT;
                 break;
-            case framebuffer_attachment_type::depth_stencil:
+            case attachment_type::depth_stencil:
                 usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 image_aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
                 if (format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
@@ -147,7 +147,7 @@ namespace vkrollercoaster {
     }
 
     void framebuffer::create_render_pass() {
-        std::map<framebuffer_attachment_type, size_t> attachment_ref_indices;
+        std::map<attachment_type, size_t> attachment_ref_indices;
         std::vector<VkAttachmentDescription> attachments;
         std::vector<VkAttachmentReference> attachment_refs;
         for (auto [type, attachment] : this->m_attachments) {
@@ -172,17 +172,15 @@ namespace vkrollercoaster {
         VkSubpassDescription subpass;
         util::zero(subpass);
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        if (attachment_ref_indices.find(framebuffer_attachment_type::color) !=
-            attachment_ref_indices.end()) {
+        if (attachment_ref_indices.find(attachment_type::color) != attachment_ref_indices.end()) {
             subpass.colorAttachmentCount = 1;
             subpass.pColorAttachments =
-                &attachment_refs[attachment_ref_indices[framebuffer_attachment_type::color]];
+                &attachment_refs[attachment_ref_indices[attachment_type::color]];
         }
-        if (attachment_ref_indices.find(framebuffer_attachment_type::depth_stencil) !=
+        if (attachment_ref_indices.find(attachment_type::depth_stencil) !=
             attachment_ref_indices.end()) {
             subpass.pDepthStencilAttachment =
-                &attachment_refs
-                    [attachment_ref_indices[framebuffer_attachment_type::depth_stencil]];
+                &attachment_refs[attachment_ref_indices[attachment_type::depth_stencil]];
         }
         VkRenderPassCreateInfo create_info;
         util::zero(create_info);

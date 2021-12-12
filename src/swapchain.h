@@ -17,7 +17,7 @@
 #pragma once
 #include "window.h"
 #include "image.h"
-#include "framebuffer.h"
+#include "render_target.h"
 namespace vkrollercoaster {
     class swapchain : public render_target {
     public:
@@ -46,9 +46,9 @@ namespace vkrollercoaster {
         virtual VkFramebuffer get_framebuffer() override {
             return this->m_swapchain_images[this->m_current_image].framebuffer;
         }
-        virtual void get_attachment_types(std::set<framebuffer_attachment_type>& types) override {
-            types = { framebuffer_attachment_type::color,
-                      framebuffer_attachment_type::depth_stencil };
+        virtual void get_attachment_types(std::set<attachment_type>& types) override {
+            types = { attachment_type::color,
+                      attachment_type::depth_stencil };
         }
         virtual render_target_type get_render_target_type() override {
             return render_target_type::swapchain;

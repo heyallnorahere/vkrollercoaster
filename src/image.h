@@ -24,21 +24,25 @@ namespace vkrollercoaster {
     void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
                                  VkImageLayout new_layout, VkImageAspectFlags image_aspect);
 #endif
+
     struct image_data {
         std::vector<uint8_t> data;
         int32_t width, height, channels;
     };
+
     class texture;
     class image : public ref_counted {
     public:
         static bool load_image(const fs::path& path, image_data& data);
         static ref<image> from_file(const fs::path& path);
+
         image(const image_data& data);
         image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
               VkImageAspectFlags image_aspect);
         ~image();
         image(const image&) = delete;
         image& operator=(const image&) = delete;
+
         void transition(VkImageLayout new_layout);
         VkFormat get_format() { return this->m_format; }
         VkImageView get_view() { return this->m_view; }
