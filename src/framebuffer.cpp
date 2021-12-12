@@ -54,7 +54,8 @@ namespace vkrollercoaster {
         renderer::remove_ref();
     }
 
-    void framebuffer::add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate) {
+    void framebuffer::add_reload_callbacks(void* id, std::function<void()> destroy,
+                                           std::function<void()> recreate) {
         if (this->m_dependents.find(id) != this->m_dependents.end()) {
             return;
         }
@@ -63,10 +64,8 @@ namespace vkrollercoaster {
         callbacks.recreate = recreate;
         this->m_dependents.insert(std::make_pair(id, callbacks));
     }
-    
-    void framebuffer::remove_reload_callbacks(void* id) {
-        this->m_dependents.erase(id);
-    }
+
+    void framebuffer::remove_reload_callbacks(void* id) { this->m_dependents.erase(id); }
 
     void framebuffer::get_attachment_types(std::set<framebuffer_attachment_type>& types) {
         types.clear();
@@ -133,13 +132,15 @@ namespace vkrollercoaster {
             case framebuffer_attachment_type::depth_stencil:
                 usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 image_aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
-                if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT) {
+                if (format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+                    format == VK_FORMAT_D24_UNORM_S8_UINT) {
                     image_aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
                 }
                 break;
             }
 
-            ref<image> attachment = ref<image>::create(format, spec.width, spec.height, usage, image_aspect);
+            ref<image> attachment =
+                ref<image>::create(format, spec.width, spec.height, usage, image_aspect);
             attachment->transition(VK_IMAGE_LAYOUT_GENERAL);
             this->m_attachments[type] = attachment;
         }
@@ -171,12 +172,17 @@ namespace vkrollercoaster {
         VkSubpassDescription subpass;
         util::zero(subpass);
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        if (attachment_ref_indices.find(framebuffer_attachment_type::color) != attachment_ref_indices.end()) {
+        if (attachment_ref_indices.find(framebuffer_attachment_type::color) !=
+            attachment_ref_indices.end()) {
             subpass.colorAttachmentCount = 1;
-            subpass.pColorAttachments = &attachment_refs[attachment_ref_indices[framebuffer_attachment_type::color]];
+            subpass.pColorAttachments =
+                &attachment_refs[attachment_ref_indices[framebuffer_attachment_type::color]];
         }
-        if (attachment_ref_indices.find(framebuffer_attachment_type::depth_stencil) != attachment_ref_indices.end()) {
-            subpass.pDepthStencilAttachment = &attachment_refs[attachment_ref_indices[framebuffer_attachment_type::depth_stencil]];
+        if (attachment_ref_indices.find(framebuffer_attachment_type::depth_stencil) !=
+            attachment_ref_indices.end()) {
+            subpass.pDepthStencilAttachment =
+                &attachment_refs
+                    [attachment_ref_indices[framebuffer_attachment_type::depth_stencil]];
         }
         VkRenderPassCreateInfo create_info;
         util::zero(create_info);
@@ -206,7 +212,8 @@ namespace vkrollercoaster {
         create_info.height = this->m_extent.height;
         create_info.layers = 1;
         VkDevice device = renderer::get_device();
-        if (vkCreateFramebuffer(device, &create_info, nullptr, &this->m_framebuffer) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(device, &create_info, nullptr, &this->m_framebuffer) !=
+            VK_SUCCESS) {
             throw std::runtime_error("could not create framebuffer!");
         }
         for (const auto& [id, callbacks] : this->m_dependents) {
@@ -223,4 +230,4 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         vkDestroyFramebuffer(device, this->m_framebuffer, nullptr);
     }
-}
+} // namespace vkrollercoaster

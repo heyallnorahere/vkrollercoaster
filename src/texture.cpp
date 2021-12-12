@@ -52,17 +52,21 @@ namespace vkrollercoaster {
         auto _shader = _pipeline->get_shader();
         auto& reflection_data = _shader->get_reflection_data();
         const auto& resource = reflection_data.resources[set][binding];
-        std::string binding_string = "binding " + std::to_string(set) + "." + std::to_string(binding);
+        std::string binding_string =
+            "binding " + std::to_string(set) + "." + std::to_string(binding);
         if (resource.resource_type != shader_resource_type::sampledimage) {
             throw std::runtime_error(binding_string + " is not a sampled image!");
         }
         const auto& resource_type = reflection_data.types[resource.type];
         if (slot >= resource_type.array_size) {
-            throw std::runtime_error("index " + std::to_string(slot) + " is out of the array range (" + std::to_string(resource_type.array_size) + ") of " + binding_string + "!");
+            throw std::runtime_error(
+                "index " + std::to_string(slot) + " is out of the array range (" +
+                std::to_string(resource_type.array_size) + ") of " + binding_string + "!");
         }
         auto& sets = _pipeline->m_descriptor_sets;
         if (sets.find(set) == sets.end()) {
-            throw std::runtime_error("set " + std::to_string(set) + " does not exist on the given pipeline!");
+            throw std::runtime_error("set " + std::to_string(set) +
+                                     " does not exist on the given pipeline!");
         }
         VkDescriptorImageInfo image_info;
         util::zero(image_info);
@@ -108,7 +112,8 @@ namespace vkrollercoaster {
     ImTextureID texture::get_imgui_id() {
         if (!this->m_imgui_id) {
             imgui_controller::add_dependent();
-            this->m_imgui_id = ImGui_ImplVulkan_AddTexture(this->m_sampler, this->m_image->m_view, this->m_image->m_layout);
+            this->m_imgui_id = ImGui_ImplVulkan_AddTexture(this->m_sampler, this->m_image->m_view,
+                                                           this->m_image->m_layout);
         }
         return this->m_imgui_id;
     }
@@ -149,7 +154,8 @@ namespace vkrollercoaster {
     }
     void texture::update_imgui_texture() {
         if (this->m_imgui_id) {
-            ImGui_ImplVulkan_UpdateTextureInfo(this->m_imgui_id, this->m_sampler, this->m_image->m_view, this->m_image->m_layout);
+            ImGui_ImplVulkan_UpdateTextureInfo(this->m_imgui_id, this->m_sampler,
+                                               this->m_image->m_view, this->m_image->m_layout);
         }
     }
-}
+} // namespace vkrollercoaster

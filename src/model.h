@@ -45,6 +45,7 @@ namespace vkrollercoaster {
         const std::vector<mesh>& get_meshes() { return this->m_meshes; }
         const std::vector<ref<material>>& get_materials() { return this->m_materials; }
         const fs::path& get_path() { return this->m_path; }
+
     private:
         void process_node(aiNode* node);
         void process_mesh(aiMesh* mesh_, aiNode* node);
@@ -72,7 +73,8 @@ namespace vkrollercoaster {
             size_t material_index;
         };
         model(ref<model_source> source);
-        model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes, const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices);
+        model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes,
+              const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices);
         ~model();
 
         ref<model_source> get_source() { return this->m_source; }
@@ -82,6 +84,7 @@ namespace vkrollercoaster {
         const std::vector<ref<material>>& get_materials() { return this->m_materials; }
         const vertex_input_data& get_input_layout() { return this->m_input_layout; }
         const std::map<size_t, std::vector<uint32_t>>& get_index_map() { return this->m_index_map; }
+
     private:
         void set_input_layout();
         void acquire_mesh_data();
@@ -97,4 +100,4 @@ namespace vkrollercoaster {
         ref<model_source> m_source;
         friend class model_source;
     };
-}
+} // namespace vkrollercoaster

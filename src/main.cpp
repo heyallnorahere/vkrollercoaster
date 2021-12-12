@@ -20,11 +20,11 @@ int32_t main(int32_t argc, const char** argv) {
 #ifdef NDEBUG
     try {
 #endif
-    using namespace vkrollercoaster;
-    application::init();
-    application::run();
-    application::shutdown();
-    return 0;
+        using namespace vkrollercoaster;
+        application::init();
+        application::run();
+        application::shutdown();
+        return 0;
 #ifdef NDEBUG
     } catch (const std::runtime_error& exc) {
         spdlog::error(exc.what());

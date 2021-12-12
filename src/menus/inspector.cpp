@@ -40,7 +40,7 @@ namespace vkrollercoaster {
             ImGui::SameLine();
             flags = ImGuiInputTextFlags_None;
             if (!attenuation.linear.edit) {
-                flags |= ImGuiInputTextFlags_ReadOnly;            
+                flags |= ImGuiInputTextFlags_ReadOnly;
                 attenuation.linear.value = 4.5f / attenuation.target_distance;
             }
             ImGui::InputFloat("Linear", &attenuation.linear.value, 0.f, 0.f, "%.3f", flags);
@@ -50,7 +50,7 @@ namespace vkrollercoaster {
             ImGui::SameLine();
             flags = ImGuiInputTextFlags_None;
             if (!attenuation.quadratic.edit) {
-                flags |= ImGuiInputTextFlags_ReadOnly;            
+                flags |= ImGuiInputTextFlags_ReadOnly;
                 attenuation.quadratic.value = 75.f / glm::pow(attenuation.target_distance, 2.f);
             }
             ImGui::InputFloat("Quadratic", &attenuation.quadratic.value, 0.f, 0.f, "%.3f", flags);
@@ -81,28 +81,24 @@ namespace vkrollercoaster {
             ImGui::ColorEdit3("Specular color", &_light->specular_color().x);
 
             switch (_light->get_type()) {
-            case light_type::point:
-                {
-                    ref<point_light> _point_light = _light.as<point_light>();
-                    attenuation_editor(_point_light->attenuation());
-                }
-                break;
-            case light_type::spotlight:
-                {
-                    ref<spotlight> _spotlight = _light.as<spotlight>();
-                    ImGui::InputFloat3("Direction", &_spotlight->direction().x);
+            case light_type::point: {
+                ref<point_light> _point_light = _light.as<point_light>();
+                attenuation_editor(_point_light->attenuation());
+            } break;
+            case light_type::spotlight: {
+                ref<spotlight> _spotlight = _light.as<spotlight>();
+                ImGui::InputFloat3("Direction", &_spotlight->direction().x);
 
-                    float angle = glm::degrees(glm::acos(_spotlight->cutoff()));
-                    ImGui::SliderFloat("Inner cutoff", &angle, 0.f, 45.f);
-                    _spotlight->cutoff() = glm::cos(glm::radians(angle));
+                float angle = glm::degrees(glm::acos(_spotlight->cutoff()));
+                ImGui::SliderFloat("Inner cutoff", &angle, 0.f, 45.f);
+                _spotlight->cutoff() = glm::cos(glm::radians(angle));
 
-                    angle = glm::degrees(glm::acos(_spotlight->outer_cutoff()));
-                    ImGui::SliderFloat("Outer cutoff", &angle, 0.f, 45.f);
-                    _spotlight->outer_cutoff() = glm::cos(glm::radians(angle));
+                angle = glm::degrees(glm::acos(_spotlight->outer_cutoff()));
+                ImGui::SliderFloat("Outer cutoff", &angle, 0.f, 45.f);
+                _spotlight->outer_cutoff() = glm::cos(glm::radians(angle));
 
-                    attenuation_editor(_spotlight->attenuation());
-                }
-                break;
+                attenuation_editor(_spotlight->attenuation());
+            } break;
             }
             if (ImGui::Button("Remove")) {
                 ent.remove_component<light_component>();
@@ -110,10 +106,8 @@ namespace vkrollercoaster {
         } else {
             // if no light component exists on the passed entity, allow the option to add one
             static light_creation_data creation_data;
-            static std::vector<type_name_pair> types = {
-                { light_type::point, "Point light" },
-                { light_type::spotlight, "Spotlight" }
-            };
+            static std::vector<type_name_pair> types = { { light_type::point, "Point light" },
+                                                         { light_type::spotlight, "Spotlight" } };
             std::vector<const char*> names;
             for (const auto& pair : types) {
                 names.push_back(pair.name.c_str());
@@ -125,8 +119,10 @@ namespace vkrollercoaster {
             switch (current_type) {
             case light_type::spotlight:
                 ImGui::InputFloat3("Direction", &creation_data.spotlight_data.direction.x);
-                ImGui::SliderFloat("Inner cutoff", &creation_data.spotlight_data.cutoff_angle, 0.f, 45.f);
-                ImGui::SliderFloat("Outer cutoff", &creation_data.spotlight_data.outer_cutoff_angle, 0.f, 45.f);
+                ImGui::SliderFloat("Inner cutoff", &creation_data.spotlight_data.cutoff_angle, 0.f,
+                                   45.f);
+                ImGui::SliderFloat("Outer cutoff", &creation_data.spotlight_data.outer_cutoff_angle,
+                                   0.f, 45.f);
                 break;
             }
 
@@ -134,9 +130,10 @@ namespace vkrollercoaster {
                 ref<light> _light;
                 switch (current_type) {
                 case light_type::spotlight:
-                    _light = ref<spotlight>::create(creation_data.spotlight_data.direction,
-                                                    glm::cos(glm::radians(creation_data.spotlight_data.cutoff_angle)),
-                                                    glm::cos(glm::radians(creation_data.spotlight_data.outer_cutoff_angle)));
+                    _light = ref<spotlight>::create(
+                        creation_data.spotlight_data.direction,
+                        glm::cos(glm::radians(creation_data.spotlight_data.cutoff_angle)),
+                        glm::cos(glm::radians(creation_data.spotlight_data.outer_cutoff_angle)));
                     break;
                 case light_type::point:
                     _light = ref<point_light>::create();
@@ -146,11 +143,7 @@ namespace vkrollercoaster {
             }
         }
     }
-    enum class model_loading_error {
-        none,
-        no_path,
-        file_does_not_exist
-    };
+    enum class model_loading_error { none, no_path, file_does_not_exist };
     static model_loading_error model_error = model_loading_error::none;
     static ref<material> model_material;
     static void model_editor(entity ent) {
@@ -179,7 +172,8 @@ namespace vkrollercoaster {
                 const auto& name = _material->get_name();
                 material_names.push_back(name.c_str());
             }
-            ImGui::Combo("Selected material", &current_material, material_names.data(), material_names.size());
+            ImGui::Combo("Selected material", &current_material, material_names.data(),
+                         material_names.size());
             model_material = materials[current_material];
 
             float available_width = ImGui::GetContentRegionAvail().x;
@@ -346,7 +340,7 @@ namespace vkrollercoaster {
             ImGui::DragFloat3("Rotation", &degrees.x, speed);
             transform.rotation = glm::radians(degrees);
             ImGui::DragFloat3("Scale", &transform.scale.x, speed);
-            
+
             if (ImGui::CollapsingHeader("Light")) {
                 ImGui::Indent();
                 light_editor(ent);
@@ -379,4 +373,4 @@ namespace vkrollercoaster {
 
         ImGui::End();
     }
-}
+} // namespace vkrollercoaster

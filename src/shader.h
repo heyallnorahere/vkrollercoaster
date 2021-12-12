@@ -16,21 +16,9 @@
 
 #pragma once
 namespace vkrollercoaster {
-    enum class shader_stage {
-        vertex,
-        fragment,
-        geometry,
-        compute
-    };
-    enum class shader_language {
-        glsl,
-        hlsl
-    };
-    enum class shader_resource_type {
-        uniformbuffer,
-        storagebuffer,
-        sampledimage
-    };
+    enum class shader_stage { vertex, fragment, geometry, compute };
+    enum class shader_language { glsl, hlsl };
+    enum class shader_resource_type { uniformbuffer, storagebuffer, sampledimage };
     struct shader_field {
         size_t offset, type;
     };
@@ -91,7 +79,10 @@ namespace vkrollercoaster {
         shader& operator=(const shader&) = delete;
         void reload();
         shader_reflection_data& get_reflection_data() { return this->m_reflection_data; }
-        const std::vector<VkPipelineShaderStageCreateInfo>& get_pipeline_info() { return this->m_shader_data; }
+        const std::vector<VkPipelineShaderStageCreateInfo>& get_pipeline_info() {
+            return this->m_shader_data;
+        }
+
     private:
         void create();
         void compile(std::map<shader_stage, std::vector<uint32_t>>& spirv);
@@ -122,7 +113,8 @@ namespace vkrollercoaster {
         static ref<shader> get(const std::string& name);
         static void get_names(std::vector<std::string>& names);
         static void clear();
+
     private:
         shader_library() = default;
     };
-}
+} // namespace vkrollercoaster

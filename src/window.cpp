@@ -32,9 +32,7 @@ namespace vkrollercoaster {
         window_data.initialized = true;
     }
 
-    static void shutdown_glfw() {
-        glfwTerminate();
-    }
+    static void shutdown_glfw() { glfwTerminate(); }
 
     void window::shutdown() {
         window_data.should_shutdown = true;
@@ -43,13 +41,9 @@ namespace vkrollercoaster {
         }
     }
 
-    void window::poll() {
-        glfwPollEvents();
-    }
+    void window::poll() { glfwPollEvents(); }
 
-    double window::get_time() {
-        return glfwGetTime();
-    }
+    double window::get_time() { return glfwGetTime(); }
 
     window::window(int32_t width, int32_t height, const std::string& title) {
         if (!window_data.initialized) {
@@ -77,9 +71,7 @@ namespace vkrollercoaster {
         }
     }
 
-    bool window::should_close() const {
-        return glfwWindowShouldClose(this->m_window);
-    }
+    bool window::should_close() const { return glfwWindowShouldClose(this->m_window); }
 
     void window::glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height) {
         window* _window = window_data.window_map[glfw_window];
@@ -87,4 +79,4 @@ namespace vkrollercoaster {
             swap_chain->m_should_resize = true;
         }
     }
-}
+} // namespace vkrollercoaster

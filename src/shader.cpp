@@ -37,8 +37,7 @@ namespace vkrollercoaster {
         }
     }
     static std::map<std::string, shader_language> language_map = {
-        { ".glsl", shader_language::glsl },
-        { ".hlsl", shader_language::hlsl }
+        { ".glsl", shader_language::glsl }, { ".hlsl", shader_language::hlsl }
     };
     static shader_language determine_language(const fs::path& path) {
         auto extension = path.extension().string();
@@ -47,7 +46,7 @@ namespace vkrollercoaster {
         }
         return language_map[extension];
     }
-    shader::shader(const fs::path& path) : shader(path, determine_language(path)) { }
+    shader::shader(const fs::path& path) : shader(path, determine_language(path)) {}
     shader::shader(const fs::path& path, shader_language language) {
         this->m_path = path;
         this->m_language = language;
@@ -86,20 +85,19 @@ namespace vkrollercoaster {
             auto& stage_create_info = this->m_shader_data.emplace_back();
             util::zero(stage_create_info);
             stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            if (vkCreateShaderModule(device, &module_create_info, nullptr, &stage_create_info.module) != VK_SUCCESS) {
+            if (vkCreateShaderModule(device, &module_create_info, nullptr,
+                                     &stage_create_info.module) != VK_SUCCESS) {
                 throw std::runtime_error("could not create shader module!");
             }
             stage_create_info.pName = "main";
             stage_create_info.stage = get_stage_flags(stage);
         }
     }
-    static std::map<std::string, shader_stage> stage_map = {
-        { "vertex", shader_stage::vertex },
-        { "fragment", shader_stage::fragment },
-        { "pixel", shader_stage::fragment },
-        { "geometry", shader_stage::geometry },
-        { "compute", shader_stage::compute }
-    };
+    static std::map<std::string, shader_stage> stage_map = { { "vertex", shader_stage::vertex },
+                                                             { "fragment", shader_stage::fragment },
+                                                             { "pixel", shader_stage::fragment },
+                                                             { "geometry", shader_stage::geometry },
+                                                             { "compute", shader_stage::compute } };
     void shader::compile(std::map<shader_stage, std::vector<uint32_t>>& spirv) {
         // todo: shader cache
         shaderc::Compiler compiler;
@@ -129,12 +127,14 @@ namespace vkrollercoaster {
                 if (line.substr(0, stage_switch.length()) == stage_switch) {
                     std::string stage_string = line.substr(stage_switch.length());
                     if (stage_map.find(stage_string) == stage_map.end()) {
-                        throw std::runtime_error(this->m_path.string() + ": invalid shader stage: " + stage_string);
+                        throw std::runtime_error(this->m_path.string() +
+                                                 ": invalid shader stage: " + stage_string);
                     }
                     current_stage = stage_map[stage_string];
                 } else {
                     if (!current_stage.has_value()) {
-                        spdlog::warn("{0}: no stage specified - assuming compute", this->m_path.string());
+                        spdlog::warn("{0}: no stage specified - assuming compute",
+                                     this->m_path.string());
                         current_stage = shader_stage::compute;
                     }
                     shader_stage stage = *current_stage;
@@ -170,7 +170,9 @@ namespace vkrollercoaster {
         }
     }
     static std::map<spirv_cross::TypeID, size_t> found_types;
-    static void parse_base_type(const spirv_cross::SPIRType& type, const spirv_cross::Compiler& compiler, size_t& size, shader_base_type& base_type) {
+    static void parse_base_type(const spirv_cross::SPIRType& type,
+                                const spirv_cross::Compiler& compiler, size_t& size,
+                                shader_base_type& base_type) {
         using BaseType = spirv_cross::SPIRType::BaseType;
         switch (type.basetype) {
         case BaseType::Boolean:
@@ -221,7 +223,9 @@ namespace vkrollercoaster {
             throw std::runtime_error("invalid base type");
         }
     }
-    static size_t get_type(const spirv_cross::Compiler& compiler, spirv_cross::TypeID id, spirv_cross::TypeID parent, uint32_t member_index, shader_reflection_data* base_data) {
+    static size_t get_type(const spirv_cross::Compiler& compiler, spirv_cross::TypeID id,
+                           spirv_cross::TypeID parent, uint32_t member_index,
+                           shader_reflection_data* base_data) {
         if (found_types.find(id) != found_types.end()) {
             return found_types[id];
         }
@@ -240,7 +244,8 @@ namespace vkrollercoaster {
             type.array_size = spirv_type.array[0];
             if (parent) {
                 const auto& parent_type = compiler.get_type(parent);
-                type.array_stride = compiler.type_struct_member_array_stride(parent_type, member_index);
+                type.array_stride =
+                    compiler.type_struct_member_array_stride(parent_type, member_index);
             } else {
                 type.array_stride = type.size;
             }
@@ -265,7 +270,8 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::uniformbuffer;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                          &this->m_reflection_data);
             this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.storage_buffers) {
@@ -275,7 +281,8 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::storagebuffer;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                          &this->m_reflection_data);
             this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.sampled_images) {
@@ -285,28 +292,32 @@ namespace vkrollercoaster {
             resource_desc.name = resource.name;
             resource_desc.resource_type = shader_resource_type::sampledimage;
             resource_desc.stage = stage;
-            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                          &this->m_reflection_data);
             this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.push_constant_buffers) {
             push_constant_buffer_data desc;
             desc.name = resource.name;
             desc.stage = stage;
-            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                 &this->m_reflection_data);
             this->m_reflection_data.push_constant_buffers.push_back(desc);
         }
         for (const auto& resource : resources.stage_inputs) {
             shader_stage_io_field desc;
             desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
             desc.name = resource.name;
-            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                 &this->m_reflection_data);
             this->m_reflection_data.inputs[stage].push_back(desc);
         }
         for (const auto& resource : resources.stage_outputs) {
             shader_stage_io_field desc;
             desc.location = compiler.get_decoration(resource.id, spv::DecorationLocation);
             desc.name = resource.name;
-            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0, &this->m_reflection_data);
+            desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                 &this->m_reflection_data);
             this->m_reflection_data.outputs[stage].push_back(desc);
         }
         found_types.clear();
@@ -361,7 +372,8 @@ namespace vkrollercoaster {
         size_t open_bracket = name.find('[');
         if (open_bracket != std::string::npos) {
             size_t close_bracket = name.find(']');
-            if (close_bracket <= open_bracket + 1 || close_bracket >= name.length() || close_bracket < name.length() - 1) {
+            if (close_bracket <= open_bracket + 1 || close_bracket >= name.length() ||
+                close_bracket < name.length() - 1) {
                 throw std::runtime_error("invalid index operator call");
             }
             size_t index_start = open_bracket + 1;
@@ -386,7 +398,8 @@ namespace vkrollercoaster {
             return offset + this->base_data->types[field.type].find_offset(subname);
         }
     }
-    bool shader_reflection_data::find_resource(const std::string& name, uint32_t& set, uint32_t& binding) const {
+    bool shader_reflection_data::find_resource(const std::string& name, uint32_t& set,
+                                               uint32_t& binding) const {
         for (const auto& [current_set, resources] : this->resources) {
             for (const auto& [current_binding, resource] : resources) {
                 if (resource.name == name) {
@@ -436,7 +449,5 @@ namespace vkrollercoaster {
             names.push_back(name);
         }
     }
-    void shader_library::clear() {
-        library.clear();
-    }
-}
+    void shader_library::clear() { library.clear(); }
+} // namespace vkrollercoaster

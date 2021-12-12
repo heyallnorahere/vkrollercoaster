@@ -25,6 +25,7 @@ namespace vkrollercoaster {
         virtual std::string get_title() = 0;
         virtual void update() = 0;
         bool& open() { return this->m_open; }
+
     protected:
         bool m_open = true;
     };
@@ -39,4 +40,4 @@ namespace vkrollercoaster {
         static void add_dependent();
         static void remove_dependent();
     };
-}
+} // namespace vkrollercoaster

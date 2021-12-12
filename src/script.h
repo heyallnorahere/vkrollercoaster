@@ -38,25 +38,21 @@ namespace vkrollercoaster {
         }
         bool enabled() { return this->m_enabled; }
         entity get_parent() { return this->m_parent; }
+
     protected:
-        template<typename T> bool has_component() {
-            return this->m_parent.has_component<T>();
-        }
-        template<typename T> T& get_component() {
-            return this->m_parent.get_component<T>();
-        }
-        template<typename T, typename... Args> T& add_component(Args&&... args) {
+        template <typename T> bool has_component() { return this->m_parent.has_component<T>(); }
+        template <typename T> T& get_component() { return this->m_parent.get_component<T>(); }
+        template <typename T, typename... Args> T& add_component(Args&&... args) {
             return this->m_parent.add_component<T>(std::forward<Args>(args)...);
         }
-        template<typename T> void remove_component() {
-            this->m_parent.remove_component<T>();
-        }
+        template <typename T> void remove_component() { this->m_parent.remove_component<T>(); }
         entity m_parent;
+
     private:
         bool m_enabled = true;
-        virtual void on_added() { }
-        virtual void on_enable() { }
-        virtual void on_disable() { }
+        virtual void on_added() {}
+        virtual void on_enable() {}
+        virtual void on_disable() {}
         friend struct script_component;
     };
-};
+}; // namespace vkrollercoaster

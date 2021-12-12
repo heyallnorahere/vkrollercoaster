@@ -31,7 +31,7 @@ namespace vkrollercoaster {
     struct queue_family_indices {
         std::optional<uint32_t> graphics_family, present_family;
         bool complete() const {
-            const std::vector<bool> families_found {
+            const std::vector<bool> families_found{
                 this->graphics_family.has_value(),
                 this->present_family.has_value(),
             };
@@ -88,9 +88,11 @@ namespace vkrollercoaster {
         static ref<texture> get_white_texture();
         static ref<uniform_buffer> get_camera_buffer();
 
-        static void update_camera_buffer(ref<scene> _scene); // todo: add window parameter after window surface is moved to swapchain
+        static void update_camera_buffer(ref<scene> _scene); // todo: add window parameter after
+                                                             // window surface is moved to swapchain
 
-        static void expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor, uint32_t& patch);
+        static void expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor,
+                                          uint32_t& patch);
 
 #ifdef EXPOSE_RENDERER_INTERNALS
         static swapchain_support_details query_swapchain_support(VkPhysicalDevice device);
@@ -101,4 +103,4 @@ namespace vkrollercoaster {
         static constexpr size_t max_frame_count = 2;
 #endif
     };
-}
+} // namespace vkrollercoaster

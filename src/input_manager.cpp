@@ -21,9 +21,7 @@ namespace vkrollercoaster {
         std::list<input_manager*> ims;
         GLFWkeyfun previous_key_callback;
     };
-    static struct {
-        std::unordered_map<GLFWwindow*, window_input_data> window_map;
-    } input_data;
+    static struct { std::unordered_map<GLFWwindow*, window_input_data> window_map; } input_data;
 
     input_manager::input_manager(ref<window> _window) {
         this->m_window = _window;
@@ -31,7 +29,6 @@ namespace vkrollercoaster {
         GLFWwindow* glfw_window = this->m_window->get();
         if (input_data.window_map.find(glfw_window) == input_data.window_map.end()) {
             input_data.window_map.insert(std::make_pair(glfw_window, window_input_data()));
-
 
             auto wid = &input_data.window_map[glfw_window];
             glfwSetCursorPosCallback(glfw_window, cursor_pos_callback);
@@ -116,7 +113,8 @@ namespace vkrollercoaster {
         }
     }
 
-    void input_manager::key_callback(GLFWwindow* glfw_window, int32_t key, int32_t scancode, int32_t action, int32_t mods) {
+    void input_manager::key_callback(GLFWwindow* glfw_window, int32_t key, int32_t scancode,
+                                     int32_t action, int32_t mods) {
         // call any previous callbacks so we don't lose functionality
         GLFWkeyfun previous_callback = input_data.window_map[glfw_window].previous_key_callback;
         if (previous_callback != nullptr) {
@@ -133,4 +131,4 @@ namespace vkrollercoaster {
             state.mods |= mods;
         }
     }
-}
+} // namespace vkrollercoaster

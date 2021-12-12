@@ -38,14 +38,8 @@ namespace vkrollercoaster {
         size_t stride = 0;
         std::vector<vertex_attribute> attributes;
     };
-    enum class pipeline_polygon_mode {
-        fill,
-        wireframe
-    };
-    enum class pipeline_front_face {
-        clockwise,
-        counter_clockwise
-    };
+    enum class pipeline_polygon_mode { fill, wireframe };
+    enum class pipeline_front_face { clockwise, counter_clockwise };
     struct pipeline_spec {
         pipeline_spec() = default;
         bool enable_depth_testing = true;
@@ -64,7 +58,7 @@ namespace vkrollercoaster {
             std::vector<VkDescriptorSet> sets;
         };
         pipeline(ref<render_target> target, ref<shader> _shader, const pipeline_spec& spec);
-        ~pipeline();    
+        ~pipeline();
         pipeline(const pipeline&) = delete;
         pipeline& operator=(const pipeline&) = delete;
         void bind(ref<command_buffer> cmdbuffer);
@@ -75,8 +69,11 @@ namespace vkrollercoaster {
         VkPipelineLayout get_layout() { return this->m_layout; }
         VkViewport get_viewport() { return this->m_viewport; }
         VkRect2D get_scissor() { return this->m_scissor; }
-        const std::map<uint32_t, descriptor_set>& get_descriptor_sets() { return this->m_descriptor_sets; }
+        const std::map<uint32_t, descriptor_set>& get_descriptor_sets() {
+            return this->m_descriptor_sets;
+        }
         pipeline_spec& spec() { return this->m_spec; }
+
     private:
         enum class buffer_type {
             ubo,
@@ -90,15 +87,15 @@ namespace vkrollercoaster {
             uint32_t set, binding, slot;
             // why is this necessary???
             bool operator==(const texture_binding_desc& other) const {
-                return (this->set == other.set) && (this->binding == other.binding) && (this->slot) == (other.slot);
+                return (this->set == other.set) && (this->binding == other.binding) &&
+                       (this->slot) == (other.slot);
             }
-            bool operator!=(const texture_binding_desc& other) const {
-                return !(*this == other);
-            }
+            bool operator!=(const texture_binding_desc& other) const { return !(*this == other); }
             struct hash {
                 size_t operator()(const texture_binding_desc& desc) const {
                     std::hash<uint32_t> hasher;
-                    return (hasher(desc.set) << 2) ^ (hasher(desc.binding) << 1) ^ hasher(desc.slot);
+                    return (hasher(desc.set) << 2) ^ (hasher(desc.binding) << 1) ^
+                           hasher(desc.slot);
                 }
             };
         };
@@ -116,7 +113,8 @@ namespace vkrollercoaster {
         VkPipeline m_pipeline;
         std::map<uint32_t, descriptor_set> m_descriptor_sets;
         std::vector<VkPushConstantRange> m_push_constant_ranges;
-        std::unordered_map<texture_binding_desc, texture*, texture_binding_desc::hash> m_bound_textures;
+        std::unordered_map<texture_binding_desc, texture*, texture_binding_desc::hash>
+            m_bound_textures;
         std::map<uint32_t, std::map<uint32_t, bound_buffer_desc>> m_bound_buffers;
         material* m_material;
         friend class swapchain;
@@ -125,4 +123,4 @@ namespace vkrollercoaster {
         friend class texture;
         friend class material;
     };
-}
+} // namespace vkrollercoaster

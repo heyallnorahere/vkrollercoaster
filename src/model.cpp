@@ -22,7 +22,8 @@
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 namespace vkrollercoaster {
-    template<glm::length_t L, typename T> static glm::vec<L, float> convert(const T& assimp_vector) {
+    template <glm::length_t L, typename T>
+    static glm::vec<L, float> convert(const T& assimp_vector) {
         glm::vec<L, float> glm_vector;
         for (size_t i = 0; i < (size_t)L; i++) {
             glm_vector[i] = assimp_vector[i];
@@ -35,9 +36,7 @@ namespace vkrollercoaster {
         }
     };
     struct warning_logstream : public Assimp::LogStream {
-        virtual void write(const char* message) override {
-            spdlog::warn("assimp: {0}", message);
-        }
+        virtual void write(const char* message) override { spdlog::warn("assimp: {0}", message); }
     };
     static void initialize_logger() {
         if (!Assimp::DefaultLogger::isNullLogger()) {
@@ -56,14 +55,10 @@ namespace vkrollercoaster {
         }
         this->reload();
     }
-    static constexpr uint32_t import_flags =
-        aiProcess_Triangulate |
-        aiProcess_GenNormals |
-        aiProcess_GenUVCoords |
-        aiProcess_OptimizeMeshes |
-        aiProcess_JoinIdenticalVertices |
-        aiProcess_ValidateDataStructure |
-        aiProcess_FlipUVs;
+    static constexpr uint32_t import_flags = aiProcess_Triangulate | aiProcess_GenNormals |
+                                             aiProcess_GenUVCoords | aiProcess_OptimizeMeshes |
+                                             aiProcess_JoinIdenticalVertices |
+                                             aiProcess_ValidateDataStructure | aiProcess_FlipUVs;
     void model_source::reload() {
         this->m_importer = std::make_unique<Assimp::Importer>();
         this->m_vertices.clear();
@@ -71,8 +66,10 @@ namespace vkrollercoaster {
         this->m_meshes.clear();
         this->m_materials.clear();
         this->m_scene = this->m_importer->ReadFile(this->m_path.string(), import_flags);
-        if (!this->m_scene || this->m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !this->m_scene->mRootNode) {
-            throw std::runtime_error("could not load model: " + std::string(this->m_importer->GetErrorString()));
+        if (!this->m_scene || this->m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+            !this->m_scene->mRootNode) {
+            throw std::runtime_error("could not load model: " +
+                                     std::string(this->m_importer->GetErrorString()));
         }
         std::vector<ref<material>> materials;
         this->process_materials();
@@ -154,7 +151,8 @@ namespace vkrollercoaster {
             }
 
             // specular map
-            if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_string) == aiReturn_SUCCESS) {
+            if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_string) ==
+                aiReturn_SUCCESS) {
                 auto path = this->get_resource_path(ai_string);
                 auto img = image::from_file(path);
                 if (img) {
@@ -162,7 +160,7 @@ namespace vkrollercoaster {
                     _material->set_texture("specular_texture", tex);
                 }
             }
-            
+
             // shininess and opacity
             float shininess, opacity;
             if (ai_material->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS) {
@@ -207,7 +205,8 @@ namespace vkrollercoaster {
         this->assemble_index_map();
     }
 
-    model::model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes, const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices) {
+    model::model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes,
+                 const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices) {
         this->set_input_layout();
 
         this->m_materials = materials;
@@ -247,7 +246,7 @@ namespace vkrollercoaster {
         this->m_meshes.clear();
         for (const auto& _mesh : this->m_source->m_meshes) {
             mesh to_insert;
-            
+
             to_insert.index_offset = _mesh.index_offset;
             to_insert.index_count = _mesh.index_count;
             to_insert.material_index = _mesh.material_index;
@@ -257,7 +256,8 @@ namespace vkrollercoaster {
     }
 
     void model::assemble_index_map() {
-        // we put together a map of material indices to vertex indices so we don't have to in renderer::render, thus decreasing render times
+        // we put together a map of material indices to vertex indices so we don't have to in
+        // renderer::render, thus decreasing render times
         this->m_index_map.clear();
         for (const auto& _mesh : this->m_meshes) {
             auto begin = this->m_indices.begin() + _mesh.index_offset;
@@ -267,4 +267,4 @@ namespace vkrollercoaster {
             indices.insert(indices.begin(), begin, end);
         }
     }
-}
+} // namespace vkrollercoaster

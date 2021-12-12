@@ -17,13 +17,9 @@
 #pragma once
 namespace vkrollercoaster {
     namespace util {
-        inline void zero(void* address, size_t size) {
-            memset(address, 0, size);
-        }
-        template<typename T> inline void zero(T& data) {
-            zero(&data, sizeof(T));
-        }
-        template<typename T> inline T create_mask(T bits) {
+        inline void zero(void* address, size_t size) { memset(address, 0, size); }
+        template <typename T> inline void zero(T& data) { zero(&data, sizeof(T)); }
+        template <typename T> inline T create_mask(T bits) {
             static_assert(std::is_integral_v<T>, "must pass an integer type!");
             T mask = (T)0;
             for (T i = (T)0; i < bits; i++) {
@@ -44,11 +40,12 @@ namespace vkrollercoaster {
             file.close();
             return contents.str();
         }
-        template<typename T> inline void append_vector(std::vector<T>& destination, const std::vector<T>& source) {
+        template <typename T>
+        inline void append_vector(std::vector<T>& destination, const std::vector<T>& source) {
             destination.insert(destination.end(), source.begin(), source.end());
         }
-        template<typename T> inline T lerp(const T& p0, const T& p1, float t) {
+        template <typename T> inline T lerp(const T& p0, const T& p1, float t) {
             return (1.f - t) * p0 + t * p1;
         };
-    }
-}
+    } // namespace util
+} // namespace vkrollercoaster

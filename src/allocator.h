@@ -30,17 +30,20 @@ namespace vkrollercoaster {
         void set_source(const std::string& source);
 
         // images
-        void alloc(const VkImageCreateInfo& create_info, VmaMemoryUsage usage, VkImage& image, VmaAllocation& allocation) const;
+        void alloc(const VkImageCreateInfo& create_info, VmaMemoryUsage usage, VkImage& image,
+                   VmaAllocation& allocation) const;
         void free(VkImage image, VmaAllocation allocation) const;
 
         // buffers
-        void alloc(const VkBufferCreateInfo& create_info, VmaMemoryUsage usage, VkBuffer& buffer, VmaAllocation& allocation) const;
+        void alloc(const VkBufferCreateInfo& create_info, VmaMemoryUsage usage, VkBuffer& buffer,
+                   VmaAllocation& allocation) const;
         void free(VkBuffer buffer, VmaAllocation allocation) const;
 
         // mapping memory
         void* map(VmaAllocation allocation) const;
         void unmap(VmaAllocation allocation) const;
+
     private:
         std::string m_source;
     };
-}
+} // namespace vkrollercoaster

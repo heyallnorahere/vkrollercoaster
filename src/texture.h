@@ -28,6 +28,7 @@ namespace vkrollercoaster {
         void bind(ref<pipeline> _pipeline, const std::string& name, uint32_t slot = 0);
         ref<image> get_image() { return this->m_image; }
         ImTextureID get_imgui_id();
+
     private:
         void create_sampler();
         void update_imgui_texture();
@@ -38,4 +39,4 @@ namespace vkrollercoaster {
         friend class pipeline;
         friend class image;
     };
-}
+} // namespace vkrollercoaster

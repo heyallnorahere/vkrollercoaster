@@ -43,12 +43,10 @@ namespace vkrollercoaster {
         for (const auto& [set, bindings] : this->m_bound_buffers) {
             for (const auto& [binding, data] : bindings) {
                 switch (data.type) {
-                case buffer_type::ubo:
-                    {
-                        auto ubo = (uniform_buffer*)data.object;
-                        ubo->m_bound_pipelines.erase(this);
-                    }
-                    break;
+                case buffer_type::ubo: {
+                    auto ubo = (uniform_buffer*)data.object;
+                    ubo->m_bound_pipelines.erase(this);
+                } break;
                 }
             }
         }
@@ -70,7 +68,8 @@ namespace vkrollercoaster {
         VkCommandBuffer vk_cmdbuffer = cmdbuffer->get();
         vkCmdBindPipeline(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
         for (const auto& [set, data] : this->m_descriptor_sets) {
-            vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout, set, 1, &data.sets[set_index], 0, nullptr);
+            vkCmdBindDescriptorSets(vk_cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_layout,
+                                    set, 1, &data.sets[set_index], 0, nullptr);
         }
     }
     void pipeline::reload(bool descriptor_sets) {
@@ -124,7 +123,7 @@ namespace vkrollercoaster {
         size_t set_count = 1;
         if (this->m_render_target->get_render_target_type() == render_target_type::swapchain) {
             ref<swapchain> swap_chain = this->m_render_target.as<swapchain>();
-            set_count = swap_chain->get_swapchain_images().size(); 
+            set_count = swap_chain->get_swapchain_images().size();
         }
         VkDevice device = renderer::get_device();
         VkDescriptorPool descriptor_pool = renderer::get_descriptor_pool();
@@ -273,7 +272,9 @@ namespace vkrollercoaster {
         }
         VkPipelineColorBlendAttachmentState color_blend_attachment;
         util::zero(color_blend_attachment);
-        color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                                VK_COLOR_COMPONENT_G_BIT |
+                                                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         if (this->m_spec.enable_blending) {
             color_blend_attachment.blendEnable = true;
             color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -289,10 +290,8 @@ namespace vkrollercoaster {
         color_blending.logicOpEnable = false;
         color_blending.attachmentCount = 1;
         color_blending.pAttachments = &color_blend_attachment;
-        std::vector<VkDynamicState> dynamic_states = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
+        std::vector<VkDynamicState> dynamic_states = { VK_DYNAMIC_STATE_VIEWPORT,
+                                                       VK_DYNAMIC_STATE_SCISSOR };
         VkPipelineDynamicStateCreateInfo dynamic_state;
         util::zero(dynamic_state);
         dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -313,7 +312,8 @@ namespace vkrollercoaster {
             layout_create_info.pushConstantRangeCount = this->m_push_constant_ranges.size();
             layout_create_info.pPushConstantRanges = this->m_push_constant_ranges.data();
         }
-        if (vkCreatePipelineLayout(device, &layout_create_info, nullptr, &this->m_layout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(device, &layout_create_info, nullptr, &this->m_layout) !=
+            VK_SUCCESS) {
             throw std::runtime_error("could not create pipeline layout!");
         }
         const auto& stages = this->m_shader->get_pipeline_info();
@@ -335,7 +335,8 @@ namespace vkrollercoaster {
         create_info.subpass = 0;
         create_info.basePipelineHandle = nullptr;
         create_info.basePipelineIndex = -1;
-        if (vkCreateGraphicsPipelines(device, nullptr, 1, &create_info, nullptr, &this->m_pipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(device, nullptr, 1, &create_info, nullptr,
+                                      &this->m_pipeline) != VK_SUCCESS) {
             throw std::runtime_error("could not create pipeline!");
         }
     }
@@ -356,12 +357,10 @@ namespace vkrollercoaster {
         for (const auto& [set, bindings] : this->m_bound_buffers) {
             for (const auto& [binding, data] : bindings) {
                 switch (data.type) {
-                case buffer_type::ubo:
-                    {
-                        auto ubo = (uniform_buffer*)data.object;
-                        ubo->bind(this);
-                    }
-                    break;
+                case buffer_type::ubo: {
+                    auto ubo = (uniform_buffer*)data.object;
+                    ubo->bind(this);
+                } break;
                 default:
                     throw std::runtime_error("invalid buffer type!");
                 }
@@ -371,4 +370,4 @@ namespace vkrollercoaster {
             tex->bind(this, binding.set, binding.binding, binding.slot);
         }
     }
-}
+} // namespace vkrollercoaster

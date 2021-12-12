@@ -24,12 +24,12 @@ namespace vkrollercoaster {
     class material : public ref_counted {
     public:
         material(ref<shader> _shader);
-        material(const std::string& shader_name) : material(shader_library::get(shader_name)) { }
+        material(const std::string& shader_name) : material(shader_library::get(shader_name)) {}
         ~material();
         ref<pipeline> create_pipeline(ref<render_target> target, const pipeline_spec& spec);
         void set_name(const std::string& name) { this->m_name = name; }
         const std::string& get_name() { return this->m_name; }
-        template<typename T> void set_data(const std::string& name, const T& data) {
+        template <typename T> void set_data(const std::string& name, const T& data) {
             auto& reflection_data = this->m_shader->get_reflection_data();
             auto& resource = reflection_data.resources[this->m_set][this->m_binding];
             const auto& resource_type = reflection_data.types[resource.type];
@@ -39,7 +39,7 @@ namespace vkrollercoaster {
             size_t offset = resource_type.find_offset(name);
             this->m_buffer->set_data(data, offset);
         }
-        template<typename T> T get_data(const std::string& name) {
+        template <typename T> T get_data(const std::string& name) {
             auto& reflection_data = this->m_shader->get_reflection_data();
             const auto& resource = reflection_data.resources[this->m_set][this->m_binding];
             const auto& resource_type = reflection_data.types[resource.type];
@@ -53,6 +53,7 @@ namespace vkrollercoaster {
         }
         void set_texture(const std::string& name, ref<texture> tex, uint32_t slot = 0);
         ref<texture> get_texture(const std::string& name, uint32_t slot = 0);
+
     private:
         ref<uniform_buffer> m_buffer, m_light_buffer;
         ref<shader> m_shader;
@@ -62,4 +63,4 @@ namespace vkrollercoaster {
         std::set<pipeline*> m_created_pipelines;
         friend class pipeline;
     };
-}
+} // namespace vkrollercoaster

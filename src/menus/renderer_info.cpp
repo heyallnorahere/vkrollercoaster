@@ -41,20 +41,40 @@ namespace vkrollercoaster {
 
             std::string vendor;
             switch (device_properties.vendorID) {
-            case 0x1002: vendor = "AMD"; break;
-            case 0x10DE: vendor = "NVIDIA"; break;
-            case 0x8086: vendor = "Intel"; break;
-            case 0x13B5: vendor = "ARM"; break;
-            default: vendor = "unknown"; break;
+            case 0x1002:
+                vendor = "AMD";
+                break;
+            case 0x10DE:
+                vendor = "NVIDIA";
+                break;
+            case 0x8086:
+                vendor = "Intel";
+                break;
+            case 0x13B5:
+                vendor = "ARM";
+                break;
+            default:
+                vendor = "unknown";
+                break;
             }
 
             std::string device_type;
             switch (device_properties.deviceType) {
-            case VK_PHYSICAL_DEVICE_TYPE_CPU: device_type = "CPU"; break;
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: device_type = "discrete GPU"; break;
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: device_type = "integrated GPU"; break;
-            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: device_type = "virtual GPU"; break;
-            default: device_type = "unknown/other"; break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                device_type = "CPU";
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                device_type = "discrete GPU";
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                device_type = "integrated GPU";
+                break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                device_type = "virtual GPU";
+                break;
+            default:
+                device_type = "unknown/other";
+                break;
             }
 
             ImGui::Text("Latest available Vulkan version: %u.%u.%u", major, minor, patch);
@@ -65,4 +85,4 @@ namespace vkrollercoaster {
         }
         ImGui::End();
     }
-}
+} // namespace vkrollercoaster

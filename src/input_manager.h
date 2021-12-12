@@ -38,6 +38,7 @@ namespace vkrollercoaster {
         key_state get_key(int32_t key);
         glm::vec2 get_mouse_offset() { return this->m_current.mouse - this->m_last_mouse; }
         glm::vec2 get_mouse() { return this->m_current.mouse; }
+
     private:
         struct input_state {
             std::map<int32_t, key_state> keys;
@@ -49,6 +50,7 @@ namespace vkrollercoaster {
         glm::vec2 m_last_mouse;
 
         static void cursor_pos_callback(GLFWwindow* glfw_window, double x, double y);
-        static void key_callback(GLFWwindow* glfw_window, int32_t key, int32_t scancode, int32_t action, int32_t mods);
+        static void key_callback(GLFWwindow* glfw_window, int32_t key, int32_t scancode,
+                                 int32_t action, int32_t mods);
     };
-}
+} // namespace vkrollercoaster

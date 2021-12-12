@@ -53,8 +53,9 @@ namespace vkrollercoaster {
         entity parent;
         std::vector<ref<script>> scripts;
 
-        template<typename T, typename... Args> void bind(Args&&... args) {
-            static_assert(std::is_base_of_v<script, T>, "the given type is not derived from \"script!\"");
+        template <typename T, typename... Args> void bind(Args&&... args) {
+            static_assert(std::is_base_of_v<script, T>,
+                          "the given type is not derived from \"script!\"");
 
             ref<script> _script = ref<T>::create(std::forward<Args>(args)...);
             _script->m_parent = this->parent;
@@ -66,7 +67,9 @@ namespace vkrollercoaster {
     };
 
     //==== scene::on_component_added overloads ====
-    template<> inline void scene::on_component_added<script_component>(entity& ent, script_component& component) {
+    template <>
+    inline void scene::on_component_added<script_component>(entity& ent,
+                                                            script_component& component) {
         component.parent = ent;
     }
-}
+} // namespace vkrollercoaster

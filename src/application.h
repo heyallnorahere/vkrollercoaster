@@ -33,4 +33,4 @@ namespace vkrollercoaster {
         static ref<scene> get_scene();
         static ref<swapchain> get_swapchain();
     };
-}
+} // namespace vkrollercoaster

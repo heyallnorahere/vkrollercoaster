@@ -33,19 +33,30 @@ namespace vkrollercoaster {
         void reload();
         void prepare_frame();
         void present();
-        virtual void add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate) override;
+        virtual void add_reload_callbacks(void* id, std::function<void()> destroy,
+                                          std::function<void()> recreate) override;
         virtual void remove_reload_callbacks(void* id) override;
         VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
-        const std::vector<swapchain_image>& get_swapchain_images() { return this->m_swapchain_images; }
+        const std::vector<swapchain_image>& get_swapchain_images() {
+            return this->m_swapchain_images;
+        }
         VkFormat get_image_format() { return this->m_image_format; }
         virtual VkExtent2D get_extent() override { return this->m_extent; }
         virtual VkRenderPass get_render_pass() override { return this->m_render_pass; }
-        virtual VkFramebuffer get_framebuffer() override { return this->m_swapchain_images[this->m_current_image].framebuffer; }
-        virtual void get_attachment_types(std::set<framebuffer_attachment_type>& types) override { types = { framebuffer_attachment_type::color, framebuffer_attachment_type::depth_stencil }; }
-        virtual render_target_type get_render_target_type() override { return render_target_type::swapchain; }
+        virtual VkFramebuffer get_framebuffer() override {
+            return this->m_swapchain_images[this->m_current_image].framebuffer;
+        }
+        virtual void get_attachment_types(std::set<framebuffer_attachment_type>& types) override {
+            types = { framebuffer_attachment_type::color,
+                      framebuffer_attachment_type::depth_stencil };
+        }
+        virtual render_target_type get_render_target_type() override {
+            return render_target_type::swapchain;
+        }
         uint32_t get_current_image() { return this->m_current_image; }
         ref<window> get_window() { return this->m_window; }
         ref<image> get_depth_image() { return this->m_depth_image; }
+
     private:
         struct swapchain_dependent {
             std::function<void()> destroy, recreate;
@@ -69,4 +80,4 @@ namespace vkrollercoaster {
         bool m_should_resize;
         friend class window;
     };
-}
+} // namespace vkrollercoaster

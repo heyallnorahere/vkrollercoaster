@@ -27,13 +27,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 namespace vkrollercoaster {
-    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation) {
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
+                      VkImageTiling tiling, VkImageUsageFlags usage,
+                      VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image,
+                      VmaAllocation& allocation) {
         VkDevice device = renderer::get_device();
         VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkImageCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        create_info.imageType = VK_IMAGE_TYPE_2D; // ill change this if/when i allow settings to be passed
+        create_info.imageType =
+            VK_IMAGE_TYPE_2D; // ill change this if/when i allow settings to be passed
         create_info.extent.width = (uint32_t)width;
         create_info.extent.height = (uint32_t)height;
         create_info.extent.depth = 1;
@@ -45,11 +49,12 @@ namespace vkrollercoaster {
         create_info.usage = usage;
         create_info.samples = VK_SAMPLE_COUNT_1_BIT;
         // todo: if graphics_family and compute_family arent similar, use VK_SHARING_MODE_CONCURRENT
-        //auto indices = renderer::find_queue_families(physical_device);
+        // auto indices = renderer::find_queue_families(physical_device);
         create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         _allocator.alloc(create_info, memory_usage, image, allocation);
     }
-    static void get_stage_and_mask(VkImageLayout layout, VkPipelineStageFlags& stage, VkAccessFlags& access_mask) {
+    static void get_stage_and_mask(VkImageLayout layout, VkPipelineStageFlags& stage,
+                                   VkAccessFlags& access_mask) {
         switch (layout) {
         case VK_IMAGE_LAYOUT_UNDEFINED:
             stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -65,17 +70,22 @@ namespace vkrollercoaster {
             break;
         case VK_IMAGE_LAYOUT_GENERAL:
             stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-            access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+            access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT |
+                          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
             break;
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
             stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-            access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+            access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
             break;
         default:
             throw std::runtime_error("unimplemented/unsupported image layout!");
         }
     }
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags image_aspect) {
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
+                                 VkImageLayout new_layout, VkImageAspectFlags image_aspect) {
         VkImageMemoryBarrier barrier;
         util::zero(barrier);
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -94,16 +104,13 @@ namespace vkrollercoaster {
         get_stage_and_mask(new_layout, destination_stage, barrier.dstAccessMask);
         auto cmdbuffer = renderer::create_single_time_command_buffer();
         cmdbuffer->begin();
-        vkCmdPipelineBarrier(cmdbuffer->get(),
-            source_stage, destination_stage,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier);
+        vkCmdPipelineBarrier(cmdbuffer->get(), source_stage, destination_stage, 0, 0, nullptr, 0,
+                             nullptr, 1, &barrier);
         cmdbuffer->end();
         cmdbuffer->submit();
     }
-    static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+    static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
+                                     uint32_t height) {
         VkBufferImageCopy region;
         util::zero(region);
         region.bufferOffset = 0;
@@ -117,13 +124,15 @@ namespace vkrollercoaster {
         region.imageExtent = { width, height, 1 };
         auto cmdbuffer = renderer::create_single_time_command_buffer();
         cmdbuffer->begin();
-        vkCmdCopyBufferToImage(cmdbuffer->get(), buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyBufferToImage(cmdbuffer->get(), buffer, image,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         cmdbuffer->end();
         cmdbuffer->submit();
     }
     bool image::load_image(const fs::path& path, image_data& data) {
         std::string string_path = path.string();
-        uint8_t* raw_data = stbi_load(string_path.c_str(), &data.width, &data.height, &data.channels, 0);
+        uint8_t* raw_data =
+            stbi_load(string_path.c_str(), &data.width, &data.height, &data.channels, 0);
         if (!raw_data) {
             return false;
         }
@@ -149,14 +158,16 @@ namespace vkrollercoaster {
         this->create_image_from_data(data);
         this->create_view();
     }
-    image::image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags aspect) {
+    image::image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
+                 VkImageAspectFlags aspect) {
         // only use this constructor for internal things such as depth buffering
         renderer::add_ref();
         this->init_basic();
         this->m_format = format;
         this->m_aspect = aspect;
-        create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
+        create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL,
+                     usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                     this->m_image, this->m_allocation);
         this->create_view();
     }
     image::~image() {
@@ -166,7 +177,8 @@ namespace vkrollercoaster {
         renderer::remove_ref();
     }
     void image::transition(VkImageLayout new_layout) {
-        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout, this->m_aspect);
+        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout,
+                                this->m_aspect);
         this->m_layout = new_layout;
         for (texture* tex : this->m_dependents) {
             tex->update_imgui_texture();
@@ -191,15 +203,18 @@ namespace vkrollercoaster {
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
         size_t total_size = (size_t)data.width * data.height * data.channels;
-        create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-            staging_buffer, staging_allocation);
-        
+        create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data.data.data(), total_size);
         this->m_allocator.unmap(staging_allocation);
-        create_image(this->m_allocator, data.width, data.height, this->m_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
-        
+        create_image(this->m_allocator, data.width, data.height, this->m_format,
+                     VK_IMAGE_TILING_OPTIMAL,
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                     this->m_allocation);
+
         this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
         this->transition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -214,7 +229,7 @@ namespace vkrollercoaster {
         create_info.image = this->m_image;
         create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         create_info.format = this->m_format;
-        
+
         create_info.subresourceRange.aspectMask = this->m_aspect;
         create_info.subresourceRange.baseMipLevel = 0;
         create_info.subresourceRange.levelCount = 1;
@@ -226,4 +241,4 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create image view!");
         }
     }
-}
+} // namespace vkrollercoaster

@@ -17,14 +17,8 @@
 #pragma once
 #include "image.h"
 namespace vkrollercoaster {
-    enum class render_target_type {
-        swapchain,
-        framebuffer
-    };
-    enum class framebuffer_attachment_type {
-        color,
-        depth_stencil
-    };
+    enum class render_target_type { swapchain, framebuffer };
+    enum class framebuffer_attachment_type { color, depth_stencil };
     class render_target : public ref_counted {
     public:
         virtual ~render_target() = default;
@@ -32,14 +26,16 @@ namespace vkrollercoaster {
         virtual VkFramebuffer get_framebuffer() = 0;
         virtual VkExtent2D get_extent() = 0;
         virtual void get_attachment_types(std::set<framebuffer_attachment_type>& types) = 0;
-        virtual void add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate) = 0;
+        virtual void add_reload_callbacks(void* id, std::function<void()> destroy,
+                                          std::function<void()> recreate) = 0;
         virtual void remove_reload_callbacks(void* id) = 0;
         virtual render_target_type get_render_target_type() = 0;
     };
     struct framebuffer_spec {
         uint32_t width = 0, height = 0;
         VkRenderPass render_pass = nullptr;
-        VkFramebuffer framebuffer = nullptr; // passing a framebuffer gives ownership over to the framebuffer class
+        VkFramebuffer framebuffer =
+            nullptr; // passing a framebuffer gives ownership over to the framebuffer class
         std::map<framebuffer_attachment_type, VkFormat> requested_attachments;
         std::map<framebuffer_attachment_type, ref<image>> provided_attachments;
     };
@@ -49,17 +45,21 @@ namespace vkrollercoaster {
         virtual ~framebuffer() override;
         framebuffer(const framebuffer&) = delete;
         framebuffer& operator=(const framebuffer&) = delete;
-        virtual render_target_type get_render_target_type() override { return render_target_type::framebuffer; }
+        virtual render_target_type get_render_target_type() override {
+            return render_target_type::framebuffer;
+        }
         virtual VkRenderPass get_render_pass() override { return this->m_render_pass; }
         virtual VkFramebuffer get_framebuffer() override { return this->m_framebuffer; }
         virtual VkExtent2D get_extent() override { return this->m_extent; }
-        virtual void add_reload_callbacks(void* id, std::function<void()> destroy, std::function<void()> recreate) override;
+        virtual void add_reload_callbacks(void* id, std::function<void()> destroy,
+                                          std::function<void()> recreate) override;
         virtual void remove_reload_callbacks(void* id) override;
         virtual void get_attachment_types(std::set<framebuffer_attachment_type>& types) override;
         ref<image> get_attachment(framebuffer_attachment_type type);
         void set_attachment(framebuffer_attachment_type type, ref<image> attachment);
         void reload();
         void resize(VkExtent2D new_size);
+
     private:
         struct framebuffer_dependent {
             std::function<void()> destroy, recreate;
@@ -75,4 +75,4 @@ namespace vkrollercoaster {
         std::map<framebuffer_attachment_type, ref<image>> m_attachments;
         std::map<void*, framebuffer_dependent> m_dependents;
     };
-}
+} // namespace vkrollercoaster

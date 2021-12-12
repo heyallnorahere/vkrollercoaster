@@ -18,8 +18,12 @@
 #include "allocator.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_IMAGE_UTILS
-    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation);
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags image_aspect);
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
+                      VkImageTiling tiling, VkImageUsageFlags usage,
+                      VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkImage& image,
+                      VmaAllocation& allocation);
+    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
+                                 VkImageLayout new_layout, VkImageAspectFlags image_aspect);
 #endif
     struct image_data {
         std::vector<uint8_t> data;
@@ -31,7 +35,8 @@ namespace vkrollercoaster {
         static bool load_image(const fs::path& path, image_data& data);
         static ref<image> from_file(const fs::path& path);
         image(const image_data& data);
-        image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage, VkImageAspectFlags image_aspect);
+        image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
+              VkImageAspectFlags image_aspect);
         ~image();
         image(const image&) = delete;
         image& operator=(const image&) = delete;
@@ -39,6 +44,7 @@ namespace vkrollercoaster {
         VkFormat get_format() { return this->m_format; }
         VkImageView get_view() { return this->m_view; }
         VkImageLayout get_layout() { return this->m_layout; }
+
     private:
         void init_basic();
         void create_image_from_data(const image_data& data);
@@ -53,4 +59,4 @@ namespace vkrollercoaster {
         allocator m_allocator;
         friend class texture;
     };
-}
+} // namespace vkrollercoaster

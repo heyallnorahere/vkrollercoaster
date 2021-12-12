@@ -64,7 +64,8 @@ namespace vkrollercoaster {
             }
 
             float speed = 2.5f * delta_time;
-            glm::vec3 movement_direction = glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
+            glm::vec3 movement_direction =
+                glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
             movement_direction = glm::normalize(movement_direction);
 
             const auto& camera = this->get_component<camera_component>();
@@ -93,13 +94,10 @@ namespace vkrollercoaster {
                 transform.translation -= up;
             }
         }
+
     private:
-        virtual void on_enable() override {
-            this->m_input_manager->disable_cursor();
-        }
-        virtual void on_disable() override {
-            this->m_input_manager->enable_cursor();
-        }
+        virtual void on_enable() override { this->m_input_manager->disable_cursor(); }
+        virtual void on_disable() override { this->m_input_manager->enable_cursor(); }
         ref<input_manager> m_input_manager;
     };
 
@@ -213,7 +211,7 @@ namespace vkrollercoaster {
             cmdbuffer->submit();
             cmdbuffer->reset();
             app_data->swap_chain->present();
-            
+
             // check to see if window has closed
             if (app_data->app_window->should_close()) {
                 app_data->should_stop = true;
@@ -234,4 +232,4 @@ namespace vkrollercoaster {
     ref<window> application::get_window() { return app_data->app_window; }
     ref<scene> application::get_scene() { return app_data->global_scene; }
     ref<swapchain> application::get_swapchain() { return app_data->swap_chain; }
-}
+} // namespace vkrollercoaster

@@ -32,8 +32,9 @@ namespace vkrollercoaster {
         if (!reflection_data.find_resource("material_data", this->m_set, this->m_binding)) {
             throw std::runtime_error("could not find material buffer!");
         }
-        this->m_buffer = uniform_buffer::from_shader_data(this->m_shader, this->m_set, this->m_binding);
-        
+        this->m_buffer =
+            uniform_buffer::from_shader_data(this->m_shader, this->m_set, this->m_binding);
+
         std::string shader_name;
         std::vector<std::string> shader_names;
         shader_library::get_names(shader_names);
@@ -43,7 +44,8 @@ namespace vkrollercoaster {
             }
         }
         if (shader_name.empty()) {
-            // the passed shader was not in the library - vkrollercoaster::light has not created a buffer for it
+            // the passed shader was not in the library - vkrollercoaster::light has not created a
+            // buffer for it
             uint32_t set, binding;
             if (!reflection_data.find_resource("light_data", set, binding)) {
                 throw std::runtime_error("the passed shader does not have a light buffer!");
@@ -103,4 +105,4 @@ namespace vkrollercoaster {
         }
         return this->m_textures[name][slot];
     }
-}
+} // namespace vkrollercoaster

@@ -66,16 +66,16 @@ namespace vkrollercoaster {
         }
     }
 
-    void allocator::set_source(const std::string& source) {
-        this->m_source = source;
-    }
+    void allocator::set_source(const std::string& source) { this->m_source = source; }
 
-    void allocator::alloc(const VkImageCreateInfo& create_info, VmaMemoryUsage usage, VkImage& image, VmaAllocation& allocation) const {
+    void allocator::alloc(const VkImageCreateInfo& create_info, VmaMemoryUsage usage,
+                          VkImage& image, VmaAllocation& allocation) const {
         VmaAllocationCreateInfo alloc_info;
         util::zero(alloc_info);
         alloc_info.usage = usage;
 
-        if (vmaCreateImage(allocator_data.allocator, &create_info, &alloc_info, &image, &allocation, nullptr) != VK_SUCCESS) {
+        if (vmaCreateImage(allocator_data.allocator, &create_info, &alloc_info, &image, &allocation,
+                           nullptr) != VK_SUCCESS) {
             throw std::runtime_error(this->m_source + ": could not create image!");
         }
     }
@@ -84,12 +84,14 @@ namespace vkrollercoaster {
         vmaDestroyImage(allocator_data.allocator, image, allocation);
     }
 
-    void allocator::alloc(const VkBufferCreateInfo& create_info, VmaMemoryUsage usage, VkBuffer& buffer, VmaAllocation& allocation) const {
+    void allocator::alloc(const VkBufferCreateInfo& create_info, VmaMemoryUsage usage,
+                          VkBuffer& buffer, VmaAllocation& allocation) const {
         VmaAllocationCreateInfo alloc_info;
         util::zero(alloc_info);
         alloc_info.usage = usage;
 
-        if (vmaCreateBuffer(allocator_data.allocator, &create_info, &alloc_info, &buffer, &allocation, nullptr) != VK_SUCCESS) {
+        if (vmaCreateBuffer(allocator_data.allocator, &create_info, &alloc_info, &buffer,
+                            &allocation, nullptr) != VK_SUCCESS) {
             throw std::runtime_error(this->m_source + ": could not create buffer!");
         }
     }
@@ -109,4 +111,4 @@ namespace vkrollercoaster {
     void allocator::unmap(VmaAllocation allocation) const {
         vmaUnmapMemory(allocator_data.allocator, allocation);
     }
-}
+} // namespace vkrollercoaster

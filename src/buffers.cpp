@@ -20,7 +20,8 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation) {
+    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage,
+                       VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation) {
         VkBufferCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -49,15 +50,16 @@ namespace vkrollercoaster {
 
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-            staging_buffer, staging_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
 
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
         this->m_allocator.unmap(staging_allocation);
 
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-            this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size,
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                      VMA_MEMORY_USAGE_GPU_ONLY, this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
 
         this->m_allocator.free(staging_buffer, staging_allocation);
@@ -74,13 +76,14 @@ namespace vkrollercoaster {
         size_t size = index_count * sizeof(uint32_t);
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-            staging_buffer, staging_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
         this->m_allocator.unmap(staging_allocation);
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-            this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size,
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                      VMA_MEMORY_USAGE_GPU_ONLY, this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
@@ -113,8 +116,8 @@ namespace vkrollercoaster {
         this->m_set = set;
         this->m_binding = binding;
         this->m_size = size;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_ONLY,
-            this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                      VMA_MEMORY_USAGE_CPU_ONLY, this->m_buffer, this->m_allocation);
     }
 
     uniform_buffer::~uniform_buffer() {

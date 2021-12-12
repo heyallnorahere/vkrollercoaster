@@ -61,4 +61,4 @@ namespace vkrollercoaster {
         }
         return entities;
     }
-}
+} // namespace vkrollercoaster

@@ -19,9 +19,7 @@
 #include "../application.h"
 namespace vkrollercoaster {
     static viewport* viewport_instance = nullptr;
-    ref<viewport> viewport::get_instance() {
-        return viewport_instance;
-    }
+    ref<viewport> viewport::get_instance() { return viewport_instance; }
 
     viewport::viewport() {
         if (viewport_instance) {
@@ -39,18 +37,18 @@ namespace vkrollercoaster {
 
         // we want both a color and depth attachment
         ref<image> swapchain_depth_image = swap_chain->get_depth_image();
-        spec.requested_attachments[framebuffer_attachment_type::color] = swap_chain->get_image_format();
-        spec.requested_attachments[framebuffer_attachment_type::depth_stencil] = swapchain_depth_image->get_format();
+        spec.requested_attachments[framebuffer_attachment_type::color] =
+            swap_chain->get_image_format();
+        spec.requested_attachments[framebuffer_attachment_type::depth_stencil] =
+            swapchain_depth_image->get_format();
 
         this->m_framebuffer = ref<framebuffer>::create(spec);
 
         // create texture for displaying
         this->update_color_attachment();
     }
-    
-    viewport::~viewport() {
-        viewport_instance = nullptr;
-    }
+
+    viewport::~viewport() { viewport_instance = nullptr; }
 
     void viewport::update() {
         this->update_framebuffer_size();
@@ -80,26 +78,28 @@ namespace vkrollercoaster {
         ImGui::End();
     }
 
-   void viewport::update_framebuffer_size() {
-       // let's make sure the framebuffer is the same size as the window
-       ref<swapchain> swap_chain = application::get_swapchain();
-       VkExtent2D swapchain_extent = swap_chain->get_extent();
-       VkExtent2D framebuffer_extent = this->m_framebuffer->get_extent();
+    void viewport::update_framebuffer_size() {
+        // let's make sure the framebuffer is the same size as the window
+        ref<swapchain> swap_chain = application::get_swapchain();
+        VkExtent2D swapchain_extent = swap_chain->get_extent();
+        VkExtent2D framebuffer_extent = this->m_framebuffer->get_extent();
 
-       if (framebuffer_extent.width != swapchain_extent.width || framebuffer_extent.height != swapchain_extent.height) {
-           // resize the framebuffer
-           this->m_framebuffer->resize(swapchain_extent);
+        if (framebuffer_extent.width != swapchain_extent.width ||
+            framebuffer_extent.height != swapchain_extent.height) {
+            // resize the framebuffer
+            this->m_framebuffer->resize(swapchain_extent);
 
-           // update the color attachment texture
-           this->update_color_attachment();
-       }
-   }
+            // update the color attachment texture
+            this->update_color_attachment();
+        }
+    }
 
-   void viewport::update_color_attachment() {
-       // we don't want ImGui to access a destroyed descriptor set
-       this->m_previous_color_attachment = this->m_color_attachment;
+    void viewport::update_color_attachment() {
+        // we don't want ImGui to access a destroyed descriptor set
+        this->m_previous_color_attachment = this->m_color_attachment;
 
-       ref<image> attachment = this->m_framebuffer->get_attachment(framebuffer_attachment_type::color);
-       this->m_color_attachment = ref<texture>::create(attachment);
-   }
-}
+        ref<image> attachment =
+            this->m_framebuffer->get_attachment(framebuffer_attachment_type::color);
+        this->m_color_attachment = ref<texture>::create(attachment);
+    }
+} // namespace vkrollercoaster

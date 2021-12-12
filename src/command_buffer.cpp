@@ -30,7 +30,8 @@ namespace vkrollercoaster {
 
     void command_buffer::begin() {
         if (this->m_recording) {
-            throw std::runtime_error("cannot begin recording a command buffer that is already recording!");
+            throw std::runtime_error(
+                "cannot begin recording a command buffer that is already recording!");
         }
 
         VkCommandBufferBeginInfo begin_info;
@@ -48,11 +49,13 @@ namespace vkrollercoaster {
 
     void command_buffer::end() {
         if (!this->m_recording) {
-            throw std::runtime_error("cannot end recording of a command buffer that is not recording!");
+            throw std::runtime_error(
+                "cannot end recording of a command buffer that is not recording!");
         }
 
         if (this->m_current_render_target) {
-            throw std::runtime_error("cannot end recording of a command buffer during a render pass!");
+            throw std::runtime_error(
+                "cannot end recording of a command buffer during a render pass!");
         }
 
         if (vkEndCommandBuffer(this->m_buffer) != VK_SUCCESS) {
@@ -112,9 +115,7 @@ namespace vkrollercoaster {
         }
     }
 
-    void command_buffer::wait() {
-        vkQueueWaitIdle(this->m_queue);
-    }
+    void command_buffer::wait() { vkQueueWaitIdle(this->m_queue); }
 
     void command_buffer::reset() {
         if (!this->m_recorded) {
@@ -128,7 +129,8 @@ namespace vkrollercoaster {
         this->m_internal_data->submitted_calls.clear();
     }
 
-    void command_buffer::begin_render_pass(ref<render_target> target, const glm::vec4& clear_color) {
+    void command_buffer::begin_render_pass(ref<render_target> target,
+                                           const glm::vec4& clear_color) {
         if (!this->m_recording) {
             throw std::runtime_error("cannot begin a render pass while not recording!");
         }
@@ -156,7 +158,8 @@ namespace vkrollercoaster {
             clear_values.push_back(clear_value);
         }
 
-        if (attachment_types.find(framebuffer_attachment_type::depth_stencil) != attachment_types.end()) {
+        if (attachment_types.find(framebuffer_attachment_type::depth_stencil) !=
+            attachment_types.end()) {
             VkClearValue clear_value;
             util::zero(clear_value);
             clear_value.depthStencil = { 1.f, 0 };
@@ -184,7 +187,8 @@ namespace vkrollercoaster {
         this->m_current_render_target.reset();
     }
 
-    command_buffer::command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time, bool render) {
+    command_buffer::command_buffer(VkCommandPool command_pool, VkQueue queue, bool single_time,
+                                   bool render) {
         this->m_recorded = false;
         this->m_recording = false;
         this->m_internal_data = new internal_cmdbuffer_data;
@@ -207,4 +211,4 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not allocate command buffer!");
         }
     }
-}
+} // namespace vkrollercoaster
