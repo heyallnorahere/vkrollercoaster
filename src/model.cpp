@@ -62,7 +62,8 @@ namespace vkrollercoaster {
         aiProcess_GenUVCoords |
         aiProcess_OptimizeMeshes |
         aiProcess_JoinIdenticalVertices |
-        aiProcess_ValidateDataStructure;
+        aiProcess_ValidateDataStructure |
+        aiProcess_FlipUVs;
     void model_source::reload() {
         this->m_importer = std::make_unique<Assimp::Importer>();
         this->m_vertices.clear();
