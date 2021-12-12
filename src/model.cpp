@@ -77,7 +77,7 @@ namespace vkrollercoaster {
 
         for (model* _model : this->m_created_models) {
             _model->acquire_mesh_data();
-            _model->assemble_index_map();
+            _model->invalidate_buffers();
         }
     }
     void model_source::process_node(aiNode* node) {
@@ -202,25 +202,32 @@ namespace vkrollercoaster {
 
         this->set_input_layout();
         this->acquire_mesh_data();
-        this->assemble_index_map();
+        this->invalidate_buffers();
     }
 
-    model::model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes,
-                 const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices) {
+    model::model(const model_data& data) {
         this->set_input_layout();
 
-        this->m_materials = materials;
-        this->m_meshes = meshes;
-        this->m_vertices = vertices;
-        this->m_indices = indices;
-
-        this->assemble_index_map();
+        this->set_data(data);
     }
 
     model::~model() {
         if (this->m_source) {
             this->m_source->m_created_models.erase(this);
         }
+    }
+
+    void model::set_data(const model_data& data) {
+        if (this->m_source) {
+            return;
+        }
+
+        this->m_materials = data.materials;
+        this->m_meshes = data.meshes;
+        this->m_vertices = data.vertices;
+        this->m_indices = data.indices;
+
+        this->invalidate_buffers();
     }
 
     void model::set_input_layout() {
@@ -255,16 +262,25 @@ namespace vkrollercoaster {
         }
     }
 
-    void model::assemble_index_map() {
-        // we put together a map of material indices to vertex indices so we don't have to in
+    void model::invalidate_buffers() {
+        // we put together buffers to save time in
         // renderer::render, thus decreasing render times
-        this->m_index_map.clear();
+
+        // vertices
+        this->m_buffers.vertices = ref<vertex_buffer>::create(this->m_vertices);
+
+        // indices
+        std::map<size_t, std::vector<uint32_t>> index_map;
         for (const auto& _mesh : this->m_meshes) {
             auto begin = this->m_indices.begin() + _mesh.index_offset;
             auto end = begin + _mesh.index_count;
 
-            auto& indices = this->m_index_map[_mesh.material_index];
+            auto& indices = index_map[_mesh.material_index];
             indices.insert(indices.begin(), begin, end);
+        }
+        this->m_buffers.indices.clear();
+        for (const auto& [material_index, indices] : index_map) {
+            this->m_buffers.indices[material_index] = ref<index_buffer>::create(indices);
         }
     }
 } // namespace vkrollercoaster

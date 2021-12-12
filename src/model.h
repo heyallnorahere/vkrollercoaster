@@ -16,6 +16,7 @@
 
 #pragma once
 #include "material.h"
+#include "buffers.h"
 #include <assimp/Importer.hpp>
 struct aiScene;
 struct aiNode;
@@ -72,10 +73,22 @@ namespace vkrollercoaster {
             size_t index_offset, index_count;
             size_t material_index;
         };
+        struct model_data {
+            std::vector<ref<material>> materials;
+            std::vector<mesh> meshes;
+            std::vector<vertex> vertices;
+            std::vector<uint32_t> indices;
+        };
+        struct buffer_data {
+            ref<vertex_buffer> vertices;
+            std::map<size_t, ref<index_buffer>> indices;
+        };
+
         model(ref<model_source> source);
-        model(const std::vector<ref<material>>& materials, const std::vector<mesh>& meshes,
-              const std::vector<vertex>& vertices, const std::vector<uint32_t>& indices);
+        model(const model_data& data);
         ~model();
+
+        void set_data(const model_data& data);
 
         ref<model_source> get_source() { return this->m_source; }
         const std::vector<vertex>& get_vertices() { return this->m_vertices; }
@@ -83,18 +96,18 @@ namespace vkrollercoaster {
         const std::vector<mesh>& get_meshes() { return this->m_meshes; }
         const std::vector<ref<material>>& get_materials() { return this->m_materials; }
         const vertex_input_data& get_input_layout() { return this->m_input_layout; }
-        const std::map<size_t, std::vector<uint32_t>>& get_index_map() { return this->m_index_map; }
+        const buffer_data& get_buffers() { return this->m_buffers; }
 
     private:
         void set_input_layout();
         void acquire_mesh_data();
-        void assemble_index_map();
+        void invalidate_buffers();
 
         std::vector<vertex> m_vertices;
         std::vector<uint32_t> m_indices;
         std::vector<mesh> m_meshes;
         std::vector<ref<material>> m_materials;
-        std::map<size_t, std::vector<uint32_t>> m_index_map;
+        buffer_data m_buffers;
         vertex_input_data m_input_layout;
 
         ref<model_source> m_source;

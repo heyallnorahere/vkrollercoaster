@@ -487,15 +487,9 @@ namespace vkrollercoaster {
                                    push_constant_data.normal *
                                    glm::scale(glm::mat4(1.f), transform.scale);
 
-        // create vertex buffer
-        auto vbo = ref<vertex_buffer>::create(_model->get_vertices());
-
-        const auto& index_map = _model->get_index_map();
+        const auto& buffer_data = _model->get_buffers();
         const auto& materials = _model->get_materials();
-        for (const auto& [material_index, indices] : index_map) {
-            // create index buffer
-            auto ibo = ref<index_buffer>::create(indices);
-
+        for (const auto& [material_index, ibo] : buffer_data.indices) {
             // create pipeline
             ref<pipeline> _pipeline;
             {
@@ -523,7 +517,7 @@ namespace vkrollercoaster {
             _pipeline->bind(cmdbuffer);
 
             // set vertex data
-            vbo->bind(cmdbuffer);
+            buffer_data.vertices->bind(cmdbuffer);
             ibo->bind(cmdbuffer);
 
             // push constants
@@ -532,11 +526,11 @@ namespace vkrollercoaster {
                                &push_constant_data);
 
             // render
-            vkCmdDrawIndexed(cmdbuffer->get(), indices.size(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(cmdbuffer->get(), ibo->get_index_count(), 1, 0, 0, 0);
 
             submitted_render_call submitted_call;
             submitted_call._pipeline = _pipeline;
-            submitted_call.vbo = vbo;
+            submitted_call.vbo = buffer_data.vertices;
             submitted_call.ibo = ibo;
             cmdbuffer->m_internal_data->submitted_calls.push_back(submitted_call);
         }
