@@ -1,0 +1,9 @@
+BasedOnStyle: Microsoft
+BreakBeforeBraces: Attach
+NamespaceIndentation: All
+ColumnLimit: 100
+AccessModifierOffset: -4
+SortIncludes: false
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: All
+Cpp11BracedListStyle: false
