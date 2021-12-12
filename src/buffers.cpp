@@ -20,7 +20,10 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation) {
+
+    void create_buffer(const allocator& _allocator, size_t size, VkBufferUsageFlags usage,
+                       VkMemoryPropertyFlags properties, VmaMemoryUsage memory_usage,
+                       VkBuffer& buffer, VmaAllocation& allocation) {
         VkBufferCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -29,7 +32,9 @@ namespace vkrollercoaster {
         create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         _allocator.alloc(create_info, memory_usage, buffer, allocation);
     }
-    void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset, size_t dest_offset) {
+
+    void copy_buffer(VkBuffer src, VkBuffer dest, size_t size, size_t src_offset,
+                     size_t dest_offset) {
         VkBufferCopy region;
         util::zero(region);
         region.srcOffset = src_offset;
@@ -41,53 +46,61 @@ namespace vkrollercoaster {
         cmdbuffer->end();
         cmdbuffer->submit();
     }
+
     vertex_buffer::vertex_buffer(const void* data, size_t size) {
         this->m_allocator.set_source("vertex buffer");
 
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
 
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
         this->m_allocator.unmap(staging_allocation);
 
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY, this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size,
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                      this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
 
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
-    vertex_buffer::~vertex_buffer() {
-        this->m_allocator.free(this->m_buffer, this->m_allocation);
-    }
+
+    vertex_buffer::~vertex_buffer() { this->m_allocator.free(this->m_buffer, this->m_allocation); }
     void vertex_buffer::bind(ref<command_buffer> cmdbuffer, uint32_t slot) {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(cmdbuffer->get(), slot, 1, &this->m_buffer, &offset);
     }
+
     index_buffer::index_buffer(const uint32_t* data, size_t index_count) {
         this->m_index_count = index_count;
         size_t size = index_count * sizeof(uint32_t);
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data, size);
         this->m_allocator.unmap(staging_allocation);
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY,  this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size,
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
+                      this->m_buffer, this->m_allocation);
         copy_buffer(staging_buffer, this->m_buffer, size);
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
-    index_buffer::~index_buffer() {
-        this->m_allocator.free(this->m_buffer, this->m_allocation);
-    }
+
+    index_buffer::~index_buffer() { this->m_allocator.free(this->m_buffer, this->m_allocation); }
     void index_buffer::bind(ref<command_buffer> cmdbuffer) {
         vkCmdBindIndexBuffer(cmdbuffer->get(), this->m_buffer, 0, VK_INDEX_TYPE_UINT32);
     }
-    ref<uniform_buffer> uniform_buffer::from_shader_data(ref<shader> _shader, uint32_t set, uint32_t binding) {
+
+    ref<uniform_buffer> uniform_buffer::from_shader_data(ref<shader> _shader, uint32_t set,
+                                                         uint32_t binding) {
         auto& reflection_data = _shader->get_reflection_data();
         if (reflection_data.resources.find(set) == reflection_data.resources.end()) {
             throw std::runtime_error("the specified set does not exist!");
@@ -103,14 +116,17 @@ namespace vkrollercoaster {
         size_t size = reflection_data.types[binding_data.type].size;
         return ref<uniform_buffer>::create(set, binding, size);
     }
+
     uniform_buffer::uniform_buffer(uint32_t set, uint32_t binding, size_t size) {
         this->m_allocator.set_source("uniform buffer");
         this->m_set = set;
         this->m_binding = binding;
         this->m_size = size;
-        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            VMA_MEMORY_USAGE_CPU_ONLY, this->m_buffer, this->m_allocation);
+        create_buffer(this->m_allocator, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      VMA_MEMORY_USAGE_CPU_ONLY, this->m_buffer, this->m_allocation);
     }
+
     uniform_buffer::~uniform_buffer() {
         for (auto _pipeline : this->m_bound_pipelines) {
             auto& set_data = _pipeline->m_bound_buffers[this->m_set];
@@ -123,6 +139,7 @@ namespace vkrollercoaster {
         }
         this->m_allocator.free(this->m_buffer, this->m_allocation);
     }
+
     void uniform_buffer::bind(ref<pipeline> _pipeline) {
         auto& descriptor_sets = _pipeline->m_descriptor_sets;
         if (descriptor_sets.find(this->m_set) == descriptor_sets.end()) {
@@ -147,7 +164,8 @@ namespace vkrollercoaster {
             descriptor_writes.push_back(descriptor_write);
         }
         VkDevice device = renderer::get_device();
-        vkUpdateDescriptorSets(device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device, descriptor_writes.size(), descriptor_writes.data(), 0,
+                               nullptr);
         if (this->m_bound_pipelines.find(_pipeline.raw()) == this->m_bound_pipelines.end()) {
             this->m_bound_pipelines.insert(_pipeline.raw());
         }
@@ -158,6 +176,7 @@ namespace vkrollercoaster {
             _pipeline->m_bound_buffers[this->m_set][this->m_binding] = desc;
         }
     }
+
     void uniform_buffer::set_data(const void* data, size_t size, size_t offset) {
         if (offset + size > this->m_size) {
             throw std::runtime_error("attempted to map memory outside the buffer's limits!");
@@ -167,6 +186,7 @@ namespace vkrollercoaster {
         memcpy(dst, data, size);
         this->m_allocator.unmap(this->m_allocation);
     }
+
     void uniform_buffer::get_data(void* data, size_t size, size_t offset) {
         if (offset + size > this->m_size) {
             throw std::runtime_error("attempted to map memory outside the buffer's limits!");
@@ -176,9 +196,10 @@ namespace vkrollercoaster {
         memcpy(data, src, size);
         this->m_allocator.unmap(this->m_allocation);
     }
+
     void uniform_buffer::zero() {
         void* gpu_data = this->m_allocator.map(this->m_allocation);
         memset(gpu_data, 0, this->m_size);
         this->m_allocator.unmap(this->m_allocation);
     }
-}
+} // namespace vkrollercoaster
