@@ -59,6 +59,7 @@ namespace vkrollercoaster {
             ref<script> _script = ref<T>::create(std::forward<Args>(args)...);
             _script->m_parent = this->parent;
             _script->on_added();
+            _script->on_enable();
 
             this->scripts.push_back(_script);
         }

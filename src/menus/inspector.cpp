@@ -248,6 +248,52 @@ namespace vkrollercoaster {
             }
         }
     }
+    static void script_editor(entity ent) {
+        // verify that there are scripts to toggle
+        std::vector<ref<script>> scripts;
+        if (ent.has_component<script_component>()) {
+            scripts = ent.get_component<script_component>().scripts;
+        }
+        if (scripts.empty()) {
+            ImGui::Text("This entity does not have any scripts bound.");
+            return;
+        }
+
+        // if there's more than one script, enable the option to toggle all of them
+        std::optional<bool> mass_toggle;
+        if (scripts.size() > 1) {
+            if (ImGui::Button("Toggle all on")) {
+                mass_toggle = true;
+            }
+            if (ImGui::Button("Toggle all off")) {
+                mass_toggle = false;
+            }
+        }
+
+        for (size_t i = 0; i < scripts.size(); i++) {
+            ref<script> _script = scripts[i];
+            bool call_script = false;
+
+            bool enabled = _script->enabled();
+            if (mass_toggle && *mass_toggle != enabled) {
+                enabled = *mass_toggle;
+                call_script = true;
+            }
+
+            std::string label = "Script " + std::to_string(i + 1);
+            if (ImGui::Checkbox(label.c_str(), &enabled)) {
+                call_script = true;
+            }
+
+            if (call_script) {
+                if (enabled) {
+                    _script->enable();
+                } else {
+                    _script->disable();
+                }
+            }
+        }
+    }
     inspector::~inspector() {
         if (model_material) {
             model_material.reset();
@@ -275,10 +321,12 @@ namespace vkrollercoaster {
                 names.push_back(ent.get_component<tag_component>().tag.c_str());
             }
 
+            bool entity_changed = false;
             static std::string temp_name = names[current_entity];
             ImGui::SameLine();
             if (ImGui::Combo("##entity", &current_entity, names.data(), names.size())) {
                 reset_name = true;
+                entity_changed = true;
             }
             if (reset_name) {
                 temp_name = names[current_entity];
@@ -305,17 +353,27 @@ namespace vkrollercoaster {
                 ImGui::Unindent();
             }
 
+            bool reset_model_editor_data = entity_changed;
             if (ImGui::CollapsingHeader("Model")) {
                 ImGui::Indent();
                 model_editor(ent);
                 ImGui::Unindent();
             } else {
+                reset_model_editor_data = true;
+            }
+            if (reset_model_editor_data) {
                 if (model_error != model_loading_error::none) {
                     model_error = model_loading_error::none;
                 }
                 if (model_material) {
                     model_material.reset();
                 }
+            }
+
+            if (ImGui::CollapsingHeader("Scripts")) {
+                ImGui::Indent();
+                script_editor(ent);
+                ImGui::Unindent();
             }
         }
 

@@ -33,6 +33,9 @@ namespace vkrollercoaster {
         for (entity ent : this->view<script_component>()) {
             const auto& scripts = ent.get_component<script_component>();
             for (ref<script> _script : scripts.scripts) {
+                if (!_script->enabled()) {
+                    continue;
+                }
                 _script->update();
             }
         }

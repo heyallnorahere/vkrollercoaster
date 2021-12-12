@@ -22,8 +22,21 @@ namespace vkrollercoaster {
     public:
         script() = default;
         virtual ~script() = default;
-        virtual void on_added() { }
         virtual void update() = 0;
+        void enable() {
+            if (this->m_enabled)
+                return;
+            this->m_enabled = true;
+            this->on_enable();
+        }
+        void disable() {
+            if (!this->m_enabled) {
+                return;
+            }
+            this->m_enabled = false;
+            this->on_disable();
+        }
+        bool enabled() { return this->m_enabled; }
         entity get_parent() { return this->m_parent; }
     protected:
         template<typename T> bool has_component() {
@@ -39,6 +52,11 @@ namespace vkrollercoaster {
             this->m_parent.remove_component<T>();
         }
         entity m_parent;
+    private:
+        bool m_enabled = true;
+        virtual void on_added() { }
+        virtual void on_enable() { }
+        virtual void on_disable() { }
         friend struct script_component;
     };
 };
