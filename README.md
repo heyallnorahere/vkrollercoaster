@@ -4,9 +4,12 @@ A roller coaster in C++17 and Vulkan.
 
 ## Dependencies
 
+- [Python 3](https://www.python.org/)
 - [Vulkan](https://www.vulkan.org/)
 - [CMake](https://www.cmake.org/)
 - [Visual Studio 2019](https://visualstudio.microsoft.com/) (on Windows)
+
+All other dependencies can be synced with the command `git submodule update --init --recursive`.
 
 ## Building
 
