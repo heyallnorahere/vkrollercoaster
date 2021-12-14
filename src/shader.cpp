@@ -93,15 +93,57 @@ namespace vkrollercoaster {
             stage_create_info.stage = get_stage_flags(stage);
         }
     }
+    class file_includer : public shaderc::CompileOptions::IncluderInterface {
+        struct included_file_info {
+            std::string content, path;
+        };
+
+        virtual shaderc_include_result* GetInclude(const char* requested_source,
+                                                   shaderc_include_type type,
+                                                   const char* requesting_source,
+                                                   size_t include_depth) override {
+            // get c++17 paths
+            fs::path requested_path = requested_source;
+            fs::path requesting_path = requesting_source;
+
+            // sort out paths
+            if (!requesting_path.has_parent_path()) {
+                requesting_path = fs::absolute(requesting_path);
+            }
+            if (type != shaderc_include_type_standard) {
+                requested_path = requesting_path.parent_path() / requested_path;                
+            }
+
+            // read data
+            auto file_info = new included_file_info;
+            file_info->path = requested_path.string();
+            file_info->content = util::read_file(requested_path);
+
+            // return result
+            auto result = new shaderc_include_result;
+            result->user_data = file_info;
+            result->content = file_info->content.c_str();
+            result->content_length = file_info->content.length();
+            result->source_name = file_info->path.c_str();
+            result->source_name_length = file_info->path.length();
+            return result;
+        }
+
+        virtual void ReleaseInclude(shaderc_include_result* data) override {
+            delete (included_file_info*)data->user_data;
+            delete data;
+        }
+    };
     static std::map<std::string, shader_stage> stage_map = { { "vertex", shader_stage::vertex },
                                                              { "fragment", shader_stage::fragment },
                                                              { "pixel", shader_stage::fragment },
                                                              { "geometry", shader_stage::geometry },
                                                              { "compute", shader_stage::compute } };
     void shader::compile(std::map<shader_stage, std::vector<uint32_t>>& spirv) {
-        // todo: shader cache
+        // todo: spirv shader cache
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
+
         shaderc_source_language source_language;
         switch (this->m_language) {
         case shader_language::glsl:
@@ -113,10 +155,15 @@ namespace vkrollercoaster {
         default:
             throw std::runtime_error("invalid shader language!");
         }
+
         options.SetSourceLanguage(source_language);
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_0);
         options.SetWarningsAsErrors();
         options.SetGenerateDebugInfo();
+
+        std::unique_ptr<file_includer> includer(new file_includer);
+        options.SetIncluder(std::move(includer));
+
         std::map<shader_stage, std::stringstream> sources;
         {
             std::stringstream file_data(util::read_file(this->m_path));
@@ -145,18 +192,23 @@ namespace vkrollercoaster {
         for (const auto& [stage, stream] : sources) {
             auto source = stream.str();
             shaderc_shader_kind shaderc_stage;
+            std::string stage_name;
             switch (stage) {
             case shader_stage::vertex:
                 shaderc_stage = shaderc_vertex_shader;
+                stage_name = "vertex";
                 break;
             case shader_stage::fragment:
                 shaderc_stage = shaderc_fragment_shader;
+                stage_name = "fragment/pixel";
                 break;
             case shader_stage::geometry:
                 shaderc_stage = shaderc_geometry_shader;
+                stage_name = "geometry";
                 break;
             case shader_stage::compute:
                 shaderc_stage = shaderc_compute_shader;
+                stage_name = "compute";
                 break;
             default:
                 throw std::runtime_error("invalid shader stage!");
@@ -164,7 +216,7 @@ namespace vkrollercoaster {
             std::string path = this->m_path.string();
             auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-                throw std::runtime_error("could not compile shader: " + result.GetErrorMessage());
+                throw std::runtime_error("could not compile " + stage_name + " shader: " + result.GetErrorMessage());
             }
             spirv[stage] = std::vector<uint32_t>(result.cbegin(), result.cend());
         }
