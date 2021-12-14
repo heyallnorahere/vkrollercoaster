@@ -201,7 +201,7 @@ namespace vkrollercoaster {
             break;
         case BaseType::Image:
             size = std::numeric_limits<size_t>::max();
-            base_type = shader_base_type::SAMPLER;
+            base_type = shader_base_type::SAMPLED_IMAGE;
             break;
         case BaseType::Int64:
             size = sizeof(int64_t);
@@ -297,7 +297,8 @@ namespace vkrollercoaster {
             this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.separate_images) {
-            // this should work for now
+            // let's just treat this as a sampled image, as we should put both images and samplers
+            // in the same binding
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
             shader_resource_data resource_desc;
