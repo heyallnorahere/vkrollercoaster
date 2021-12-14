@@ -36,6 +36,12 @@ namespace vkrollercoaster {
         create_info.physicalDevice = renderer::get_physical_device();
         create_info.device = renderer::get_device();
 
+        VmaVulkanFunctions functions;
+        util::zero(functions);
+        functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+        functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+        create_info.pVulkanFunctions = &functions;
+
         if (vmaCreateAllocator(&create_info, &allocator_data.allocator) != VK_SUCCESS) {
             throw std::runtime_error("could not create allocator!");
         }

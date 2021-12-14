@@ -162,7 +162,7 @@ namespace vkrollercoaster {
                 throw std::runtime_error("invalid shader stage!");
             }
             std::string path = this->m_path.string();
-            auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str());
+            auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
                 throw std::runtime_error("could not compile shader: " + result.GetErrorMessage());
             }
@@ -199,7 +199,7 @@ namespace vkrollercoaster {
             size = std::numeric_limits<size_t>::max();
             base_type = shader_base_type::SAMPLED_IMAGE;
             break;
-        case BaseType::Sampler:
+        case BaseType::Image:
             size = std::numeric_limits<size_t>::max();
             base_type = shader_base_type::SAMPLER;
             break;
@@ -286,6 +286,18 @@ namespace vkrollercoaster {
             this->m_reflection_data.resources[set][binding] = resource_desc;
         }
         for (const auto& resource : resources.sampled_images) {
+            uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+            uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            shader_resource_data resource_desc;
+            resource_desc.name = resource.name;
+            resource_desc.resource_type = shader_resource_type::sampledimage;
+            resource_desc.stage = stage;
+            resource_desc.type = get_type(compiler, resource.type_id, spirv_cross::TypeID(), 0,
+                                          &this->m_reflection_data);
+            this->m_reflection_data.resources[set][binding] = resource_desc;
+        }
+        for (const auto& resource : resources.separate_images) {
+            // this should work for now
             uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
             shader_resource_data resource_desc;
