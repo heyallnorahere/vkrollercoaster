@@ -97,9 +97,7 @@ namespace vkrollercoaster {
     };
     class shader_library {
     public:
-        static ref<shader> add(const std::string& name) {
-            return add(name, "assets/shaders/" + name + ".glsl");
-        }
+        static ref<shader> add(const std::string& name);
         static ref<shader> add(const std::string& name, const fs::path& path) {
             ref<shader> _shader;
             if (!get(name)) {

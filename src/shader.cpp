@@ -419,6 +419,24 @@ namespace vkrollercoaster {
         this->outputs.clear();
     }
     static std::unordered_map<std::string, ref<shader>> library;
+    ref<shader> shader_library::add(const std::string& name) {
+        std::string base_path = "assets/shaders/" + name;
+        std::optional<fs::path> shader_path;
+
+        for (const auto& [extension, language] : language_map) {
+            fs::path current_path = base_path + extension;
+            if (fs::exists(current_path)) {
+                shader_path = current_path;
+                break;
+            }
+        }
+
+        ref<shader> _shader;
+        if (shader_path) {
+            _shader = add(name, *shader_path);
+        }
+        return _shader;
+    }
     bool shader_library::add(const std::string& name, ref<shader> _shader) {
         if (library.find(name) != library.end()) {
             return false;
