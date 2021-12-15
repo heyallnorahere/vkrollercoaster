@@ -246,11 +246,6 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not find present family!");
         }
 
-        std::set<uint32_t> created_queues = renderer::find_queue_families(physical_device).create_set();
-        if (created_queues.find(*present_family) == created_queues.end()) {
-            throw std::runtime_error("the present queue was not created!");
-        }
-
         this->m_present_family = *present_family;
     }
     void swapchain::create_swapchain(uint32_t width, uint32_t height) {

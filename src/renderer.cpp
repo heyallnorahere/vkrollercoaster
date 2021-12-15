@@ -244,24 +244,30 @@ namespace vkrollercoaster {
         auto indices = renderer::find_queue_families(renderer_data.physical_device);
         std::vector<VkDeviceQueueCreateInfo> queue_create_info;
         float queue_priority = 1.f;
-        std::set<uint32_t> unique_queue_families = indices.create_set();
-        for (uint32_t queue_family : unique_queue_families) {
+
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(renderer_data.physical_device, &queue_family_count,
+                                                 nullptr);
+        for (uint32_t i = 0; i < queue_family_count; i++) {
             VkDeviceQueueCreateInfo create_info;
             util::zero(create_info);
             create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            create_info.queueFamilyIndex = queue_family;
+            create_info.queueFamilyIndex = i;
             create_info.queueCount = 1;
             create_info.pQueuePriorities = &queue_priority;
             queue_create_info.push_back(create_info);
         }
+
         VkDeviceCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         create_info.queueCreateInfoCount = queue_create_info.size();
         create_info.pQueueCreateInfos = queue_create_info.data();
+
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceFeatures(renderer_data.physical_device, &features);
         create_info.pEnabledFeatures = &features;
+
         std::vector<const char*> layer_names, extensions;
         for (const auto& layer_name : renderer_data.layer_names) {
             layer_names.push_back(layer_name.c_str());
@@ -269,6 +275,7 @@ namespace vkrollercoaster {
         for (const auto& extension : renderer_data.device_extensions) {
             extensions.push_back(extension.c_str());
         }
+
         uint32_t supported_extension_count = 0;
         vkEnumerateDeviceExtensionProperties(renderer_data.physical_device, nullptr,
                                              &supported_extension_count, nullptr);
@@ -292,18 +299,22 @@ namespace vkrollercoaster {
             }
 #endif
         }
+
         if (!layer_names.empty()) {
             create_info.enabledLayerCount = layer_names.size();
             create_info.ppEnabledLayerNames = layer_names.data();
         }
+
         if (!extensions.empty()) {
             create_info.enabledExtensionCount = extensions.size();
             create_info.ppEnabledExtensionNames = extensions.data();
         }
+
         if (vkCreateDevice(renderer_data.physical_device, &create_info, nullptr,
                            &renderer_data.device) != VK_SUCCESS) {
             throw std::runtime_error("could not create a logical device!");
         }
+
         vkGetDeviceQueue(renderer_data.device, *indices.graphics_family, 0,
                          &renderer_data.graphics_queue);
         vkGetDeviceQueue(renderer_data.device, *indices.compute_family, 0,
