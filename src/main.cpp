@@ -20,10 +20,12 @@ int32_t main(int32_t argc, const char** argv) {
 #ifdef NDEBUG
     try {
 #endif
-        using namespace vkrollercoaster;
-        application::init();
-        application::run();
-        application::shutdown();
+        using app = vkrollercoaster::application;
+        
+        app::init();
+        app::run();
+        app::shutdown();
+
         return 0;
 #ifdef NDEBUG
     } catch (const std::runtime_error& exc) {
