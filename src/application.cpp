@@ -136,7 +136,6 @@ namespace vkrollercoaster {
         app_data->app_window = ref<window>::create(1600, 900, "vkrollercoaster");
 
         // set up vulkan
-        renderer::add_device_extension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
         renderer::init(app_data->app_window);
         app_data->swap_chain = ref<swapchain>::create();
         imgui_controller::init(app_data->swap_chain);

@@ -116,10 +116,10 @@ namespace vkrollercoaster {
         renderer_data.device_extensions.insert(name);
     }
     static void choose_extensions() {
-        const std::vector<std::string> required_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-        for (const auto& extension : required_extensions) {
-            renderer::add_device_extension(extension);
-        }
+        // we need the swapchain extension to present
+        renderer::add_device_extension("VK_KHR_swapchain");
+
+        // glfw provides the platform extensions required for creating a window surface
         uint32_t glfw_extension_count = 0;
         const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         if (glfw_extension_count > 0) {
@@ -127,14 +127,22 @@ namespace vkrollercoaster {
                 renderer::add_instance_extension(glfw_extensions[i]);
             }
         }
+
+        // we don't want to be completely oblivious to what we're doing wrong
         if (enable_validation_layers) {
-            const std::vector<std::string> validation_layers = { "VK_LAYER_KHRONOS_validation" };
-            for (const auto& layer_name : validation_layers) {
-                renderer::add_layer(layer_name);
-            }
-            renderer::add_instance_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            renderer::add_layer("VK_LAYER_KHRONOS_validation");
+            renderer::add_instance_extension("VK_EXT_debug_utils");
         }
+
+        // if we're not using vulkan 1.1, we need VK_KHR_maintenance1 to use viewports with negative
+        // heights
+        if (renderer_data.vulkan_version < VK_API_VERSION_1_1) {
+            renderer::add_device_extension("VK_KHR_maintenance1");
+        }
+
 #ifdef VKROLLERCOASTER_MOLTENVK
+        // using moltenvk, you need VK_KHR_get_physical_device_properties2 to use
+        // VK_KHR_portability_subset
         renderer::add_instance_extension("VK_KHR_get_physical_device_properties2");
 #endif
     }
@@ -170,10 +178,14 @@ namespace vkrollercoaster {
         }
     }
     static void create_debug_messenger() {
-        if (!enable_validation_layers) {
-            // in release mode, a debug messenger would only slow down the application
+        auto fpCreateDebugUtilsMessengerEXT =
+            (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+                renderer_data.instance, "vkCreateDebugUtilsMessengerEXT");
+        if (fpCreateDebugUtilsMessengerEXT == nullptr) {
+            // the extension was not enabled, so we cannot create a debug messenger
             return;
         }
+
         VkDebugUtilsMessengerCreateInfoEXT create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -183,16 +195,10 @@ namespace vkrollercoaster {
                                   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         create_info.pfnUserCallback = validation_layer_callback;
-        auto fpCreateDebugUtilsMessengerEXT =
-            (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-                renderer_data.instance, "vkCreateDebugUtilsMessengerEXT");
-        if (fpCreateDebugUtilsMessengerEXT != nullptr) {
-            if (fpCreateDebugUtilsMessengerEXT(renderer_data.instance, &create_info, nullptr,
-                                               &renderer_data.debug_messenger) != VK_SUCCESS) {
-                throw std::runtime_error("could not create debug messenger");
-            }
-        } else {
-            spdlog::warn("could not get vkCreateDebugUtilsMessengerEXT function address");
+
+        if (fpCreateDebugUtilsMessengerEXT(renderer_data.instance, &create_info, nullptr,
+                                           &renderer_data.debug_messenger) != VK_SUCCESS) {
+            throw std::runtime_error("could not create debug messenger");
         }
     }
     static void create_window_surface() {
