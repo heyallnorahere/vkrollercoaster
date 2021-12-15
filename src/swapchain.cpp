@@ -20,14 +20,6 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    /*
-                    VkBool32 present_support = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer_data.window_surface,
-                                                     &present_support);
-                if (present_support) {
-                    indices.present_family = i;
-                }
-    */
     struct swapchain_support_details {
         VkSurfaceCapabilitiesKHR capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
