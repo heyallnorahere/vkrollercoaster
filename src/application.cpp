@@ -104,7 +104,7 @@ namespace vkrollercoaster {
     static void update() {
         imgui_controller::update_menus();
         app_data->global_scene->update();
-        renderer::update_camera_buffer(app_data->global_scene);
+        renderer::update_camera_buffer(app_data->global_scene, app_data->app_window);
     }
 
     static void draw(ref<command_buffer> cmdbuffer) {
@@ -136,8 +136,8 @@ namespace vkrollercoaster {
         app_data->app_window = ref<window>::create(1600, 900, "vkrollercoaster");
 
         // set up vulkan
-        renderer::init(app_data->app_window);
-        app_data->swap_chain = ref<swapchain>::create();
+        renderer::init();
+        app_data->swap_chain = ref<swapchain>::create(app_data->app_window);
         imgui_controller::init(app_data->swap_chain);
 
         // load shader

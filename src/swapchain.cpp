@@ -20,11 +20,46 @@
 #include "renderer.h"
 #include "util.h"
 namespace vkrollercoaster {
-    swapchain::swapchain() {
+    /*
+                    VkBool32 present_support = false;
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer_data.window_surface,
+                                                     &present_support);
+                if (present_support) {
+                    indices.present_family = i;
+                }
+    */
+    struct swapchain_support_details {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> present_modes;
+    };
+    static swapchain_support_details query_swapchain_support(VkSurfaceKHR surface) {
+        VkPhysicalDevice device = renderer::get_physical_device();
+
+        swapchain_support_details details;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+        uint32_t format_count;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
+        if (format_count > 0) {
+            details.formats.resize(format_count);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count,
+                                                 details.formats.data());
+        }
+        uint32_t present_mode_count;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, nullptr);
+        if (format_count > 0) {
+            details.present_modes.resize(present_mode_count);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count,
+                                                      details.present_modes.data());
+        }
+        return details;
+    }
+
+    swapchain::swapchain(ref<window> _window) {
         renderer::add_ref();
         this->m_should_resize = false;
         this->m_current_image = 0;
-        this->m_window = renderer::get_window();
+        this->m_window = _window;
         int32_t width, height;
         this->m_window->get_size(&width, &height);
         this->create(width, height, true);
@@ -34,8 +69,13 @@ namespace vkrollercoaster {
     swapchain::~swapchain() {
         this->m_window->m_swapchains.erase(this);
         this->destroy();
+
         VkDevice device = renderer::get_device();
         vkDestroyRenderPass(device, this->m_render_pass, nullptr);
+
+        VkInstance instance = renderer::get_instance();
+        vkDestroySurfaceKHR(instance, this->m_surface, nullptr);
+
         renderer::remove_ref();
     }
 
@@ -81,9 +121,13 @@ namespace vkrollercoaster {
         vkResetFences(device, 1, &frame_sync_objects.fence);
     }
     void swapchain::present() {
-        VkQueue present_queue = renderer::get_present_queue();
+        VkDevice device = renderer::get_device();
+        VkQueue present_queue;
+        vkGetDeviceQueue(device, this->m_present_family, 0, &present_queue);
+
         size_t current_frame = renderer::get_current_frame();
         const auto& frame_sync_objects = renderer::get_sync_objects(current_frame);
+
         VkPresentInfoKHR present_info;
         util::zero(present_info);
         present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -92,6 +136,7 @@ namespace vkrollercoaster {
         present_info.swapchainCount = 1;
         present_info.pSwapchains = &this->m_swapchain;
         present_info.pImageIndices = &this->m_current_image;
+
         VkResult result = vkQueuePresentKHR(present_queue, &present_info);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
             this->m_should_resize) {
@@ -163,27 +208,65 @@ namespace vkrollercoaster {
             return extent;
         }
     }
-    void swapchain::create(int32_t width, int32_t height, bool render_pass) {
+    void swapchain::create(int32_t width, int32_t height, bool init) {
+        if (init) {
+            this->create_surface();
+        }
+
         this->create_swapchain((uint32_t)width, (uint32_t)height);
         this->create_depth_image();
-        if (render_pass) {
+
+        if (init) {
             this->create_render_pass();
         }
+
         this->fetch_images();
+    }
+    void swapchain::create_surface() {
+        GLFWwindow* glfw_window = this->m_window->get();
+        VkInstance instance = renderer::get_instance();
+        if (glfwCreateWindowSurface(instance, glfw_window, nullptr, &this->m_surface) != VK_SUCCESS) {
+            throw std::runtime_error("could not create window surface!");
+        }
+
+        VkPhysicalDevice physical_device = renderer::get_physical_device();
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+
+        std::optional<uint32_t> present_family;
+        for (uint32_t i = 0; i < queue_family_count; i++) {
+            VkBool32 presentation_supported = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, this->m_surface, &presentation_supported);
+            if (presentation_supported) {
+                present_family = i;
+            }
+        }
+
+        if (!present_family) {
+            throw std::runtime_error("could not find present family!");
+        }
+
+        std::set<uint32_t> created_queues = renderer::find_queue_families(physical_device).create_set();
+        if (created_queues.find(*present_family) == created_queues.end()) {
+            throw std::runtime_error("the present queue was not created!");
+        }
+
+        this->m_present_family = *present_family;
     }
     void swapchain::create_swapchain(uint32_t width, uint32_t height) {
         auto physical_device = renderer::get_physical_device();
-        auto support_details = renderer::query_swapchain_support(physical_device);
+        auto support_details = query_swapchain_support(this->m_surface);
         auto indices = renderer::find_queue_families(physical_device);
         uint32_t image_count = support_details.capabilities.minImageCount + 1;
         if (support_details.capabilities.maxImageCount > 0 &&
             image_count > support_details.capabilities.maxImageCount) {
             image_count = support_details.capabilities.maxImageCount;
         }
+
         VkSwapchainCreateInfoKHR create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        create_info.surface = renderer::get_window_surface();
+        create_info.surface = this->m_surface;
         create_info.minImageCount = image_count;
         auto format = choose_format(support_details.formats);
         this->m_image_format = create_info.imageFormat = format.format;
@@ -193,8 +276,8 @@ namespace vkrollercoaster {
         create_info.imageArrayLayers = 1;
         create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         std::vector<uint32_t> queue_family_index_array = { *indices.graphics_family,
-                                                           *indices.present_family };
-        if (indices.graphics_family != indices.present_family) {
+                                                           this->m_present_family };
+        if (indices.graphics_family != this->m_present_family) {
             create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             create_info.queueFamilyIndexCount = queue_family_index_array.size();
             create_info.pQueueFamilyIndices = queue_family_index_array.data();

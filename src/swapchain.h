@@ -26,7 +26,7 @@ namespace vkrollercoaster {
             VkImageView view;
             VkFramebuffer framebuffer;
         };
-        swapchain();
+        swapchain(ref<window> _window);
         virtual ~swapchain() override;
         swapchain(const swapchain&) = delete;
         swapchain& operator=(const swapchain&) = delete;
@@ -36,6 +36,7 @@ namespace vkrollercoaster {
         virtual void add_reload_callbacks(void* id, std::function<void()> destroy,
                                           std::function<void()> recreate) override;
         virtual void remove_reload_callbacks(void* id) override;
+        VkSurfaceKHR get_surface() { return this->m_surface; }
         VkSwapchainKHR get_swapchain() { return this->m_swapchain; }
         const std::vector<swapchain_image>& get_swapchain_images() {
             return this->m_swapchain_images;
@@ -61,19 +62,22 @@ namespace vkrollercoaster {
         struct swapchain_dependent {
             std::function<void()> destroy, recreate;
         };
-        void create(int32_t width, int32_t height, bool render_pass = false);
+        void create(int32_t width, int32_t height, bool init = false);
+        void create_surface();
         void create_swapchain(uint32_t width, uint32_t height);
         void create_depth_image();
         void create_render_pass();
         void fetch_images();
         void destroy();
         ref<window> m_window;
+        VkSurfaceKHR m_surface;
         VkSwapchainKHR m_swapchain;
         VkFormat m_image_format;
         VkExtent2D m_extent;
         VkRenderPass m_render_pass;
         ref<image> m_depth_image;
         std::vector<swapchain_image> m_swapchain_images;
+        uint32_t m_present_family;
         std::map<void*, swapchain_dependent> m_dependents;
         uint32_t m_current_image;
         std::vector<VkFence> m_image_fences;

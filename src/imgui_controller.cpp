@@ -129,9 +129,15 @@ namespace vkrollercoaster {
         init_info.Queue = renderer::get_graphics_queue();
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = renderer::get_descriptor_pool();
-        auto support_details = renderer::query_swapchain_support(physical_device);
-        init_info.MinImageCount = support_details.capabilities.minImageCount;
         init_info.ImageCount = imgui_data.swap_chain->get_swapchain_images().size();
+
+        {
+            VkSurfaceKHR surface = imgui_data.swap_chain->get_surface();
+            VkSurfaceCapabilitiesKHR capabilities;
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(init_info.PhysicalDevice, surface, &capabilities);
+
+            init_info.MinImageCount = capabilities.minImageCount;
+        }
         ImGui_ImplVulkan_Init(&init_info, imgui_data.swap_chain->get_render_pass());
 
         // load fonts
