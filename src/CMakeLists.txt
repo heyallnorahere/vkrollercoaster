@@ -1,23 +1,33 @@
 cmake_minimum_required(VERSION 3.10)
+
 set(VKROLLERCOASTER_INCLUDES "${CMAKE_SOURCE_DIR}/vendor/glm" ${Vulkan_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 set(VKROLLERCOASTER_LIBS stb glfw spdlog spirv-cross-glsl EnTT imgui shaderc ${Vulkan_LIBRARIES} assimp VulkanMemoryAllocator)
+
 if(APPLE)
     list(APPEND VKROLLERCOASTER_DEFINITIONS VKROLLERCOASTER_MOLTENVK)
 endif()
 if(UNIX AND NOT APPLE)
     list(APPEND VKROLLERCOASTER_LIBS pthread stdc++fs)
 endif()
-file(GLOB_RECURSE MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+
+file(GLOB_RECURSE VKROLLERCOASTER_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB_RECURSE VKROLLERCOASTER_SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/../assets/shaders/*.hlsl")
+set(MANIFEST ${VKROLLERCOASTER_SOURCE} ${VKROLLERCOASTER_SHADERS})
+
 add_executable(vkrollercoaster ${MANIFEST})
 target_include_directories(vkrollercoaster PRIVATE ${VKROLLERCOASTER_INCLUDES})
 target_link_libraries(vkrollercoaster PRIVATE ${VKROLLERCOASTER_LIBS})
 if(DEFINED VKROLLERCOASTER_DEFINITIONS)
     target_compile_definitions(vkrollercoaster PRIVATE ${VKROLLERCOASTER_DEFINITIONS})    
 endif()
+
 set_target_properties(vkrollercoaster PROPERTIES CXX_STANDARD 17)
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.16)
-    target_precompile_headers(vkrollercoaster PRIVATE pch.h)
-endif()
+
 if(MSVC)
     set_target_properties(vkrollercoaster PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    set_source_files_properties(${VKROLLERCOASTER_SHADERS} PROPERTIES VS_TOOL_OVERRIDE "None")
+endif()
+
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.16)
+    target_precompile_headers(vkrollercoaster PRIVATE pch.h)
 endif()
