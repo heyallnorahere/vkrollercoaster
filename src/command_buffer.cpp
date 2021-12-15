@@ -22,8 +22,11 @@
 #include "pipeline.h"
 namespace vkrollercoaster {
     command_buffer::~command_buffer() {
+        this->wait();
+
         VkDevice device = renderer::get_device();
         vkFreeCommandBuffers(device, this->m_pool, 1, &this->m_buffer);
+
         renderer::remove_ref();
         delete this->m_internal_data;
     }

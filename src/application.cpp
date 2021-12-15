@@ -28,7 +28,6 @@ namespace vkrollercoaster {
     struct app_data_t {
         ref<window> app_window;
         ref<swapchain> swap_chain;
-        std::vector<ref<command_buffer>> command_buffers;
         ref<scene> global_scene;
         bool running = false;
         bool should_stop = false;
@@ -148,13 +147,6 @@ namespace vkrollercoaster {
         // create light uniform buffers
         light::init();
 
-        // create command buffers
-        size_t image_count = app_data->swap_chain->get_swapchain_images().size();
-        for (size_t i = 0; i < image_count; i++) {
-            auto cmdbuffer = renderer::create_render_command_buffer();
-            app_data->command_buffers.push_back(cmdbuffer);
-        }
-
         // create scene and player
         app_data->global_scene = ref<scene>::create();
         {
@@ -196,14 +188,19 @@ namespace vkrollercoaster {
             // acquire a new swapchain image
             app_data->swap_chain->prepare_frame();
 
-            // add draw commands
-            size_t current_image = app_data->swap_chain->get_current_image();
-            auto cmdbuffer = app_data->command_buffers[current_image];
-            draw(cmdbuffer);
+            {
+                // we want an empty command buffer
+                auto cmdbuffer = renderer::create_render_command_buffer();
 
-            // render and present
-            cmdbuffer->submit();
-            cmdbuffer->reset();
+                // add draw commands
+                draw(cmdbuffer);
+
+                // add commands onto the queue and wait
+                cmdbuffer->submit();
+                cmdbuffer->wait();
+            }
+
+            // present
             app_data->swap_chain->present();
 
             // check to see if window has closed
