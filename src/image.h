@@ -21,8 +21,8 @@ namespace vkrollercoaster {
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
                       VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
                       VkImage& image, VmaAllocation& allocation);
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
-                                 VkImageLayout new_layout, VkImageAspectFlags image_aspect);
+    void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
+                                 VkImageAspectFlags image_aspect);
 #endif
 
     struct image_data {

@@ -47,9 +47,17 @@ namespace vkrollercoaster {
         create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         create_info.usage = usage;
         create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-        // todo: if graphics_family and compute_family arent similar, use VK_SHARING_MODE_CONCURRENT
-        // auto indices = renderer::find_queue_families(physical_device);
-        create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        auto indices = renderer::find_queue_families(physical_device).create_set();
+        std::vector<uint32_t> unique_indices(indices.begin(), indices.end());
+        if (unique_indices.size() > 1) {
+            create_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+            create_info.pQueueFamilyIndices = unique_indices.data();
+            create_info.queueFamilyIndexCount = unique_indices.size();
+        } else {
+            create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+
         _allocator.alloc(create_info, memory_usage, image, allocation);
     }
     static void get_stage_and_mask(VkImageLayout layout, VkPipelineStageFlags& stage,
@@ -84,8 +92,8 @@ namespace vkrollercoaster {
             throw std::runtime_error("unimplemented/unsupported image layout!");
         }
     }
-    void transition_image_layout(VkImage image, VkFormat format, VkImageLayout old_layout,
-                                 VkImageLayout new_layout, VkImageAspectFlags image_aspect) {
+    void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
+                                 VkImageAspectFlags image_aspect) {
         VkImageMemoryBarrier barrier;
         util::zero(barrier);
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -177,8 +185,7 @@ namespace vkrollercoaster {
         renderer::remove_ref();
     }
     void image::transition(VkImageLayout new_layout) {
-        transition_image_layout(this->m_image, this->m_format, this->m_layout, new_layout,
-                                this->m_aspect);
+        transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect);
         this->m_layout = new_layout;
         for (texture* tex : this->m_dependents) {
             tex->update_imgui_texture();
