@@ -138,11 +138,8 @@ namespace vkrollercoaster {
             renderer::add_device_extension("VK_KHR_maintenance1");
         }
 
-#ifdef VKROLLERCOASTER_MOLTENVK
-        // using moltenvk, you need VK_KHR_get_physical_device_properties2 to use
-        // VK_KHR_portability_subset
+        // VK_KHR_portability_subset requires VK_KHR_get_physical_device_properties2
         renderer::add_instance_extension("VK_KHR_get_physical_device_properties2");
-#endif
     }
     static void create_instance() {
         VkApplicationInfo app_info;
@@ -291,13 +288,12 @@ namespace vkrollercoaster {
                     break;
                 }
             }
-#ifdef VKROLLERCOASTER_MOLTENVK
-            // https://vulkan.lunarg.com/doc/view/1.2.182.0/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+
+            // if VK_KHR_portability_subset is present, it needs to be enabled
             static const char* const portability_subset_ext = "VK_KHR_portability_subset";
             if (!found && strcmp(extension.extensionName, portability_subset_ext) == 0) {
                 extensions.push_back(portability_subset_ext);
             }
-#endif
         }
 
         if (!layer_names.empty()) {

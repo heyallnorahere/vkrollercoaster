@@ -141,7 +141,6 @@ namespace vkrollercoaster {
 
             ref<image> attachment =
                 ref<image>::create(format, spec.width, spec.height, usage, image_aspect);
-            attachment->transition(VK_IMAGE_LAYOUT_GENERAL);
             this->m_attachments[type] = attachment;
         }
     }

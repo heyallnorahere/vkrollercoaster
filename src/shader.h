@@ -38,6 +38,7 @@ namespace vkrollercoaster {
         BOOLEAN,
         DOUBLE,
         SAMPLED_IMAGE,
+        IMAGE,
     };
     struct shader_type {
         bool path_exists(const std::string& path) const;

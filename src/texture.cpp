@@ -21,9 +21,17 @@
 #include "imgui_controller.h"
 #include <backends/imgui_impl_vulkan.h>
 namespace vkrollercoaster {
-    texture::texture(ref<image> _image) {
+    texture::texture(ref<image> _image, bool transition_layout) {
         renderer::add_ref();
         this->m_image = _image;
+
+        if (transition_layout) {
+            static constexpr VkImageLayout ideal_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            if (this->m_image->get_layout() != ideal_layout) {
+                this->m_image->transition(ideal_layout);
+            }
+        }
+
         this->m_image->m_dependents.insert(this);
         this->create_sampler();
     }

@@ -167,6 +167,7 @@ namespace vkrollercoaster {
         this->m_aspect = aspect;
         create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL,
                      usage, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
+        this->transition(VK_IMAGE_LAYOUT_GENERAL);
         this->create_view();
     }
     image::~image() {
@@ -215,7 +216,7 @@ namespace vkrollercoaster {
 
         this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
-        this->transition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        this->transition(VK_IMAGE_LAYOUT_GENERAL);
 
         this->m_allocator.free(staging_buffer, staging_allocation);
     }

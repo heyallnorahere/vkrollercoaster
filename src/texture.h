@@ -20,7 +20,7 @@
 namespace vkrollercoaster {
     class texture : public ref_counted {
     public:
-        texture(ref<image> _image);
+        texture(ref<image> _image, bool transition_layout = true);
         ~texture();
         texture(const texture&) = delete;
         texture& operator=(const texture&) = delete;

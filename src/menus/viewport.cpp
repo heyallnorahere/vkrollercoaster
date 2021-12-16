@@ -98,6 +98,6 @@ namespace vkrollercoaster {
         this->m_previous_color_attachment = this->m_color_attachment;
 
         ref<image> attachment = this->m_framebuffer->get_attachment(attachment_type::color);
-        this->m_color_attachment = ref<texture>::create(attachment);
+        this->m_color_attachment = ref<texture>::create(attachment, false);
     }
 } // namespace vkrollercoaster
