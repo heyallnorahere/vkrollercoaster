@@ -29,8 +29,7 @@ namespace vkrollercoaster {
             this->m_id = id;
         }
         template <typename T, typename... Args> T& add_component(Args&&... args);
-        template <typename T> T& get_component();
-        template <typename T> const T& get_component() const;
+        template <typename T> T& get_component() const;
         template <typename T> bool has_component() const;
         template <typename T> void remove_component();
         operator bool() const { return this->m_id != entt::null && this->m_scene != nullptr; }
@@ -49,6 +48,8 @@ namespace vkrollercoaster {
     public:
         void update();
         entity create(const std::string& tag = "Entity");
+        void reevaluate_first_track_node();
+
         std::vector<entity> find_tag(const std::string& tag);
         template <typename... Components> std::vector<entity> view() {
             std::vector<entity> entities;
@@ -59,9 +60,13 @@ namespace vkrollercoaster {
             return entities;
         }
 
+        entity get_first_track_node() { return this->m_first_track_node; }
+
     private:
         template <typename T> void on_component_added(entity& ent, T& component);
+        template <typename T> void on_component_removed(entity ent);
         entt::registry m_registry;
+        entity m_first_track_node;
         friend class entity;
     };
     template <typename T, typename... Args> inline T& entity::add_component(Args&&... args) {
@@ -74,14 +79,7 @@ namespace vkrollercoaster {
         this->m_scene->on_component_added(*this, component);
         return component;
     }
-    template <typename T> T& entity::get_component() {
-        if (!this->has_component<T>()) {
-            throw std::runtime_error(
-                "this entity does not have an instance of the specified component type!");
-        }
-        return this->m_scene->m_registry.get<T>(this->m_id);
-    }
-    template <typename T> const T& entity::get_component() const {
+    template <typename T> T& entity::get_component() const {
         if (!this->has_component<T>()) {
             throw std::runtime_error(
                 "this entity does not have an instance of the specified component type!");
@@ -97,8 +95,12 @@ namespace vkrollercoaster {
                 "this entity does not have an instance of the specified component type!");
         }
         this->m_scene->m_registry.remove<T>(this->m_id);
+        this->m_scene->on_component_removed<T>(*this);
     }
     template <typename T> void scene::on_component_added(entity& ent, T& component) {
+        // no behavior
+    }
+    template <typename T> void scene::on_component_removed(entity ent) {
         // no behavior
     }
 } // namespace vkrollercoaster

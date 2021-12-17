@@ -72,10 +72,20 @@ namespace vkrollercoaster {
         // todo: bezier curve data
     };
 
-    //==== scene::on_component_added overloads ====
+    //==== scene::on_component_added/scene::on_component_removed overloads ====
     template <>
     inline void scene::on_component_added<script_component>(entity& ent,
                                                             script_component& component) {
         component.parent = ent;
+    }
+
+    template <>
+    inline void scene::on_component_added<track_segment_component>(
+        entity& ent, track_segment_component& component) {
+        this->reevaluate_first_track_node();
+    }
+
+    template <> inline void scene::on_component_removed<track_segment_component>(entity ent) {
+        this->reevaluate_first_track_node();
     }
 } // namespace vkrollercoaster

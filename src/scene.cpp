@@ -50,6 +50,29 @@ namespace vkrollercoaster {
 
         return ent;
     }
+    void scene::reevaluate_first_track_node() {
+        entity first_track_node;
+
+        auto view = this->view<track_segment_component>();
+        if (!view.empty()) {
+            entity previous = view[0];
+
+            do {
+                first_track_node = previous;
+
+                previous = entity();
+                for (entity node : view) {
+                    const auto& track_data = node.get_component<track_segment_component>();
+                    if (track_data.next == first_track_node) {
+                        previous = node;
+                        break;
+                    }
+                }
+            } while (previous);
+        }
+
+        this->m_first_track_node = first_track_node;
+    }
     std::vector<entity> scene::find_tag(const std::string& tag) {
         std::vector<entity> entities;
         std::vector<entity> tag_view = this->view<tag_component>();

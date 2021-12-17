@@ -120,10 +120,9 @@ namespace vkrollercoaster {
         }
 
         {
-            auto tracks = app_data->global_scene->view<transform_component, track_segment_component>();
-            if (!tracks.empty()) {
-                entity track = tracks[0];
-                renderer::render_track(cmdbuffer, track);
+            entity first_track_node = app_data->global_scene->get_first_track_node();
+            if (first_track_node) {
+                renderer::render_track(cmdbuffer, first_track_node);
             }
         }
 

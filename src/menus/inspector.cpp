@@ -306,7 +306,7 @@ namespace vkrollercoaster {
                 auto view = _scene->view<tag_component, transform_component, track_segment_component>();
 
                 std::vector<const char*> names = { "N/A" };
-                std::vector<entity> entities = { entity() };
+                std::vector<entity> entities(1);
                 for (entity track : view) {
                     if (track == ent) continue;
 
@@ -321,13 +321,20 @@ namespace vkrollercoaster {
                         track_index = (int32_t)i;
                     }
                 }
+
+                bool changed_next_node = false;
                 if (track_index < 0) {
                     track_index = 0;
-                    track_data.next = entities[track_index];
+                    changed_next_node = true;
                 }
 
                 if (ImGui::Combo("Next track", &track_index, names.data(), names.size())) {
+                    changed_next_node = true;
+                }
+
+                if (changed_next_node) {
                     track_data.next = entities[track_index];
+                    _scene->reevaluate_first_track_node();
                 }
             }
 
