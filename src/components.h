@@ -65,6 +65,12 @@ namespace vkrollercoaster {
             this->scripts.push_back(_script);
         }
     };
+    struct track_segment_component {
+        track_segment_component() = default;
+
+        entity next;
+        // todo: bezier curve data
+    };
 
     //==== scene::on_component_added overloads ====
     template <>

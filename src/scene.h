@@ -30,9 +30,15 @@ namespace vkrollercoaster {
         }
         template <typename T, typename... Args> T& add_component(Args&&... args);
         template <typename T> T& get_component();
-        template <typename T> bool has_component();
+        template <typename T> const T& get_component() const;
+        template <typename T> bool has_component() const;
         template <typename T> void remove_component();
-        operator bool() { return this->m_id != entt::null && this->m_scene != nullptr; }
+        operator bool() const { return this->m_id != entt::null && this->m_scene != nullptr; }
+
+        bool operator==(const entity& other) const {
+            return this->m_id == other.m_id && this->m_scene == other.m_scene;
+        }
+        bool operator!=(const entity& other) const { return !(*this == other); }
 
     private:
         scene* m_scene;
@@ -75,7 +81,14 @@ namespace vkrollercoaster {
         }
         return this->m_scene->m_registry.get<T>(this->m_id);
     }
-    template <typename T> bool entity::has_component() {
+    template <typename T> const T& entity::get_component() const {
+        if (!this->has_component<T>()) {
+            throw std::runtime_error(
+                "this entity does not have an instance of the specified component type!");
+        }
+        return this->m_scene->m_registry.get<T>(this->m_id);
+    }
+    template <typename T> bool entity::has_component() const {
         return this->m_scene->m_registry.all_of<T>(this->m_id);
     }
     template <typename T> void entity::remove_component() {

@@ -116,7 +116,15 @@ namespace vkrollercoaster {
 
         // probably should optimize and batch render
         for (entity ent : app_data->global_scene->view<transform_component, model_component>()) {
-            renderer::render(cmdbuffer, ent);
+            renderer::render_entity(cmdbuffer, ent);
+        }
+
+        {
+            auto tracks = app_data->global_scene->view<transform_component, track_segment_component>();
+            if (!tracks.empty()) {
+                entity track = tracks[0];
+                renderer::render_track(cmdbuffer, track);
+            }
         }
 
         cmdbuffer->end_render_pass();

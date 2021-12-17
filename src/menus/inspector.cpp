@@ -58,19 +58,23 @@ namespace vkrollercoaster {
             ImGui::Unindent();
         }
     }
+
     struct type_name_pair {
         light_type type;
         std::string name;
     };
+
     struct spotlight_creation_data {
         glm::vec3 direction = glm::vec3(0.f, -1.f, 0.f);
         float cutoff_angle = 12.5f;
         float outer_cutoff_angle = 17.5f;
     };
+
     struct light_creation_data {
         // this is it for now
         spotlight_creation_data spotlight_data;
     };
+
     static void light_editor(entity ent) {
         if (ent.has_component<light_component>()) {
             // if a light component exists on the passed entity, show fields for editing
@@ -143,9 +147,11 @@ namespace vkrollercoaster {
             }
         }
     }
+
     enum class model_loading_error { none, no_path, file_does_not_exist };
     static model_loading_error model_error = model_loading_error::none;
     static ref<material> model_material;
+
     static void model_editor(entity ent) {
         if (ent.has_component<model_component>()) {
             ref<model> _model = ent.get_component<model_component>().data;
@@ -242,6 +248,7 @@ namespace vkrollercoaster {
             }
         }
     }
+
     static void script_editor(entity ent) {
         // verify that there are scripts to toggle
         std::vector<ref<script>> scripts;
@@ -288,11 +295,58 @@ namespace vkrollercoaster {
             }
         }
     }
+
+    static void track_editor(entity ent) {
+        if (ent.has_component<track_segment_component>()) {
+            auto& track_data = ent.get_component<track_segment_component>();
+
+            // next track
+            {
+                ref<scene> _scene = application::get_scene();
+                auto view = _scene->view<tag_component, transform_component, track_segment_component>();
+
+                std::vector<const char*> names = { "N/A" };
+                std::vector<entity> entities = { entity() };
+                for (entity track : view) {
+                    if (track == ent) continue;
+
+                    const auto& tag = track.get_component<tag_component>().tag;
+                    names.push_back(tag.c_str());
+                    entities.push_back(track);
+                }
+
+                int32_t track_index = -1;
+                for (size_t i = 0; i < entities.size(); i++) {
+                    if (track_data.next == entities[i]) {
+                        track_index = (int32_t)i;
+                    }
+                }
+                if (track_index < 0) {
+                    track_index = 0;
+                    track_data.next = entities[track_index];
+                }
+
+                if (ImGui::Combo("Next track", &track_index, names.data(), names.size())) {
+                    track_data.next = entities[track_index];
+                }
+            }
+
+            if (ImGui::Button("Remove")) {
+                ent.remove_component<track_segment_component>();
+            }
+        } else {
+            if (ImGui::Button("Add")) {
+                ent.add_component<track_segment_component>();
+            }
+        }
+    }
+
     inspector::~inspector() {
         if (model_material) {
             model_material.reset();
         }
     }
+
     void inspector::update() {
         ImGui::Begin("Inspector", &this->m_open);
         ref<scene> _scene = application::get_scene();
@@ -367,6 +421,12 @@ namespace vkrollercoaster {
             if (ImGui::CollapsingHeader("Scripts")) {
                 ImGui::Indent();
                 script_editor(ent);
+                ImGui::Unindent();
+            }
+
+            if (ImGui::CollapsingHeader("Track")) {
+                ImGui::Indent();
+                track_editor(ent);
                 ImGui::Unindent();
             }
         }

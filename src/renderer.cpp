@@ -22,7 +22,10 @@
 #include "allocator.h"
 namespace vkrollercoaster {
     static struct {
+        // extensions and layers
         std::set<std::string> instance_extensions, device_extensions, layer_names;
+
+        // vulkan data
         VkInstance instance = nullptr;
         VkDebugUtilsMessengerEXT debug_messenger = nullptr;
         VkPhysicalDevice physical_device = nullptr;
@@ -32,13 +35,21 @@ namespace vkrollercoaster {
         VkDescriptorPool descriptor_pool = nullptr;
         VkCommandPool graphics_command_pool = nullptr;
         std::array<sync_objects, renderer::max_frame_count> frame_sync_objects;
+        size_t current_frame = 0;
+        uint32_t vulkan_version = 0;
+
+        // core graphics objects
         ref<texture> white_texture;
         ref<uniform_buffer> camera_buffer;
-        size_t current_frame = 0;
+
+        // temp
+        ref<model> track_model;
+
+        // ref counting
         uint32_t ref_count = 0;
         bool should_shutdown = false;
-        uint32_t vulkan_version = 0;
     } renderer_data;
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL validation_layer_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
         VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -57,11 +68,7 @@ namespace vkrollercoaster {
         };
         return VK_FALSE;
     }
-#ifdef NDEBUG
-    constexpr bool enable_validation_layers = false;
-#else
-    constexpr bool enable_validation_layers = true;
-#endif
+
     static bool check_layer_availability(const std::string& layer_name) {
         uint32_t layer_count;
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -79,6 +86,7 @@ namespace vkrollercoaster {
         }
         return true;
     }
+
     void renderer::add_layer(const std::string& name) {
         if (renderer_data.layer_names.find(name) != renderer_data.layer_names.end()) {
             return;
@@ -88,6 +96,7 @@ namespace vkrollercoaster {
         }
         renderer_data.layer_names.insert(name);
     }
+
     void renderer::add_instance_extension(const std::string& name) {
         if (renderer_data.instance_extensions.find(name) !=
             renderer_data.instance_extensions.end()) {
@@ -109,10 +118,12 @@ namespace vkrollercoaster {
         }
         renderer_data.instance_extensions.insert(name);
     }
+
     void renderer::add_device_extension(const std::string& name) {
         // cant do any checks without a physical device
         renderer_data.device_extensions.insert(name);
     }
+
     static void choose_extensions() {
         // we need the swapchain extension to present
         renderer::add_device_extension("VK_KHR_swapchain");
@@ -126,11 +137,11 @@ namespace vkrollercoaster {
             }
         }
 
+#ifndef NDEBUG
         // we don't want to be completely oblivious to what we're doing wrong
-        if (enable_validation_layers) {
-            renderer::add_layer("VK_LAYER_KHRONOS_validation");
-            renderer::add_instance_extension("VK_EXT_debug_utils");
-        }
+        renderer::add_layer("VK_LAYER_KHRONOS_validation");
+        renderer::add_instance_extension("VK_EXT_debug_utils");
+#endif
 
         // if we're not using vulkan 1.1, we need VK_KHR_maintenance1 to use viewports with negative
         // heights
@@ -141,6 +152,7 @@ namespace vkrollercoaster {
         // VK_KHR_portability_subset requires VK_KHR_get_physical_device_properties2
         renderer::add_instance_extension("VK_KHR_get_physical_device_properties2");
     }
+
     static void create_instance() {
         VkApplicationInfo app_info;
         util::zero(app_info);
@@ -172,6 +184,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create a vulkan instance!");
         }
     }
+
     static void create_debug_messenger() {
         auto fpCreateDebugUtilsMessengerEXT =
             (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
@@ -196,6 +209,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create debug messenger");
         }
     }
+
     static bool check_device_extension_support(VkPhysicalDevice device) {
         uint32_t extension_count = 0;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, nullptr);
@@ -207,6 +221,7 @@ namespace vkrollercoaster {
         }
         return remaining_extensions.empty();
     }
+
     static bool is_device_suitable(VkPhysicalDevice device) {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(device, &properties);
@@ -218,6 +233,7 @@ namespace vkrollercoaster {
         };
         return (requirements_met.size() == 1) && *requirements_met.begin();
     }
+
     static void pick_physical_device() {
         uint32_t device_count = 0;
         vkEnumeratePhysicalDevices(renderer_data.instance, &device_count, nullptr);
@@ -237,6 +253,7 @@ namespace vkrollercoaster {
         }
         throw std::runtime_error("no suitable GPU was found!");
     }
+
     static void create_logical_device() {
         auto indices = renderer::find_queue_families(renderer_data.physical_device);
         std::vector<VkDeviceQueueCreateInfo> queue_create_info;
@@ -316,6 +333,7 @@ namespace vkrollercoaster {
         vkGetDeviceQueue(renderer_data.device, *indices.compute_family, 0,
                          &renderer_data.compute_queue);
     }
+
     static void create_descriptor_pool() {
         std::vector<VkDescriptorPoolSize> pool_sizes = {
             { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
@@ -342,6 +360,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create descriptor pool!");
         }
     }
+
     static void create_graphics_command_pool() {
         auto indices = renderer::find_queue_families(renderer_data.physical_device);
         VkCommandPoolCreateInfo create_info;
@@ -354,6 +373,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("could not create command pool!");
         }
     }
+
     static void create_sync_objects() {
         VkSemaphoreCreateInfo semaphore_create_info;
         util::zero(semaphore_create_info);
@@ -373,11 +393,13 @@ namespace vkrollercoaster {
             }
         }
     }
+
     struct camera_buffer_data {
         glm::mat4 projection = glm::mat4(1.f);
         glm::mat4 view = glm::mat4(1.f);
         glm::vec3 position = glm::vec3(0.f);
     };
+
     void renderer::init(uint32_t vulkan_version) {
         uint32_t major, minor, patch;
         expand_vulkan_version(vulkan_version, major, minor, patch);
@@ -404,6 +426,7 @@ namespace vkrollercoaster {
 
         renderer_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(camera_buffer_data));
     }
+
     static void shutdown_renderer() {
         spdlog::info("shutting down renderer...");
         vkDeviceWaitIdle(renderer_data.device);
@@ -429,9 +452,13 @@ namespace vkrollercoaster {
         }
         vkDestroyInstance(renderer_data.instance, nullptr);
     }
+
     void renderer::shutdown() {
         renderer_data.camera_buffer.reset();
         renderer_data.white_texture.reset();
+        if (renderer_data.track_model) {
+            renderer_data.track_model.reset();
+        }
 
         allocator::shutdown();
         vkDeviceWaitIdle(renderer_data.device);
@@ -441,9 +468,11 @@ namespace vkrollercoaster {
             shutdown_renderer();
         }
     }
+
     void renderer::new_frame() {
         renderer_data.current_frame = (renderer_data.current_frame + 1) % max_frame_count;
     }
+
     void renderer::add_ref() { renderer_data.ref_count++; }
     void renderer::remove_ref() {
         renderer_data.ref_count--;
@@ -451,19 +480,13 @@ namespace vkrollercoaster {
             shutdown_renderer();
         }
     }
-    void renderer::render(ref<command_buffer> cmdbuffer, entity to_render) {
-        if (!to_render.has_component<transform_component>() ||
-            !to_render.has_component<model_component>()) {
-            throw std::runtime_error(
-                "the given entity does not have necessary components for rendering!");
-        }
+
+    static void render_model(ref<command_buffer> cmdbuffer, const transform_component& transform,
+                             ref<model> _model, internal_cmdbuffer_data* internal_data) {
         auto target = cmdbuffer->get_current_render_target();
         if (!target) {
             throw std::runtime_error("cannot render outside of a render pass!");
         }
-        ref<model> _model = to_render.get_component<model_component>().data;
-        const auto& transform = to_render.get_component<transform_component>();
-
         // calculate transformation matrices
         struct {
             glm::mat4 model, normal;
@@ -518,19 +541,83 @@ namespace vkrollercoaster {
             submitted_call._pipeline = _pipeline;
             submitted_call.vbo = buffer_data.vertices;
             submitted_call.ibo = ibo;
-            cmdbuffer->m_internal_data->submitted_calls.push_back(submitted_call);
+            internal_data->submitted_calls.push_back(submitted_call);
         }
     }
+
+    void renderer::render_entity(ref<command_buffer> cmdbuffer, entity to_render) {
+        if (!to_render.has_component<transform_component>() ||
+            !to_render.has_component<model_component>()) {
+            throw std::runtime_error(
+                "the given entity does not have necessary components for rendering!");
+        }
+
+        ref<model> _model = to_render.get_component<model_component>().data;
+        const auto& transform = to_render.get_component<transform_component>();
+
+        render_model(cmdbuffer, transform, _model, cmdbuffer->m_internal_data);
+    }
+
+    void renderer::render_track(ref<command_buffer> cmdbuffer, entity track) {
+        if (!renderer_data.track_model) {
+            auto source = ref<model_source>::create("assets/models/track.gltf");
+            renderer_data.track_model = ref<model>::create(source);
+        }
+
+        entity current_track = track;
+        std::unordered_set<entity> rendererd_entities;
+        while (rendererd_entities.find(current_track) == rendererd_entities.end()) {
+            if (!current_track.has_component<transform_component>() ||
+                !current_track.has_component<track_segment_component>()) {
+                throw std::runtime_error("this track node does not have the necessary components!");
+            }
+            const auto& entity_transform = current_track.get_component<transform_component>();
+            const auto& track_data = current_track.get_component<track_segment_component>();
+
+            transform_component transform;
+            transform.translation = entity_transform.translation;
+            if (track_data.next) {
+                glm::vec3 next_translation =
+                    track_data.next.get_component<transform_component>().translation;
+                glm::vec3 direction = glm::normalize(next_translation - transform.translation);
+
+                glm::vec3 rotation = glm::vec3(0.f);
+
+                rotation.x = -glm::asin(direction.y);
+                float adjacent = glm::cos(rotation.x);
+                rotation.y = glm::atan(direction.x / adjacent, direction.z / adjacent);
+
+                transform.rotation = rotation;
+            } else {
+                transform.rotation = entity_transform.rotation;
+            }
+            transform.scale = entity_transform.scale;
+
+            // todo: build model or something
+
+            render_model(cmdbuffer, transform, renderer_data.track_model,
+                         cmdbuffer->m_internal_data);
+            rendererd_entities.insert(current_track);
+
+            current_track = track_data.next;
+            if (!current_track) {
+                break;
+            }
+        }
+    }
+
     ref<command_buffer> renderer::create_render_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool,
                                            renderer_data.graphics_queue, false, true);
         return ref<command_buffer>(instance);
     }
+
     ref<command_buffer> renderer::create_single_time_command_buffer() {
         auto instance = new command_buffer(renderer_data.graphics_command_pool,
                                            renderer_data.graphics_queue, true, false);
         return ref<command_buffer>(instance);
     }
+
     uint32_t renderer::get_vulkan_version() { return renderer_data.vulkan_version; }
     VkInstance renderer::get_instance() { return renderer_data.instance; }
     VkPhysicalDevice renderer::get_physical_device() { return renderer_data.physical_device; }
@@ -540,6 +627,7 @@ namespace vkrollercoaster {
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
     ref<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
     ref<uniform_buffer> renderer::get_camera_buffer() { return renderer_data.camera_buffer; }
+
     void renderer::update_camera_buffer(ref<scene> _scene, ref<window> _window) {
         const auto& cameras = _scene->view<camera_component>();
         camera_buffer_data data;
@@ -568,6 +656,7 @@ namespace vkrollercoaster {
         }
         renderer_data.camera_buffer->set_data(data);
     }
+
     void renderer::expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor,
                                          uint32_t& patch) {
         // bit twiddling bullshit
@@ -577,6 +666,7 @@ namespace vkrollercoaster {
         minor = (version >> minor_offset) & util::create_mask(major_offset - minor_offset);
         patch = version & util::create_mask(minor_offset);
     }
+
     queue_family_indices renderer::find_queue_families(VkPhysicalDevice device) {
         queue_family_indices indices;
         uint32_t queue_family_count = 0;
@@ -598,8 +688,10 @@ namespace vkrollercoaster {
         }
         return indices;
     }
+
     const sync_objects& renderer::get_sync_objects(size_t frame_index) {
         return renderer_data.frame_sync_objects[frame_index];
     }
+
     size_t renderer::get_current_frame() { return renderer_data.current_frame; }
 }; // namespace vkrollercoaster

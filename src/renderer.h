@@ -66,7 +66,9 @@ namespace vkrollercoaster {
         static void init(uint32_t vulkan_version = VK_API_VERSION_1_0);
         static void shutdown();
         static void new_frame();
-        static void render(ref<command_buffer> cmdbuffer, entity to_render);
+
+        static void render_entity(ref<command_buffer> cmdbuffer, entity to_render);
+        static void render_track(ref<command_buffer> cmdbuffer, entity track);
 
         static void add_ref();
         static void remove_ref();
