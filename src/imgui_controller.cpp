@@ -30,9 +30,13 @@ namespace vkrollercoaster {
         ref<input_manager> im;
         ref<swapchain> swap_chain;
         std::vector<ref<menu>> menus;
+
         uint32_t dependent_count = 0;
         bool should_shutdown = false;
         bool show_demo_window = false;
+
+        VkDescriptorPool descriptor_pool = nullptr;
+        VkPipelineCache pipeline_cache = nullptr;
     } imgui_data;
     static void set_style() {
         ImGuiStyle& style = ImGui::GetStyle();
@@ -92,6 +96,43 @@ namespace vkrollercoaster {
         style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.18f, 0.18f, 0.22f, 0.73f);
     }
+    static void create_imgui_vulkan_objects() {
+        VkDevice device = renderer::get_device();
+
+        // descriptor pool
+        {
+            VkDescriptorPoolCreateInfo create_info;
+            util::zero(create_info);
+            create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
+            static constexpr uint32_t max_sets = 1000;
+            VkDescriptorPoolSize pool_size;
+            pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            pool_size.descriptorCount = max_sets;
+
+            create_info.maxSets = max_sets;
+            create_info.pPoolSizes = &pool_size;
+            create_info.poolSizeCount = 1;
+
+            if (vkCreateDescriptorPool(device, &create_info, nullptr,
+                                       &imgui_data.descriptor_pool) != VK_SUCCESS) {
+                throw std::runtime_error("could not create imgui descriptor pool");
+            }
+        }
+
+        // pipeline cache
+        {
+            VkPipelineCacheCreateInfo create_info;
+            util::zero(create_info);
+            create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+
+            if (vkCreatePipelineCache(device, &create_info, nullptr, &imgui_data.pipeline_cache) !=
+                VK_SUCCESS) {
+                throw std::runtime_error("could not create imgui pipeline cache");
+            }
+        }
+    }
     void imgui_controller::init(ref<swapchain> _swapchain) {
         imgui_data.swap_chain = _swapchain;
         imgui_data.im = ref<input_manager>::create(_swapchain->get_window());
@@ -118,6 +159,9 @@ namespace vkrollercoaster {
         GLFWwindow* glfw_window = imgui_data.swap_chain->get_window()->get();
         ImGui_ImplGlfw_InitForVulkan(glfw_window, true);
 
+        // create vulkan objects specifically for use with imgui
+        create_imgui_vulkan_objects();
+
         // init vulkan (rendering) backend
         ImGui_ImplVulkan_InitInfo init_info;
         util::zero(init_info);
@@ -127,14 +171,15 @@ namespace vkrollercoaster {
         init_info.Device = renderer::get_device();
         init_info.QueueFamily = *renderer::find_queue_families(physical_device).graphics_family;
         init_info.Queue = renderer::get_graphics_queue();
-        init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = renderer::get_descriptor_pool();
+        init_info.PipelineCache = imgui_data.pipeline_cache;
+        init_info.DescriptorPool = imgui_data.descriptor_pool;
         init_info.ImageCount = imgui_data.swap_chain->get_swapchain_images().size();
 
         {
             VkSurfaceKHR surface = imgui_data.swap_chain->get_surface();
             VkSurfaceCapabilitiesKHR capabilities;
-            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(init_info.PhysicalDevice, surface, &capabilities);
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(init_info.PhysicalDevice, surface,
+                                                      &capabilities);
 
             init_info.MinImageCount = capabilities.minImageCount;
         }
@@ -157,10 +202,17 @@ namespace vkrollercoaster {
         imgui_data.menus.push_back(ref<viewport>::create());
     }
     static void shutdown_imgui() {
+        // shutdown imgui
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
+        // clean up imgui vulkan objects
+        VkDevice device = renderer::get_device();
+        vkDestroyPipelineCache(device, imgui_data.pipeline_cache, nullptr);
+        vkDestroyDescriptorPool(device, imgui_data.descriptor_pool, nullptr);
+
+        // allow renderer to be shut down
         imgui_data.swap_chain.reset();
         renderer::remove_ref();
     }
