@@ -48,8 +48,8 @@ namespace vkrollercoaster {
         const fs::path& get_path() { return this->m_path; }
 
     private:
-        void process_node(aiNode* node);
-        void process_mesh(aiMesh* mesh_, aiNode* node);
+        void process_node(aiNode* node, const void* parent_transform);
+        void process_mesh(aiMesh* mesh_, aiNode* node, const void* node_transform);
         void process_materials();
         fs::path get_resource_path(const aiString& ai_path);
 

@@ -15,12 +15,12 @@
 */
 
 #include "pch.h"
-#include "model.h"
-#include "util.h"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
+#include "model.h"
+#include "util.h"
 namespace vkrollercoaster {
     template <glm::length_t L, typename T>
     static glm::vec<L, float> convert(const T& assimp_vector) {
@@ -29,6 +29,18 @@ namespace vkrollercoaster {
             glm_vector[i] = assimp_vector[i];
         }
         return glm_vector;
+    }
+    static glm::mat4 convert(const aiMatrix4x4& value) {
+        glm::mat4 result;
+
+        // aiMatrix4x4 is row-major, however glm::mat4 is column-major
+        for (size_t row = 0; row < 4; row++) {
+            for (size_t col = 0; col < 4; col++) {
+                result[col][row] = value[row][col];
+            }
+        }
+
+        return result;
     }
     struct error_logstream : public Assimp::LogStream {
         virtual void write(const char* message) override {
@@ -73,35 +85,55 @@ namespace vkrollercoaster {
         }
         std::vector<ref<material>> materials;
         this->process_materials();
-        this->process_node(this->m_scene->mRootNode);
+        this->process_node(this->m_scene->mRootNode, nullptr);
 
         for (model* _model : this->m_created_models) {
             _model->acquire_mesh_data();
             _model->invalidate_buffers();
         }
     }
-    void model_source::process_node(aiNode* node) {
+    void model_source::process_node(aiNode* node, const void* parent_transform) {
+        aiMatrix4x4 accumulated;
+        if (parent_transform) {
+            accumulated = *(const aiMatrix4x4*)parent_transform;
+        }
+        aiMatrix4x4 transform = accumulated * node->mTransformation;
+
         for (size_t i = 0; i < node->mNumMeshes; i++) {
             aiMesh* mesh_ = this->m_scene->mMeshes[node->mMeshes[i]];
-            this->process_mesh(mesh_, node);
+            this->process_mesh(mesh_, node, &transform);
         }
+        
         for (size_t i = 0; i < node->mNumChildren; i++) {
             aiNode* child = node->mChildren[i];
-            this->process_node(child);
+            this->process_node(child, &transform);
         }
     }
-    void model_source::process_mesh(aiMesh* mesh_, aiNode* node) {
+    void model_source::process_mesh(aiMesh* mesh_, aiNode* node, const void* node_transform) {
         std::vector<vertex> vertices;
         std::vector<uint32_t> indices;
+
+        aiMatrix4x4 transform = *(const aiMatrix4x4*)node_transform;
+        aiMatrix3x3 normal_transform(transform);
+        normal_transform.Transpose();
+        normal_transform.Inverse();
+
         for (size_t i = 0; i < mesh_->mNumVertices; i++) {
             vertex v;
-            v.position = convert<3>(mesh_->mVertices[i]);
-            v.normal = convert<3>(mesh_->mNormals[i]);
+
+            // position
+            v.position = convert<3>(transform * mesh_->mVertices[i]);
+
+            // normal
+            v.normal = convert<3>(normal_transform * mesh_->mNormals[i]);
+
+            // uv coordinates
             if (mesh_->mTextureCoords[0] != nullptr) {
                 v.uv = convert<2>(mesh_->mTextureCoords[0][i]);
             } else {
                 v.uv = glm::vec2(0.f);
             }
+
             vertices.push_back(v);
         }
         for (size_t i = 0; i < mesh_->mNumFaces; i++) {
