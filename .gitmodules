@@ -28,3 +28,6 @@
 [submodule "vendor/VulkanMemoryAllocator"]
 	path = vendor/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "vendor/KTX-Software"]
+	path = vendor/KTX-Software
+	url = https://github.com/KhronosGroup/KTX-Software.git

@@ -26,6 +26,7 @@
 #define STBI_NO_SIMD
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <ktx.h>
 namespace vkrollercoaster {
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
                       VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
@@ -139,16 +140,44 @@ namespace vkrollercoaster {
     }
     bool image::load_image(const fs::path& path, image_data& data) {
         std::string string_path = path.string();
-        uint8_t* raw_data =
-            stbi_load(string_path.c_str(), &data.width, &data.height, &data.channels, 0);
-        if (!raw_data) {
-            return false;
+        if (path.extension() == ".ktx") {
+            ktxTexture* ktx_data;
+            if (ktxTexture_CreateFromNamedFile(string_path.c_str(),
+                                               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                               &ktx_data) != KTX_SUCCESS) {
+                return false;
+            }
+
+            size_t offset;
+            if (ktxTexture_GetImageOffset(ktx_data, 0, 0, 0, &offset) != KTX_SUCCESS) {
+                return false;
+            }
+
+            data.width = (int32_t)ktx_data->baseWidth;
+            data.height = (int32_t)ktx_data->baseHeight;
+            data.channels = (int32_t)(ktxTexture_GetRowPitch(ktx_data, 0) / ktx_data->baseWidth);
+
+            size_t data_size = (size_t)data.width * data.height * data.channels;
+            data.data.resize(data_size);
+
+            uint8_t* raw_data = ktxTexture_GetData(ktx_data) + offset;
+            if (raw_data != nullptr) {
+                memcpy(data.data.data(), raw_data, data_size);
+            }
+
+            ktxTexture_Destroy(ktx_data);
+        } else {
+            uint8_t* raw_data =
+                stbi_load(string_path.c_str(), &data.width, &data.height, &data.channels, 0);
+            if (!raw_data) {
+                return false;
+            }
+            size_t byte_count = (size_t)data.width * data.height * data.channels;
+            data.data.resize(byte_count);
+            // probably shouldnt use memcpy
+            memcpy(data.data.data(), raw_data, byte_count * sizeof(uint8_t));
+            stbi_image_free(raw_data);
         }
-        size_t byte_count = (size_t)data.width * data.height * data.channels;
-        data.data.resize(byte_count);
-        // probably shouldnt use memcpy
-        memcpy(data.data.data(), raw_data, byte_count * sizeof(uint8_t));
-        stbi_image_free(raw_data);
         return true;
     }
     ref<image> image::from_file(const fs::path& path) {
