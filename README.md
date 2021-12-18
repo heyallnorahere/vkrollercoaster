@@ -15,8 +15,7 @@ All other dependencies can be synced with the command `git submodule update --in
 
 ### Windows
 ```bash
-# the "$(...)" expressions only work in bash
-cmake . -B build -G "Visual Studio 16 2019" $(python3 scripts/cmake_options.py)
+cmake --preset default -G "Visual Studio 16 2019"
 ```
 
 Launch Visual Studio with the sln in `build`. Change the default project to `vkrollercoaster` and click the "Local Windows Debugger" button at the top of the window to build and launch.
@@ -27,7 +26,7 @@ Launch Visual Studio with the sln in `build`. Change the default project to `vkr
 CONFIGURATION=Debug
 
 # configure the project
-cmake . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=$CONFIGURATION $(python3 scripts/cmake_options.py)
+cmake --preset default -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=$CONFIGURATION
 
 # build
 cmake --build build -j 8

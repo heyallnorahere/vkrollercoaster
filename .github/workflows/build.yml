@@ -37,5 +37,5 @@ jobs:
       - name: build
         shell: bash
         run: |
-          cmake . -B build -DCMAKE_BUILD_TYPE=Release $(python scripts/cmake_options.py)
+          cmake --preset default -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j 8
