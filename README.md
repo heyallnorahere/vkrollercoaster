@@ -7,7 +7,7 @@ A roller coaster in C++17 and Vulkan.
 - [Python 3](https://www.python.org/)
 - [Vulkan](https://www.vulkan.org/)
 - [CMake](https://www.cmake.org/)
-- [Visual Studio 2019](https://visualstudio.microsoft.com/) (on Windows)
+- [Visual Studio 2019/2022](https://visualstudio.microsoft.com/) (on Windows)
 
 All other dependencies can be synced with the command `git submodule update --init --recursive`.
 
@@ -15,7 +15,7 @@ All other dependencies can be synced with the command `git submodule update --in
 
 ### Windows
 ```bash
-cmake --preset default -G "Visual Studio 16 2019"
+cmake --preset default
 ```
 
 Launch Visual Studio with the sln in `build`. Change the default project to `vkrollercoaster` and click the "Local Windows Debugger" button at the top of the window to build and launch.
@@ -26,10 +26,10 @@ Launch Visual Studio with the sln in `build`. Change the default project to `vkr
 CONFIGURATION=Debug
 
 # configure the project
-cmake --preset default -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=$CONFIGURATION
+cmake --preset default -DCMAKE_BUILD_TYPE=$CONFIGURATION
 
 # build
-cmake --build build -j 8
+cmake --build build -j 8 -t vkrollercoaster
 ```
 
 To run, launch `build/src/vkrollercoaster` from the root directory of the project, so that it can access `assets/`.

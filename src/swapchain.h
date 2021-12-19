@@ -56,7 +56,7 @@ namespace vkrollercoaster {
         }
         uint32_t get_current_image() { return this->m_current_image; }
         ref<window> get_window() { return this->m_window; }
-        ref<image> get_depth_image() { return this->m_depth_image; }
+        ref<image2d> get_depth_image() { return this->m_depth_image; }
 
     private:
         struct swapchain_dependent {
@@ -75,7 +75,7 @@ namespace vkrollercoaster {
         VkFormat m_image_format;
         VkExtent2D m_extent;
         VkRenderPass m_render_pass;
-        ref<image> m_depth_image;
+        ref<image2d> m_depth_image;
         std::vector<swapchain_image> m_swapchain_images;
         uint32_t m_present_family;
         std::map<void*, swapchain_dependent> m_dependents;

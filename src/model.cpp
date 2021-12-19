@@ -175,7 +175,7 @@ namespace vkrollercoaster {
             // albedo map
             if (ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &ai_string) == aiReturn_SUCCESS) {
                 auto path = this->get_resource_path(ai_string);
-                auto img = image::from_file(path);
+                auto img = image2d::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
                     _material->set_texture("albedo_texture", tex);
@@ -186,7 +186,7 @@ namespace vkrollercoaster {
             if (ai_material->GetTexture(aiTextureType_SPECULAR, 0, &ai_string) ==
                 aiReturn_SUCCESS) {
                 auto path = this->get_resource_path(ai_string);
-                auto img = image::from_file(path);
+                auto img = image2d::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
                     _material->set_texture("specular_texture", tex);

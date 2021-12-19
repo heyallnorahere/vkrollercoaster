@@ -422,7 +422,7 @@ namespace vkrollercoaster {
         white_data.data.resize(channels, 255);
         white_data.channels = channels;
         white_data.width = white_data.height = 1;
-        renderer_data.white_texture = ref<texture>::create(ref<image>::create(white_data));
+        renderer_data.white_texture = ref<texture>::create(ref<image2d>::create(white_data));
 
         renderer_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(camera_buffer_data));
     }

@@ -74,15 +74,15 @@ namespace vkrollercoaster {
         }
     }
 
-    ref<image> framebuffer::get_attachment(attachment_type type) {
-        ref<image> attachment;
+    ref<image2d> framebuffer::get_attachment(attachment_type type) {
+        ref<image2d> attachment;
         if (this->m_attachments.find(type) != this->m_attachments.end()) {
             attachment = this->m_attachments[type];
         }
         return attachment;
     }
 
-    void framebuffer::set_attachment(attachment_type type, ref<image> attachment) {
+    void framebuffer::set_attachment(attachment_type type, ref<image2d> attachment) {
         bool recreate = false;
         if (this->m_framebuffer) {
             this->destroy_framebuffer();
@@ -139,8 +139,8 @@ namespace vkrollercoaster {
                 break;
             }
 
-            ref<image> attachment =
-                ref<image>::create(format, spec.width, spec.height, usage, image_aspect);
+            ref<image2d> attachment =
+                ref<image2d>::create(format, spec.width, spec.height, usage, image_aspect);
             this->m_attachments[type] = attachment;
         }
     }

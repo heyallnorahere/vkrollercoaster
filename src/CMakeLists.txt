@@ -30,6 +30,7 @@ endif()
 set_target_properties(vkrollercoaster PROPERTIES CXX_STANDARD 17)
 
 if(MSVC)
+    source_group("Shaders" FILES ${VKROLLERCOASTER_SHADERS})
     set_target_properties(vkrollercoaster PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     set_source_files_properties(${VKROLLERCOASTER_SHADERS} PROPERTIES VS_TOOL_OVERRIDE "None")
 endif()

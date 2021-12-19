@@ -18,9 +18,9 @@
 #include "allocator.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_IMAGE_UTILS
-    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
-                      VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
-                      VkImage& image, VmaAllocation& allocation);
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, uint32_t depth,
+                      VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                      VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation);
     void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
                                  VkImageAspectFlags image_aspect);
 #endif
@@ -31,17 +31,17 @@ namespace vkrollercoaster {
     };
 
     class texture;
-    class image : public ref_counted {
+    class image2d : public ref_counted {
     public:
         static bool load_image(const fs::path& path, image_data& data);
-        static ref<image> from_file(const fs::path& path);
+        static ref<image2d> from_file(const fs::path& path);
 
-        image(const image_data& data);
-        image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
+        image2d(const image_data& data);
+        image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
               VkImageAspectFlags image_aspect);
-        ~image();
-        image(const image&) = delete;
-        image& operator=(const image&) = delete;
+        ~image2d();
+        image2d(const image2d&) = delete;
+        image2d& operator=(const image2d&) = delete;
 
         void transition(VkImageLayout new_layout);
         VkFormat get_format() { return this->m_format; }

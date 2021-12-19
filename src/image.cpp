@@ -28,9 +28,9 @@
 #include <stb_image.h>
 #include <ktx.h>
 namespace vkrollercoaster {
-    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, VkFormat format,
-                      VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
-                      VkImage& image, VmaAllocation& allocation) {
+    void create_image(const allocator& _allocator, uint32_t width, uint32_t height, uint32_t depth,
+                      VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                      VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation) {
         VkDevice device = renderer::get_device();
         VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkImageCreateInfo create_info;
@@ -38,9 +38,9 @@ namespace vkrollercoaster {
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         create_info.imageType =
             VK_IMAGE_TYPE_2D; // ill change this if/when i allow settings to be passed
-        create_info.extent.width = (uint32_t)width;
-        create_info.extent.height = (uint32_t)height;
-        create_info.extent.depth = 1;
+        create_info.extent.width = width;
+        create_info.extent.height = height;
+        create_info.extent.depth = depth;
         create_info.mipLevels = 1;
         create_info.arrayLayers = 1;
         create_info.format = format;
@@ -138,7 +138,7 @@ namespace vkrollercoaster {
         cmdbuffer->end();
         cmdbuffer->submit();
     }
-    bool image::load_image(const fs::path& path, image_data& data) {
+    bool image2d::load_image(const fs::path& path, image_data& data) {
         std::string string_path = path.string();
         if (path.extension() == ".ktx") {
             ktxTexture* ktx_data;
@@ -180,51 +180,51 @@ namespace vkrollercoaster {
         }
         return true;
     }
-    ref<image> image::from_file(const fs::path& path) {
-        ref<image> created_image;
+    ref<image2d> image2d::from_file(const fs::path& path) {
+        ref<image2d> created_image;
         image_data data;
         if (load_image(path, data)) {
-            created_image = ref<image>::create(data);
+            created_image = ref<image2d>::create(data);
         }
         return created_image;
     }
-    image::image(const image_data& data) {
+    image2d::image2d(const image_data& data) {
         renderer::add_ref();
         this->init_basic();
         this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
         this->create_image_from_data(data);
         this->create_view();
     }
-    image::image(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
+    image2d::image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
                  VkImageAspectFlags aspect) {
         // only use this constructor for internal things such as depth buffering
         renderer::add_ref();
         this->init_basic();
         this->m_format = format;
         this->m_aspect = aspect;
-        create_image(this->m_allocator, width, height, this->m_format, VK_IMAGE_TILING_OPTIMAL,
+        create_image(this->m_allocator, width, height, 1, this->m_format, VK_IMAGE_TILING_OPTIMAL,
                      usage, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
         this->transition(VK_IMAGE_LAYOUT_GENERAL);
         this->create_view();
     }
-    image::~image() {
+    image2d::~image2d() {
         VkDevice device = renderer::get_device();
         vkDestroyImageView(device, this->m_view, nullptr);
         this->m_allocator.free(this->m_image, this->m_allocation);
         renderer::remove_ref();
     }
-    void image::transition(VkImageLayout new_layout) {
+    void image2d::transition(VkImageLayout new_layout) {
         transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect);
         this->m_layout = new_layout;
         for (texture* tex : this->m_dependents) {
             tex->update_imgui_texture();
         }
     }
-    void image::init_basic() {
+    void image2d::init_basic() {
         this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         this->m_allocator.set_source("image");
     }
-    void image::create_image_from_data(const image_data& data) {
+    void image2d::create_image_from_data(const image_data& data) {
         switch (data.channels) {
         case 4:
             this->m_format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -245,7 +245,7 @@ namespace vkrollercoaster {
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data.data.data(), total_size);
         this->m_allocator.unmap(staging_allocation);
-        create_image(this->m_allocator, data.width, data.height, this->m_format,
+        create_image(this->m_allocator, data.width, data.height, 1, this->m_format,
                      VK_IMAGE_TILING_OPTIMAL,
                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                      VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
@@ -256,7 +256,7 @@ namespace vkrollercoaster {
 
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
-    void image::create_view() {
+    void image2d::create_view() {
         VkImageViewCreateInfo create_info;
         util::zero(create_info);
 

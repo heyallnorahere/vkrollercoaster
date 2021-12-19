@@ -36,7 +36,7 @@ namespace vkrollercoaster {
         spec.height = swapchain_extent.height;
 
         // we want both a color and depth attachment
-        ref<image> swapchain_depth_image = swap_chain->get_depth_image();
+        ref<image2d> swapchain_depth_image = swap_chain->get_depth_image();
         spec.requested_attachments[attachment_type::color] = swap_chain->get_image_format();
         spec.requested_attachments[attachment_type::depth_stencil] =
             swapchain_depth_image->get_format();
@@ -97,7 +97,7 @@ namespace vkrollercoaster {
         // we don't want ImGui to access a destroyed descriptor set
         this->m_previous_color_attachment = this->m_color_attachment;
 
-        ref<image> attachment = this->m_framebuffer->get_attachment(attachment_type::color);
+        ref<image2d> attachment = this->m_framebuffer->get_attachment(attachment_type::color);
         this->m_color_attachment = ref<texture>::create(attachment, false);
     }
 } // namespace vkrollercoaster

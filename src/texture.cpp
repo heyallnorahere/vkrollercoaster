@@ -21,7 +21,7 @@
 #include "imgui_controller.h"
 #include <backends/imgui_impl_vulkan.h>
 namespace vkrollercoaster {
-    texture::texture(ref<image> _image, bool transition_layout) {
+    texture::texture(ref<image2d> _image, bool transition_layout) {
         renderer::add_ref();
         this->m_image = _image;
 

@@ -309,7 +309,7 @@ namespace vkrollercoaster {
         }
 
         this->m_depth_image =
-            ref<image>::create(depth_format, this->m_extent.width, this->m_extent.height,
+            ref<image2d>::create(depth_format, this->m_extent.width, this->m_extent.height,
                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, image_aspect);
         this->m_depth_image->transition(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     }
