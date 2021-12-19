@@ -97,6 +97,12 @@ namespace vkrollercoaster {
     };
     class shader_library {
     public:
+        struct callbacks_t {
+            std::function<void(const std::string&)> on_added;
+            std::function<void(const std::string&, ref<shader>)> on_removed;
+        };
+
+        static bool add(const std::string& name, ref<shader> _shader);
         static ref<shader> add(const std::string& name);
         static ref<shader> add(const std::string& name, const fs::path& path) {
             ref<shader> _shader;
@@ -106,11 +112,15 @@ namespace vkrollercoaster {
             }
             return _shader;
         }
-        static bool add(const std::string& name, ref<shader> _shader);
+
         static bool remove(const std::string& name);
         static ref<shader> get(const std::string& name);
+
         static void get_names(std::vector<std::string>& names);
         static void clear();
+
+        static void add_callbacks(void* identifier, const callbacks_t& callbacks);
+        static void remove_callbacks(void* identifier);
 
     private:
         shader_library() = default;

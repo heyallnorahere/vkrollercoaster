@@ -89,6 +89,16 @@ namespace vkrollercoaster {
         }
 
     private:
+        virtual void on_added() override {
+            auto& transform = this->get_component<transform_component>();
+            transform.translation = glm::vec3(0.f, 0.f, -2.5f);
+
+            if (!this->has_component<camera_component>()) {
+                this->add_component<camera_component>();
+            }
+            auto& camera = this->get_component<camera_component>();
+            camera.primary = true;
+        }
         virtual void on_enable() override { this->m_input_manager->disable_cursor(); }
         virtual void on_disable() override { this->m_input_manager->enable_cursor(); }
         ref<input_manager> m_input_manager;
@@ -156,11 +166,9 @@ namespace vkrollercoaster {
         // create scene and player
         app_data->global_scene = ref<scene>::create();
         {
-            entity player = app_data->global_scene->create("player");
-            auto& transform = player.get_component<transform_component>();
-            transform.translation = glm::vec3(0.f, 0.f, -2.5f);
-            player.add_component<camera_component>().primary = true;
-            player.add_component<script_component>().bind<player_behavior>();
+            entity player = app_data->global_scene->create("Player");
+            auto& scripts = player.add_component<script_component>();
+            scripts.bind<player_behavior>();
         }
     }
 

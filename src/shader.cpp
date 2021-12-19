@@ -111,7 +111,7 @@ namespace vkrollercoaster {
                 requesting_path = fs::absolute(requesting_path);
             }
             if (type != shaderc_include_type_standard) {
-                requested_path = requesting_path.parent_path() / requested_path;                
+                requested_path = requesting_path.parent_path() / requested_path;
             }
 
             // read data
@@ -216,7 +216,8 @@ namespace vkrollercoaster {
             std::string path = this->m_path.string();
             auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-                throw std::runtime_error("could not compile " + stage_name + " shader: " + result.GetErrorMessage());
+                throw std::runtime_error("could not compile " + stage_name +
+                                         " shader: " + result.GetErrorMessage());
             }
             spirv[stage] = std::vector<uint32_t>(result.cbegin(), result.cend());
         }
@@ -483,7 +484,10 @@ namespace vkrollercoaster {
         this->inputs.clear();
         this->outputs.clear();
     }
-    static std::unordered_map<std::string, ref<shader>> library;
+    static struct {
+        std::unordered_map<std::string, ref<shader>> library;
+        std::unordered_map<void*, shader_library::callbacks_t> callbacks;
+    } library_data;
     ref<shader> shader_library::add(const std::string& name) {
         std::string base_path = "assets/shaders/" + name;
         std::optional<fs::path> shader_path;
@@ -503,34 +507,68 @@ namespace vkrollercoaster {
         return _shader;
     }
     bool shader_library::add(const std::string& name, ref<shader> _shader) {
-        if (library.find(name) != library.end()) {
+        if (library_data.library.find(name) != library_data.library.end()) {
             return false;
         }
         if (!_shader) {
             return false;
         }
-        library.insert(std::make_pair(name, _shader));
+
+        library_data.library.insert(std::make_pair(name, _shader));
+        for (const auto& [id, callbacks] : library_data.callbacks) {
+            callbacks.on_added(name);
+        }
+
         return true;
     }
     bool shader_library::remove(const std::string& name) {
-        if (library.find(name) == library.end()) {
+        if (library_data.library.find(name) == library_data.library.end()) {
             return false;
         }
-        library.erase(name);
+
+        ref<shader> _shader = library_data.library[name];
+        library_data.library.erase(name);
+        for (const auto& [id, callbacks] : library_data.callbacks) {
+            callbacks.on_removed(name, _shader);
+        }
+
         return true;
     }
     ref<shader> shader_library::get(const std::string& name) {
         ref<shader> _shader;
-        if (library.find(name) != library.end()) {
-            _shader = library[name];
+        if (library_data.library.find(name) != library_data.library.end()) {
+            _shader = library_data.library[name];
         }
         return _shader;
     }
     void shader_library::get_names(std::vector<std::string>& names) {
         names.clear();
-        for (const auto& [name, _shader] : library) {
+        for (const auto& [name, _shader] : library_data.library) {
             names.push_back(name);
         }
     }
-    void shader_library::clear() { library.clear(); }
+    void shader_library::clear() {
+        auto shaders = library_data.library;
+        library_data.library.clear();
+
+        for (const auto& [id, callbacks] : library_data.callbacks) {
+            for (const auto& [name, _shader] : shaders) {
+                callbacks.on_removed(name, _shader);
+            }
+        }
+    }
+    void shader_library::add_callbacks(void* identifier, const callbacks_t& callbacks) {
+        if (library_data.callbacks.find(identifier) != library_data.callbacks.end()) {
+            throw std::runtime_error("the passed identifier already exists!");
+        }
+
+        library_data.callbacks.insert(std::make_pair(identifier, callbacks));
+    }
+    void shader_library::remove_callbacks(void* identifier) {
+        if (library_data.callbacks.find(identifier) == library_data.callbacks.end()) {
+            return;
+        }
+
+        library_data.callbacks.erase(identifier);
+    }
 } // namespace vkrollercoaster

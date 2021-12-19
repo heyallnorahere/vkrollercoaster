@@ -23,24 +23,41 @@ namespace vkrollercoaster {
         ref<uniform_buffer> buffer;
         uint32_t set, binding;
     };
-    static struct { std::unordered_map<std::string, light_buffer_data> buffers; } light_data;
+    static struct {
+        std::unordered_map<std::string, light_buffer_data> buffers;
+        void* callback_identifier = nullptr;
+    } light_data;
+    static void add_shader_buffer(const std::string& name) {
+        auto _shader = shader_library::get(name);
+        auto& reflection_data = _shader->get_reflection_data();
+        light_buffer_data buffer_data;
+        if (!reflection_data.find_resource("light_data", buffer_data.set, buffer_data.binding)) {
+            spdlog::warn("shader {0} does not have a light buffer", name);
+            return;
+        }
+        buffer_data.buffer =
+            uniform_buffer::from_shader_data(_shader, buffer_data.set, buffer_data.binding);
+        light_data.buffers.insert(std::make_pair(name, buffer_data));
+    }
     void light::init() {
         std::vector<std::string> shader_names;
         shader_library::get_names(shader_names);
         for (const auto& shader_name : shader_names) {
-            auto _shader = shader_library::get(shader_name);
-            auto& reflection_data = _shader->get_reflection_data();
-            light_buffer_data buffer_data;
-            if (!reflection_data.find_resource("light_data", buffer_data.set,
-                                               buffer_data.binding)) {
-                continue;
-            }
-            buffer_data.buffer =
-                uniform_buffer::from_shader_data(_shader, buffer_data.set, buffer_data.binding);
-            light_data.buffers.insert(std::make_pair(shader_name, buffer_data));
+            add_shader_buffer(shader_name);
         }
+
+        light_data.callback_identifier = &light_data;
+        shader_library::callbacks_t callbacks;
+        callbacks.on_added = [](const std::string& name) { add_shader_buffer(name); };
+        callbacks.on_removed = [](const std::string& name, ref<shader> _shader) {
+            light_data.buffers.erase(name);
+        };
+        shader_library::add_callbacks(light_data.callback_identifier, callbacks);
     }
-    void light::shutdown() { light_data.buffers.clear(); }
+    void light::shutdown() {
+        shader_library::remove_callbacks(light_data.callback_identifier);
+        light_data.buffers.clear();
+    }
     ref<uniform_buffer> light::get_buffer(const std::string& shader_name) {
         ref<uniform_buffer> buffer;
         if (light_data.buffers.find(shader_name) != light_data.buffers.end()) {
