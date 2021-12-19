@@ -193,29 +193,35 @@ namespace vkrollercoaster {
                 }
             }
 
-            // shininess and opacity
-            float shininess, opacity;
-            if (ai_material->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS) {
-                shininess = 80.f;
-            }
+            // opacity
+            float opacity;
             if (ai_material->Get(AI_MATKEY_OPACITY, opacity) != aiReturn_SUCCESS) {
                 opacity = 1.f;
             }
-            _material->set_data("shininess", shininess);
             _material->set_data("opacity", opacity);
 
-            // albedo and specular colors
+            // roughness, metallic, specular
+            float roughness, metallic, specular;
+            if (ai_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS) {
+                roughness = 0.5f;
+            }
+            if (ai_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) != aiReturn_SUCCESS) {
+                metallic = 0.5f;
+            }
+            if (ai_material->Get(AI_MATKEY_SPECULAR_FACTOR, specular) != aiReturn_SUCCESS) {
+                specular = 0.5f;
+            }
+            _material->set_data("roughness", roughness);
+            _material->set_data("metallic", metallic);
+            _material->set_data("specular", specular);
+
+            // albedo color
             glm::vec3 albedo_color = glm::vec3(1.f);
-            glm::vec3 specular_color = glm::vec3(1.f);
             aiColor3D ai_color;
             if (ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, ai_color) == aiReturn_SUCCESS) {
                 albedo_color = convert<3>(ai_color);
             }
-            if (ai_material->Get(AI_MATKEY_COLOR_SPECULAR, ai_color) == aiReturn_SUCCESS) {
-                specular_color = convert<3>(ai_color);
-            }
             _material->set_data("albedo_color", albedo_color);
-            _material->set_data("specular_color", specular_color);
 
             this->m_materials.push_back(_material);
         }

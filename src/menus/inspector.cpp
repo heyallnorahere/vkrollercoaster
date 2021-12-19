@@ -200,25 +200,32 @@ namespace vkrollercoaster {
                 model_material->set_data("albedo_color", color);
             }
 
-            ref_color = model_material->get_data<glm::vec3>("specular_color");
-            color = ref_color;
-            ImGui::ColorEdit3("Specular color", &color.x);
-            if (glm::length(color - ref_color) > 0.01f) {
-                model_material->set_data("specular_color", color);
-            }
-
-            const float ref_shininess = model_material->get_data<float>("shininess");
-            float shininess = ref_shininess;
-            ImGui::SliderFloat("Shininess", &shininess, 0.f, 360.f);
-            if (glm::abs(shininess - ref_shininess) > 0.001f) {
-                model_material->set_data("shininess", shininess);
-            }
-
             const float ref_opacity = model_material->get_data<float>("opacity");
             float opacity = ref_opacity;
             ImGui::SliderFloat("Opacity", &opacity, 0.f, 1.f);
             if (glm::abs(opacity - ref_opacity) > 0.001f) {
                 model_material->set_data("opacity", opacity);
+            }
+
+            const float ref_roughness = model_material->get_data<float>("roughness");
+            float roughness = ref_roughness;
+            ImGui::SliderFloat("Roughness", &roughness, 0.005f, 1.f);
+            if (glm::abs(roughness - ref_roughness) > 0.001f) {
+                model_material->set_data("roughness", roughness);
+            }
+
+            const float ref_metallic = model_material->get_data<float>("metallic");
+            float metallic = ref_metallic;
+            ImGui::SliderFloat("Metallic", &metallic, 0.005f, 1.f);
+            if (glm::abs(metallic - ref_metallic) > 0.001f) {
+                model_material->set_data("metallic", metallic);
+            }
+
+            const float ref_specular = model_material->get_data<float>("specular");
+            float specular = ref_specular;
+            ImGui::SliderFloat("Specular", &specular, 0.005f, 1.f);
+            if (glm::abs(specular - ref_specular) > 0.001f) {
+                model_material->set_data("specular", specular);
             }
         } else {
             static std::string model_path;

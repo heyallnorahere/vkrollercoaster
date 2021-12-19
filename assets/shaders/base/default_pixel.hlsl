@@ -54,8 +54,9 @@ struct light_data_t {
 
 // material data
 struct material_data_t {
-    float shininess, opacity;
-    float3 albedo_color, specular_color;
+    float specular, metallic, roughness;
+    float opacity;
+    float3 albedo_color;
 };
 [[vk::binding(1, 1)]] ConstantBuffer<material_data_t> material_data;
 
@@ -74,11 +75,13 @@ color_data_t get_color_data(float2 uv) {
     color_data_t data;
 
     data.albedo = albedo_texture.Sample(albedo_sampler, uv).rgb * material_data.albedo_color;
-    data.specular = specular_texture.Sample(specular_sampler, uv).rgb * material_data.specular_color;
+    data.specular = specular_texture.Sample(specular_sampler, uv).rgb * material_data.specular;
 
     return data;
 }
 
+
+//=== obsolete lighting ====
 float calculate_attenuation(attenuation_settings attenuation, float3 light_position, ps_input stage_input) {
     float distance_ = length(light_position - stage_input.fragment_position);
     float distance_2 = distance_ * distance_;
@@ -88,7 +91,7 @@ float calculate_attenuation(attenuation_settings attenuation, float3 light_posit
 float calculate_specular(float3 light_direction, ps_input stage_input) {
     float3 view_direction = normalize(stage_input.camera_position - stage_input.fragment_position);
     float3 reflect_direction = reflect(-light_direction, stage_input.normal);
-    return pow(max(dot(view_direction, reflect_direction), 0.f), material_data.shininess);
+    return pow(max(dot(view_direction, reflect_direction), 0.f), 32.f); // shininess replaced with 32 because im working on making pbr happen
 }
 float calculate_diffuse(float3 light_direction, ps_input stage_input) {
     return max(dot(stage_input.normal, light_direction), 0.f);

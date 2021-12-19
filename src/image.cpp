@@ -349,7 +349,7 @@ namespace vkrollercoaster {
             std::string string_path = ktx_path.string();
             if (ktxTexture_CreateFromNamedFile(string_path.c_str(),
                                                KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                               &ktx_data) != VK_SUCCESS) {
+                                               &ktx_data) != KTX_SUCCESS) {
                 throw std::runtime_error("could not load cube map!");
             }
 
