@@ -32,7 +32,6 @@ namespace vkrollercoaster {
         auto& reflection_data = _shader->get_reflection_data();
         light_buffer_data buffer_data;
         if (!reflection_data.find_resource("light_data", buffer_data.set, buffer_data.binding)) {
-            spdlog::warn("shader {0} does not have a light buffer", name);
             return;
         }
         buffer_data.buffer =

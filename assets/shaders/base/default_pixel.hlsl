@@ -133,7 +133,7 @@ float3 calculate_directional_light(int index, color_data_t color_data, ps_input 
     return float3(0.f);
 }
 
-float4 main(ps_input input) {
+float4 main(ps_input input) : SV_TARGET {
     color_data_t color_data = get_color_data(input.uv);
     float3 fragment_color = float3(0.f);
     for (int i = 0; i < light_data.spotlight_count; i++) {

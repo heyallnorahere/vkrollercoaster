@@ -145,6 +145,14 @@ namespace vkrollercoaster {
         cmdbuffer->end();
     }
 
+    static void load_shaders() {
+        // standard rendering shaders
+        shader_library::add("default_static");
+
+        // pbr shaders
+        shader_library::add("skybox");
+    }
+
     void application::init() {
         app_data = std::make_unique<app_data_t>();
 
@@ -157,8 +165,8 @@ namespace vkrollercoaster {
         app_data->swap_chain = ref<swapchain>::create(app_data->app_window);
         imgui_controller::init(app_data->swap_chain);
 
-        // load shader
-        shader_library::add("default_static");
+        // load shaders
+        load_shaders();
 
         // create light uniform buffers
         light::init();
