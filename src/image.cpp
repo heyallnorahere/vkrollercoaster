@@ -28,16 +28,27 @@
 #include <stb_image.h>
 #include <ktx.h>
 namespace vkrollercoaster {
+    static void get_sharing_mode(VkImageCreateInfo& create_info) {
+        VkPhysicalDevice physical_device = renderer::get_physical_device();
+        auto indices = renderer::find_queue_families(physical_device).create_set();
+        std::vector<uint32_t> unique_indices(indices.begin(), indices.end());
+        if (unique_indices.size() > 1) {
+            create_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+            create_info.pQueueFamilyIndices = unique_indices.data();
+            create_info.queueFamilyIndexCount = unique_indices.size();
+        } else {
+            create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+    }
+
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, uint32_t depth,
                       VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                       VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation) {
         VkDevice device = renderer::get_device();
-        VkPhysicalDevice physical_device = renderer::get_physical_device();
         VkImageCreateInfo create_info;
         util::zero(create_info);
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        create_info.imageType =
-            VK_IMAGE_TYPE_2D; // ill change this if/when i allow settings to be passed
+        create_info.imageType = VK_IMAGE_TYPE_2D;
         create_info.extent.width = width;
         create_info.extent.height = height;
         create_info.extent.depth = depth;
@@ -48,16 +59,7 @@ namespace vkrollercoaster {
         create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         create_info.usage = usage;
         create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-
-        auto indices = renderer::find_queue_families(physical_device).create_set();
-        std::vector<uint32_t> unique_indices(indices.begin(), indices.end());
-        if (unique_indices.size() > 1) {
-            create_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
-            create_info.pQueueFamilyIndices = unique_indices.data();
-            create_info.queueFamilyIndexCount = unique_indices.size();
-        } else {
-            create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
+        get_sharing_mode(create_info);
 
         _allocator.alloc(create_info, memory_usage, image, allocation);
     }
@@ -96,50 +98,67 @@ namespace vkrollercoaster {
     }
 
     void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
-                                 VkImageAspectFlags image_aspect) {
+                                 VkImageAspectFlags image_aspect, uint32_t layer_count,
+                                 ref<command_buffer> cmdbuffer) {
         VkImageMemoryBarrier barrier;
         util::zero(barrier);
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
         barrier.image = image;
+
         barrier.oldLayout = old_layout;
         barrier.newLayout = new_layout;
+
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
         barrier.subresourceRange.aspectMask = image_aspect;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.layerCount = layer_count;
+
         VkPipelineStageFlags source_stage, destination_stage;
         get_stage_and_mask(old_layout, source_stage, barrier.srcAccessMask);
         get_stage_and_mask(new_layout, destination_stage, barrier.dstAccessMask);
-        auto cmdbuffer = renderer::create_single_time_command_buffer();
-        cmdbuffer->begin();
-        vkCmdPipelineBarrier(cmdbuffer->get(), source_stage, destination_stage, 0, 0, nullptr, 0,
+
+        ref<command_buffer> copy_buffer;
+        if (cmdbuffer) {
+            copy_buffer = cmdbuffer;
+        } else {
+            copy_buffer = renderer::create_single_time_command_buffer();
+            copy_buffer->begin();
+        }
+
+        vkCmdPipelineBarrier(copy_buffer->get(), source_stage, destination_stage, 0, 0, nullptr, 0,
                              nullptr, 1, &barrier);
-        cmdbuffer->end();
-        cmdbuffer->submit();
+
+        if (!cmdbuffer) {
+            copy_buffer->end();
+            copy_buffer->submit();
+        }
     }
 
     static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
-                                     uint32_t height) {
+                                     uint32_t height, uint32_t depth,
+                                     ref<command_buffer> cmdbuffer) {
         VkBufferImageCopy region;
         util::zero(region);
+
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
+
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.imageSubresource.mipLevel = 0;
         region.imageSubresource.baseArrayLayer = 0;
         region.imageSubresource.layerCount = 1;
+
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = { width, height, 1 };
-        auto cmdbuffer = renderer::create_single_time_command_buffer();
-        cmdbuffer->begin();
+        region.imageExtent = { width, height, depth };
+
         vkCmdCopyBufferToImage(cmdbuffer->get(), buffer, image,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        cmdbuffer->end();
-        cmdbuffer->submit();
     }
 
     void image::update_dependent_imgui_textures() {
@@ -149,6 +168,10 @@ namespace vkrollercoaster {
     }
 
     bool image2d::load_image(const fs::path& path, image_data& data) {
+        if (!fs::exists(path)) {
+            return false;
+        }
+
         std::string string_path = path.string();
         if (path.extension() == ".ktx") {
             ktxTexture* ktx_data;
@@ -209,7 +232,7 @@ namespace vkrollercoaster {
     }
 
     image2d::image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
-                 VkImageAspectFlags aspect) {
+                     VkImageAspectFlags aspect) {
         // only use this constructor for internal things such as depth buffering
         renderer::add_ref();
         this->init_basic();
@@ -229,14 +252,14 @@ namespace vkrollercoaster {
     }
 
     void image2d::transition(VkImageLayout new_layout) {
-        transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect);
+        transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect, 1);
         this->m_layout = new_layout;
         this->update_dependent_imgui_textures();
     }
 
     void image2d::init_basic() {
         this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-        this->m_allocator.set_source("image");
+        this->m_allocator.set_source("image2d");
     }
 
     void image2d::create_image_from_data(const image_data& data) {
@@ -265,9 +288,22 @@ namespace vkrollercoaster {
                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                      VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
 
-        this->transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height);
-        this->transition(VK_IMAGE_LAYOUT_GENERAL);
+        static constexpr VkImageLayout intermediate_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        static constexpr VkImageLayout final_layout = VK_IMAGE_LAYOUT_GENERAL;
+
+        auto cmdbuffer = renderer::create_single_time_command_buffer();
+        cmdbuffer->begin();
+
+        transition_image_layout(this->m_image, this->m_layout, intermediate_layout, this->m_aspect,
+                                1, cmdbuffer);
+        copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height, 1, cmdbuffer);
+        transition_image_layout(this->m_image, intermediate_layout, final_layout, this->m_aspect, 1,
+                                cmdbuffer);
+
+        cmdbuffer->end();
+        cmdbuffer->submit();
+        cmdbuffer->wait();
+        this->m_layout = final_layout;
 
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
@@ -290,6 +326,191 @@ namespace vkrollercoaster {
         VkDevice device = renderer::get_device();
         if (vkCreateImageView(device, &create_info, nullptr, &this->m_view) != VK_SUCCESS) {
             throw std::runtime_error("could not create image view!");
+        }
+    }
+
+    static constexpr uint32_t cube_face_count = 6;
+
+    image_cube::image_cube(const fs::path& ktx_path) {
+        renderer::add_ref();
+        this->init_basic();
+        this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+        this->m_format = VK_FORMAT_R8G8B8A8_UINT;
+
+        {
+            if (ktx_path.extension() != ".ktx") {
+                throw std::runtime_error("the provided image was not in .ktx format!");
+            }
+            if (!fs::exists(ktx_path)) {
+                throw std::runtime_error("the requested image does not exist!");
+            }
+
+            ktxTexture* ktx_data;
+            std::string string_path = ktx_path.string();
+            if (ktxTexture_CreateFromNamedFile(string_path.c_str(),
+                                               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                               &ktx_data) != VK_SUCCESS) {
+                throw std::runtime_error("could not load cube map!");
+            }
+
+            uint32_t width = ktx_data->baseWidth;
+            uint32_t height = ktx_data->baseHeight;
+
+            uint8_t* image_data = ktxTexture_GetData(ktx_data);
+            size_t data_size = ktxTexture_GetDataSize(ktx_data);
+
+            // allocate buffer for copying data
+            VkBuffer staging_buffer;
+            VmaAllocation staging_allocation;
+            create_buffer(this->m_allocator, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                          VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+
+            void* gpu_data = this->m_allocator.map(staging_allocation);
+            memcpy(gpu_data, image_data, data_size);
+            this->m_allocator.unmap(staging_allocation);
+
+            // setup buffer copy info
+            std::vector<VkBufferImageCopy> copy_regions;
+            for (uint32_t face = 0; face < cube_face_count; face++) {
+                size_t offset;
+                if (ktxTexture_GetImageOffset(ktx_data, 0, 0, face, &offset) != KTX_SUCCESS) {
+                    throw std::runtime_error("could not get a memory offset for face " +
+                                             std::to_string(face));
+                }
+
+                VkBufferImageCopy region;
+                util::zero(region);
+
+                region.imageSubresource.aspectMask = this->m_aspect;
+                region.imageSubresource.mipLevel = 0;
+                region.imageSubresource.baseArrayLayer = face;
+                region.imageSubresource.layerCount = 1;
+
+                region.imageExtent.width = width;
+                region.imageExtent.height = height;
+                region.imageExtent.depth = 1;
+
+                region.bufferOffset = offset;
+                copy_regions.push_back(region);
+            }
+
+            ktxTexture_Destroy(ktx_data);
+
+            // create an image
+            VkImageCreateInfo image_create_info;
+            util::zero(image_create_info);
+
+            image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            image_create_info.imageType = VK_IMAGE_TYPE_2D;
+            image_create_info.format = this->m_format;
+            image_create_info.mipLevels = 1;
+            image_create_info.arrayLayers = cube_face_count;
+            image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+            image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+            image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            image_create_info.extent = { width, height, 1 };
+            image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            get_sharing_mode(image_create_info);
+
+            this->m_allocator.alloc(image_create_info, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                                    this->m_allocation);
+
+            static constexpr VkImageLayout intermediate_layout =
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            static constexpr VkImageLayout final_layout = VK_IMAGE_LAYOUT_GENERAL;
+
+            // begin a command buffer
+            auto cmdbuffer = renderer::create_single_time_command_buffer();
+            cmdbuffer->begin();
+
+            // copy data and transition layout
+            transition_image_layout(this->m_image, this->m_layout, intermediate_layout,
+                                    this->m_aspect, cube_face_count, cmdbuffer);
+            vkCmdCopyBufferToImage(cmdbuffer->get(), staging_buffer, this->m_image,
+                                   intermediate_layout, copy_regions.size(), copy_regions.data());
+            transition_image_layout(this->m_image, intermediate_layout, final_layout,
+                                    this->m_aspect, cube_face_count, cmdbuffer);
+
+            // flush the command buffer
+            cmdbuffer->end();
+            cmdbuffer->submit();
+            cmdbuffer->wait();
+            this->m_layout = final_layout;
+
+            this->m_allocator.free(staging_buffer, staging_allocation);
+        }
+
+        this->create_view();
+    }
+
+    image_cube::image_cube(VkFormat format, uint32_t width, uint32_t height, uint32_t depth,
+                           VkImageUsageFlags usage, VkImageAspectFlags image_aspect) {
+        renderer::add_ref();
+        this->init_basic();
+        this->m_format = format;
+        this->m_aspect = image_aspect;
+
+        {
+            VkImageCreateInfo image_create_info;
+            util::zero(image_create_info);
+
+            image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            image_create_info.imageType = VK_IMAGE_TYPE_2D;
+            image_create_info.format = this->m_format;
+            image_create_info.mipLevels = 1;
+            image_create_info.arrayLayers = cube_face_count;
+            image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+            image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+            image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            image_create_info.extent = { width, height, 1 };
+            image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            get_sharing_mode(image_create_info);
+
+            this->m_allocator.alloc(image_create_info, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                                    this->m_allocation);
+            this->transition(VK_IMAGE_LAYOUT_GENERAL);
+        }
+
+        this->create_view();
+    }
+
+    image_cube::~image_cube() {
+        VkDevice device = renderer::get_device();
+        vkDestroyImageView(device, this->m_view, nullptr);
+
+        this->m_allocator.free(this->m_image, this->m_allocation);
+        renderer::remove_ref();
+    }
+
+    void image_cube::transition(VkImageLayout new_layout) {
+        transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect,
+                                cube_face_count);
+        this->m_layout = new_layout;
+        this->update_dependent_imgui_textures();
+    }
+
+    void image_cube::init_basic() {
+        this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        this->m_allocator.set_source("image_cube");
+    }
+
+    void image_cube::create_view() {
+        VkImageViewCreateInfo create_info;
+        util::zero(create_info);
+
+        create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        create_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        create_info.image = this->m_image;
+        create_info.format = this->m_format;
+        create_info.subresourceRange.aspectMask = this->m_aspect;
+        create_info.subresourceRange.levelCount = 1;
+        create_info.subresourceRange.layerCount = cube_face_count;
+
+        VkDevice device = renderer::get_device();
+        if (vkCreateImageView(device, &create_info, nullptr, &this->m_view) != VK_SUCCESS) {
+            throw std::runtime_error("could not create cube image view!");
         }
     }
 } // namespace vkrollercoaster

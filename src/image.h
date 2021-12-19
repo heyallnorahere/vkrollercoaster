@@ -16,22 +16,26 @@
 
 #pragma once
 #include "allocator.h"
+#include "command_buffer.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_IMAGE_UTILS
     void create_image(const allocator& _allocator, uint32_t width, uint32_t height, uint32_t depth,
                       VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                       VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation);
     void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
-                                 VkImageAspectFlags image_aspect);
+                                 VkImageAspectFlags image_aspect, uint32_t layer_count, ref<command_buffer> cmdbuffer = nullptr);
 #endif
 
     enum class image_type {
         image2d,
+        image_cube,
     };
 
     class texture;
     class image : public ref_counted {
     public:
+        virtual ~image() = default;
+
         virtual void transition(VkImageLayout new_layout) = 0;
 
         virtual VkFormat get_format() = 0;
@@ -60,9 +64,7 @@ namespace vkrollercoaster {
         image2d(const image_data& data);
         image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
               VkImageAspectFlags image_aspect);
-        ~image2d();
-        image2d(const image2d&) = delete;
-        image2d& operator=(const image2d&) = delete;
+        virtual ~image2d() override;
 
         virtual void transition(VkImageLayout new_layout) override;
 
@@ -75,6 +77,34 @@ namespace vkrollercoaster {
         void init_basic();
         void create_image_from_data(const image_data& data);
         void create_view();
+
+        VkImage m_image;
+        VkImageView m_view;
+        VmaAllocation m_allocation;
+        VkFormat m_format;
+        VkImageLayout m_layout;
+        VkImageAspectFlags m_aspect;
+        allocator m_allocator;
+    };
+
+    class image_cube : public image {
+    public:
+        image_cube(const fs::path& ktx_path);
+        image_cube(VkFormat format, uint32_t width, uint32_t height, uint32_t depth,
+                   VkImageUsageFlags usage, VkImageAspectFlags image_aspect);
+        virtual ~image_cube() override;
+
+        virtual void transition(VkImageLayout new_layout) override;
+
+        virtual VkFormat get_format() override { return this->m_format; }
+        virtual VkImageView get_view() override { return this->m_view; }
+        virtual VkImageLayout get_layout() override { return this->m_layout; }
+        virtual image_type get_type() override { return image_type::image_cube; }
+
+    private:
+        void init_basic();
+        void create_view();
+
         VkImage m_image;
         VkImageView m_view;
         VmaAllocation m_allocation;
