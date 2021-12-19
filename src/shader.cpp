@@ -139,8 +139,13 @@ namespace vkrollercoaster {
                                                              { "pixel", shader_stage::fragment },
                                                              { "geometry", shader_stage::geometry },
                                                              { "compute", shader_stage::compute } };
+    struct intermediate_source_data {
+        std::stringstream stream;
+        std::string entrypoint = "main";
+    };
     void shader::compile(std::map<shader_stage, std::vector<uint32_t>>& spirv) {
         // todo: spirv shader cache
+        
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
 
@@ -157,19 +162,20 @@ namespace vkrollercoaster {
         }
 
         options.SetSourceLanguage(source_language);
-        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_0);
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, renderer::get_vulkan_version());
         options.SetWarningsAsErrors();
         options.SetGenerateDebugInfo();
 
         std::unique_ptr<file_includer> includer(new file_includer);
         options.SetIncluder(std::move(includer));
 
-        std::map<shader_stage, std::stringstream> sources;
+        std::map<shader_stage, intermediate_source_data> sources;
         {
             std::stringstream file_data(util::read_file(this->m_path));
             std::string line;
             std::optional<shader_stage> current_stage;
             std::string stage_switch = "#stage ";
+            std::string entrypoint_switch = "#entrypoint ";
             while (std::getline(file_data, line)) {
                 if (line.substr(0, stage_switch.length()) == stage_switch) {
                     std::string stage_string = line.substr(stage_switch.length());
@@ -185,12 +191,17 @@ namespace vkrollercoaster {
                         current_stage = shader_stage::compute;
                     }
                     shader_stage stage = *current_stage;
-                    sources[stage] << line << '\n';
+
+                    if (line.substr(0, entrypoint_switch.length()) == entrypoint_switch) {
+                        sources[stage].entrypoint = line.substr(entrypoint_switch.length());
+                    } else {
+                        sources[stage].stream << line << '\n';
+                    }
                 }
             }
         }
-        for (const auto& [stage, stream] : sources) {
-            auto source = stream.str();
+        for (const auto& [stage, data] : sources) {
+            auto source = data.stream.str();
             shaderc_shader_kind shaderc_stage;
             std::string stage_name;
             switch (stage) {
@@ -214,7 +225,7 @@ namespace vkrollercoaster {
                 throw std::runtime_error("invalid shader stage!");
             }
             std::string path = this->m_path.string();
-            auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str(), options);
+            auto result = compiler.CompileGlslToSpv(source, shaderc_stage, path.c_str(), data.entrypoint.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
                 throw std::runtime_error("could not compile " + stage_name +
                                          " shader: " + result.GetErrorMessage());

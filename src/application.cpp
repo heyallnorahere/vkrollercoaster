@@ -149,8 +149,9 @@ namespace vkrollercoaster {
         // standard rendering shaders
         shader_library::add("default_static");
 
-        // pbr shaders
+        // skybox shaders
         shader_library::add("skybox");
+        shader_library::add("irradiance_map");
     }
 
     void application::init() {
