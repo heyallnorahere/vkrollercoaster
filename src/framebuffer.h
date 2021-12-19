@@ -24,7 +24,7 @@ namespace vkrollercoaster {
         VkFramebuffer framebuffer =
             nullptr; // passing a framebuffer gives ownership over to the framebuffer class
         std::map<attachment_type, VkFormat> requested_attachments;
-        std::map<attachment_type, ref<image2d>> provided_attachments;
+        std::map<attachment_type, ref<image>> provided_attachments;
     };
     class framebuffer : public render_target {
     public:
@@ -42,8 +42,8 @@ namespace vkrollercoaster {
                                           std::function<void()> recreate) override;
         virtual void remove_reload_callbacks(void* id) override;
         virtual void get_attachment_types(std::set<attachment_type>& types) override;
-        ref<image2d> get_attachment(attachment_type type);
-        void set_attachment(attachment_type type, ref<image2d> attachment);
+        ref<image> get_attachment(attachment_type type);
+        void set_attachment(attachment_type type, ref<image> attachment);
         void reload();
         void resize(VkExtent2D new_size);
 
@@ -59,7 +59,7 @@ namespace vkrollercoaster {
         VkRenderPass m_render_pass;
         bool m_render_pass_owned;
         VkFramebuffer m_framebuffer;
-        std::map<attachment_type, ref<image2d>> m_attachments;
+        std::map<attachment_type, ref<image>> m_attachments;
         std::map<void*, framebuffer_dependent> m_dependents;
     };
 } // namespace vkrollercoaster

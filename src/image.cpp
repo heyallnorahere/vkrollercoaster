@@ -61,6 +61,7 @@ namespace vkrollercoaster {
 
         _allocator.alloc(create_info, memory_usage, image, allocation);
     }
+
     static void get_stage_and_mask(VkImageLayout layout, VkPipelineStageFlags& stage,
                                    VkAccessFlags& access_mask) {
         switch (layout) {
@@ -93,6 +94,7 @@ namespace vkrollercoaster {
             throw std::runtime_error("unimplemented/unsupported image layout!");
         }
     }
+
     void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
                                  VkImageAspectFlags image_aspect) {
         VkImageMemoryBarrier barrier;
@@ -118,6 +120,7 @@ namespace vkrollercoaster {
         cmdbuffer->end();
         cmdbuffer->submit();
     }
+
     static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
                                      uint32_t height) {
         VkBufferImageCopy region;
@@ -138,6 +141,13 @@ namespace vkrollercoaster {
         cmdbuffer->end();
         cmdbuffer->submit();
     }
+
+    void image::update_dependent_imgui_textures() {
+        for (texture* tex : this->m_dependents) {
+            tex->update_imgui_texture();
+        }
+    }
+
     bool image2d::load_image(const fs::path& path, image_data& data) {
         std::string string_path = path.string();
         if (path.extension() == ".ktx") {
@@ -180,6 +190,7 @@ namespace vkrollercoaster {
         }
         return true;
     }
+
     ref<image2d> image2d::from_file(const fs::path& path) {
         ref<image2d> created_image;
         image_data data;
@@ -188,6 +199,7 @@ namespace vkrollercoaster {
         }
         return created_image;
     }
+
     image2d::image2d(const image_data& data) {
         renderer::add_ref();
         this->init_basic();
@@ -195,6 +207,7 @@ namespace vkrollercoaster {
         this->create_image_from_data(data);
         this->create_view();
     }
+
     image2d::image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
                  VkImageAspectFlags aspect) {
         // only use this constructor for internal things such as depth buffering
@@ -207,23 +220,25 @@ namespace vkrollercoaster {
         this->transition(VK_IMAGE_LAYOUT_GENERAL);
         this->create_view();
     }
+
     image2d::~image2d() {
         VkDevice device = renderer::get_device();
         vkDestroyImageView(device, this->m_view, nullptr);
         this->m_allocator.free(this->m_image, this->m_allocation);
         renderer::remove_ref();
     }
+
     void image2d::transition(VkImageLayout new_layout) {
         transition_image_layout(this->m_image, this->m_layout, new_layout, this->m_aspect);
         this->m_layout = new_layout;
-        for (texture* tex : this->m_dependents) {
-            tex->update_imgui_texture();
-        }
+        this->update_dependent_imgui_textures();
     }
+
     void image2d::init_basic() {
         this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         this->m_allocator.set_source("image");
     }
+
     void image2d::create_image_from_data(const image_data& data) {
         switch (data.channels) {
         case 4:
@@ -256,6 +271,7 @@ namespace vkrollercoaster {
 
         this->m_allocator.free(staging_buffer, staging_allocation);
     }
+
     void image2d::create_view() {
         VkImageViewCreateInfo create_info;
         util::zero(create_info);

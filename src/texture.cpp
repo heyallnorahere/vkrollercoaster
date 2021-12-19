@@ -21,7 +21,7 @@
 #include "imgui_controller.h"
 #include <backends/imgui_impl_vulkan.h>
 namespace vkrollercoaster {
-    texture::texture(ref<image2d> _image, bool transition_layout) {
+    texture::texture(ref<image> _image, bool transition_layout) {
         renderer::add_ref();
         this->m_image = _image;
 
@@ -78,8 +78,8 @@ namespace vkrollercoaster {
         }
         VkDescriptorImageInfo image_info;
         util::zero(image_info);
-        image_info.imageLayout = this->m_image->m_layout;
-        image_info.imageView = this->m_image->m_view;
+        image_info.imageLayout = this->m_image->get_layout();
+        image_info.imageView = this->m_image->get_view();
         image_info.sampler = this->m_sampler;
         std::vector<VkWriteDescriptorSet> writes;
         for (VkDescriptorSet current_set : sets[set].sets) {
@@ -120,8 +120,8 @@ namespace vkrollercoaster {
     ImTextureID texture::get_imgui_id() {
         if (!this->m_imgui_id) {
             imgui_controller::add_dependent();
-            this->m_imgui_id = ImGui_ImplVulkan_AddTexture(this->m_sampler, this->m_image->m_view,
-                                                           this->m_image->m_layout);
+            this->m_imgui_id = ImGui_ImplVulkan_AddTexture(
+                this->m_sampler, this->m_image->get_view(), this->m_image->get_layout());
         }
         return this->m_imgui_id;
     }
@@ -163,7 +163,8 @@ namespace vkrollercoaster {
     void texture::update_imgui_texture() {
         if (this->m_imgui_id) {
             ImGui_ImplVulkan_UpdateTextureInfo(this->m_imgui_id, this->m_sampler,
-                                               this->m_image->m_view, this->m_image->m_layout);
+                                               this->m_image->get_view(),
+                                               this->m_image->get_layout());
         }
     }
 } // namespace vkrollercoaster

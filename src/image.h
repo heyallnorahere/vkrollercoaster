@@ -25,13 +25,34 @@ namespace vkrollercoaster {
                                  VkImageAspectFlags image_aspect);
 #endif
 
+    enum class image_type {
+        image2d,
+    };
+
+    class texture;
+    class image : public ref_counted {
+    public:
+        virtual void transition(VkImageLayout new_layout) = 0;
+
+        virtual VkFormat get_format() = 0;
+        virtual VkImageLayout get_layout() = 0;
+        virtual VkImageView get_view() = 0;
+        virtual image_type get_type() = 0;
+
+    protected:
+        void update_dependent_imgui_textures();
+
+    private:
+        std::set<texture*> m_dependents;
+        friend class texture;
+    };
+
     struct image_data {
         std::vector<uint8_t> data;
         int32_t width, height, channels;
     };
 
-    class texture;
-    class image2d : public ref_counted {
+    class image2d : public image {
     public:
         static bool load_image(const fs::path& path, image_data& data);
         static ref<image2d> from_file(const fs::path& path);
@@ -43,16 +64,17 @@ namespace vkrollercoaster {
         image2d(const image2d&) = delete;
         image2d& operator=(const image2d&) = delete;
 
-        void transition(VkImageLayout new_layout);
-        VkFormat get_format() { return this->m_format; }
-        VkImageView get_view() { return this->m_view; }
-        VkImageLayout get_layout() { return this->m_layout; }
+        virtual void transition(VkImageLayout new_layout) override;
+
+        virtual VkFormat get_format() override { return this->m_format; }
+        virtual VkImageView get_view() override { return this->m_view; }
+        virtual VkImageLayout get_layout() override { return this->m_layout; }
+        virtual image_type get_type() override { return image_type::image2d; }
 
     private:
         void init_basic();
         void create_image_from_data(const image_data& data);
         void create_view();
-        std::set<texture*> m_dependents;
         VkImage m_image;
         VkImageView m_view;
         VmaAllocation m_allocation;
@@ -60,6 +82,5 @@ namespace vkrollercoaster {
         VkImageLayout m_layout;
         VkImageAspectFlags m_aspect;
         allocator m_allocator;
-        friend class texture;
     };
 } // namespace vkrollercoaster
