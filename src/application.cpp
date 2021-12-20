@@ -152,6 +152,7 @@ namespace vkrollercoaster {
         // skybox shaders
         shader_library::add("skybox");
         shader_library::add("irradiance_map");
+        shader_library::add("prefiltered_cube");
     }
 
     void application::init() {

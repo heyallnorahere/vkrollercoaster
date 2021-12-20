@@ -36,6 +36,7 @@ namespace vkrollercoaster {
 
     private:
         void create_irradiance_map();
+        void create_prefiltered_cube();
 
         // skybox render call objects
         ref<uniform_buffer> m_uniform_buffer;
@@ -44,5 +45,6 @@ namespace vkrollercoaster {
 
         // pbr textures
         ref<texture> m_irradiance_map;
+        ref<texture> m_prefiltered_cube;
     };
 } // namespace vkrollercoaster
