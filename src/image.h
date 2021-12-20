@@ -32,9 +32,16 @@ namespace vkrollercoaster {
         image_cube,
     };
 
+    struct image_data {
+        std::vector<uint8_t> data;
+        int32_t width, height, channels;
+    };
+
     class texture;
     class image : public ref_counted {
     public:
+        static bool load_image(const fs::path& path, image_data& data, bool flip = false);
+
         virtual ~image() = default;
 
         virtual void transition(VkImageLayout new_layout) = 0;
@@ -60,15 +67,9 @@ namespace vkrollercoaster {
         friend class texture;
     };
 
-    struct image_data {
-        std::vector<uint8_t> data;
-        int32_t width, height, channels;
-    };
-
     class image2d : public image {
     public:
-        static bool load_image(const fs::path& path, image_data& data);
-        static ref<image2d> from_file(const fs::path& path);
+        static ref<image2d> from_file(const fs::path& path, bool flip = false);
 
         image2d(const image_data& data);
         image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
@@ -83,6 +84,9 @@ namespace vkrollercoaster {
         virtual VkImageAspectFlags get_image_aspect() override { return this->m_aspect; }
         virtual image_type get_type() override { return image_type::image2d; }
 
+        uint32_t get_width() { return this->m_width; }
+        uint32_t get_height() { return this->m_height; }
+
 #ifndef EXPOSE_IMAGE_UTILS
     protected:
 #endif
@@ -95,6 +99,7 @@ namespace vkrollercoaster {
         void create_image_from_data(const image_data& data);
         void create_view();
 
+        uint32_t m_width, m_height;
         VkImage m_image;
         VkImageView m_view;
         VmaAllocation m_allocation;
@@ -108,7 +113,7 @@ namespace vkrollercoaster {
     public:
         static constexpr uint32_t cube_face_count = 6;
 
-        image_cube(const fs::path& ktx_path);
+        image_cube(const fs::path& path);
         image_cube(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
                    VkImageAspectFlags image_aspect);
         virtual ~image_cube() override;
@@ -130,6 +135,8 @@ namespace vkrollercoaster {
 
     private:
         void init_basic();
+        void from_image(const fs::path& path);
+        void from_ktx(const fs::path& path);
         void create_view();
 
         VkImage m_image;

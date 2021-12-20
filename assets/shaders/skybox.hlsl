@@ -53,12 +53,14 @@ float3 uncharted_to_tonemap(float3 x) {
 }
 
 float4 main([[vk::location(0)]] float3 uvw : TEXCOORD0) : SV_TARGET {
-    float4 sampled_color = environment_texture.Sample(environment_sampler, uvw);
-    float3 color = sampled_color.rgb;
+    float3 color = environment_texture.Sample(environment_sampler, uvw).rgb;
 
-    color = uncharted_to_tonemap(color * skybox_data.exposure);
-    color /= uncharted_to_tonemap(w.xxx);
-    color = pow(color, (1.f / skybox_data.gamma).xxx);
+	// tone mapping
+	color = uncharted_to_tonemap(color * skybox_data.exposure);
+	color /= uncharted_to_tonemap(w.xxx);
 
-    return float4(color, sampled_color.a);
+	// gamma correction
+	color = pow(color, (1.f / skybox_data.gamma).xxx);
+
+	return float4(color, 1.f);
 }

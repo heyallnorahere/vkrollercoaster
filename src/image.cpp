@@ -166,13 +166,7 @@ namespace vkrollercoaster {
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     }
 
-    void image::update_dependent_imgui_textures() {
-        for (texture* tex : this->m_dependents) {
-            tex->update_imgui_texture();
-        }
-    }
-
-    bool image2d::load_image(const fs::path& path, image_data& data) {
+    bool image::load_image(const fs::path& path, image_data& data, bool flip) {
         if (!fs::exists(path)) {
             return false;
         }
@@ -205,6 +199,7 @@ namespace vkrollercoaster {
 
             ktxTexture_Destroy(ktx_data);
         } else {
+            stbi_set_flip_vertically_on_load(flip);
             uint8_t* raw_data =
                 stbi_load(string_path.c_str(), &data.width, &data.height, &data.channels, 0);
             if (!raw_data) {
@@ -219,10 +214,16 @@ namespace vkrollercoaster {
         return true;
     }
 
-    ref<image2d> image2d::from_file(const fs::path& path) {
+    void image::update_dependent_imgui_textures() {
+        for (texture* tex : this->m_dependents) {
+            tex->update_imgui_texture();
+        }
+    }
+
+    ref<image2d> image2d::from_file(const fs::path& path, bool flip) {
         ref<image2d> created_image;
         image_data data;
-        if (load_image(path, data)) {
+        if (load_image(path, data, flip)) {
             created_image = ref<image2d>::create(data);
         }
         return created_image;
@@ -232,6 +233,8 @@ namespace vkrollercoaster {
         renderer::add_ref();
         this->init_basic();
         this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+        this->m_width = (uint32_t)data.width;
+        this->m_height = (uint32_t)data.height;
         this->create_image_from_data(data);
         this->create_view();
     }
@@ -243,8 +246,11 @@ namespace vkrollercoaster {
         this->init_basic();
         this->m_format = format;
         this->m_aspect = aspect;
-        create_image(this->m_allocator, width, height, 1, this->m_format, VK_IMAGE_TILING_OPTIMAL,
-                     usage, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
+        this->m_width = width;
+        this->m_height = height;
+        create_image(this->m_allocator, this->m_width, this->m_height, 1, this->m_format,
+                     VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                     this->m_allocation);
         this->transition(VK_IMAGE_LAYOUT_GENERAL);
         this->create_view();
     }
@@ -281,16 +287,17 @@ namespace vkrollercoaster {
 
         VkBuffer staging_buffer;
         VmaAllocation staging_allocation;
-        size_t total_size = (size_t)data.width * data.height * data.channels;
+        size_t total_size = (size_t)this->m_width * this->m_height * data.channels;
         create_buffer(this->m_allocator, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                       VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
 
         void* gpu_data = this->m_allocator.map(staging_allocation);
         memcpy(gpu_data, data.data.data(), total_size);
         this->m_allocator.unmap(staging_allocation);
-        create_image(this->m_allocator, data.width, data.height, 1, this->m_format,
+        create_image(this->m_allocator, this->m_width, this->m_height, 1, this->m_format,
                      VK_IMAGE_TILING_OPTIMAL,
-                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT,
                      VMA_MEMORY_USAGE_GPU_ONLY, this->m_image, this->m_allocation);
 
         static constexpr VkImageLayout intermediate_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -301,7 +308,8 @@ namespace vkrollercoaster {
 
         transition_image_layout(this->m_image, this->m_layout, intermediate_layout, this->m_aspect,
                                 1, cmdbuffer);
-        copy_buffer_to_image(staging_buffer, this->m_image, data.width, data.height, 1, cmdbuffer);
+        copy_buffer_to_image(staging_buffer, this->m_image, this->m_width, this->m_height, 1,
+                             cmdbuffer);
         transition_image_layout(this->m_image, intermediate_layout, final_layout, this->m_aspect, 1,
                                 cmdbuffer);
 
@@ -334,115 +342,18 @@ namespace vkrollercoaster {
         }
     }
 
-    image_cube::image_cube(const fs::path& ktx_path) {
+    image_cube::image_cube(const fs::path& path) {
         renderer::add_ref();
         this->init_basic();
         this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 
-        {
-            if (ktx_path.extension() != ".ktx") {
-                throw std::runtime_error("the provided image was not in .ktx format!");
-            }
-            if (!fs::exists(ktx_path)) {
-                throw std::runtime_error("the requested image does not exist!");
-            }
-
-            ktxTexture* ktx_data;
-            std::string string_path = ktx_path.string();
-            if (ktxTexture_CreateFromNamedFile(string_path.c_str(),
-                                               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                               &ktx_data) != KTX_SUCCESS) {
-                throw std::runtime_error("could not load cube map!");
-            }
-
-            this->m_format = ktxTexture_GetVkFormat(ktx_data);
-
-            uint32_t width = ktx_data->baseWidth;
-            uint32_t height = ktx_data->baseHeight;
-
-            uint8_t* image_data = ktxTexture_GetData(ktx_data);
-            size_t data_size = ktxTexture_GetDataSize(ktx_data);
-
-            // allocate buffer for copying data
-            VkBuffer staging_buffer;
-            VmaAllocation staging_allocation;
-            create_buffer(this->m_allocator, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                          VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
-
-            void* gpu_data = this->m_allocator.map(staging_allocation);
-            memcpy(gpu_data, image_data, data_size);
-            this->m_allocator.unmap(staging_allocation);
-
-            // setup buffer copy info
-            std::vector<VkBufferImageCopy> copy_regions;
-            for (uint32_t face = 0; face < cube_face_count; face++) {
-                size_t offset;
-                if (ktxTexture_GetImageOffset(ktx_data, 0, 0, face, &offset) != KTX_SUCCESS) {
-                    throw std::runtime_error("could not get a memory offset for face " +
-                                             std::to_string(face));
-                }
-
-                VkBufferImageCopy region;
-                util::zero(region);
-
-                region.imageSubresource.aspectMask = this->m_aspect;
-                region.imageSubresource.mipLevel = 0;
-                region.imageSubresource.baseArrayLayer = face;
-                region.imageSubresource.layerCount = 1;
-
-                region.imageExtent.width = width;
-                region.imageExtent.height = height;
-                region.imageExtent.depth = 1;
-
-                region.bufferOffset = offset;
-                copy_regions.push_back(region);
-            }
-
-            ktxTexture_Destroy(ktx_data);
-
-            // create an image
-            VkImageCreateInfo image_create_info;
-            util::zero(image_create_info);
-
-            image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            image_create_info.imageType = VK_IMAGE_TYPE_2D;
-            image_create_info.format = this->m_format;
-            image_create_info.mipLevels = 1;
-            image_create_info.arrayLayers = cube_face_count;
-            image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-            image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-            image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            image_create_info.extent = { width, height, 1 };
-            image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-            image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-            get_sharing_mode(image_create_info);
-
-            this->m_allocator.alloc(image_create_info, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
-                                    this->m_allocation);
-
-            static constexpr VkImageLayout intermediate_layout =
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            static constexpr VkImageLayout final_layout = VK_IMAGE_LAYOUT_GENERAL;
-
-            // begin a command buffer
-            auto cmdbuffer = renderer::create_single_time_command_buffer();
-            cmdbuffer->begin();
-
-            // copy data and transition layout
-            transition_image_layout(this->m_image, this->m_layout, intermediate_layout,
-                                    this->m_aspect, cube_face_count, cmdbuffer);
-            vkCmdCopyBufferToImage(cmdbuffer->get(), staging_buffer, this->m_image,
-                                   intermediate_layout, copy_regions.size(), copy_regions.data());
-            transition_image_layout(this->m_image, intermediate_layout, final_layout,
-                                    this->m_aspect, cube_face_count, cmdbuffer);
-
-            // flush the command buffer
-            cmdbuffer->end();
-            cmdbuffer->submit();
-            cmdbuffer->wait();
-            this->m_layout = final_layout;
-
-            this->m_allocator.free(staging_buffer, staging_allocation);
+        if (!fs::exists(path)) {
+            throw std::runtime_error("the requested image does not exist!");
+        }
+        if (path.extension() == ".ktx") {
+            this->from_ktx(path);
+        } else {
+            this->from_image(path);
         }
 
         this->create_view();
@@ -498,6 +409,220 @@ namespace vkrollercoaster {
     void image_cube::init_basic() {
         this->m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         this->m_allocator.set_source("image_cube");
+    }
+
+    void image_cube::from_image(const fs::path& path) {
+        bool flip = path.extension() == ".png";
+        ref<image2d> source = image2d::from_file(path, flip);
+
+        this->m_format = source->get_format();
+        uint32_t width = source->get_width();
+        uint32_t height = source->get_height();
+
+        glm::vec2 source_size;
+        source_size.x = (float)width;
+        source_size.y = (float)height;
+        if (glm::abs(source_size.x / source_size.y - 4.f / 3.f) > 0.001f) {
+            throw std::runtime_error("the aspect ratio of the passed image is not 4:3!");
+        }
+
+        static constexpr float third = 1.f / 3.f;
+        std::array<glm::vec2, cube_face_count> face_offsets = {
+            // right (x-positive)
+            glm::vec2(0.5f, third) * source_size,
+
+            // left (x-negative)
+            glm::vec2(0.f, third) * source_size,
+
+            // top (y-positive)
+            glm::vec2(0.25f, 0.f) * source_size,
+
+            // bottom (y-negative)
+            glm::vec2(0.25f, third * 2.f) * source_size,
+
+            // front (z-positive)
+            glm::vec2(0.25f, third) * source_size,
+
+            // back (z-negative)
+            glm::vec2(0.75f, third) * source_size,
+        };
+
+        VkExtent3D image_extent;
+        image_extent.width = width / 4;
+        image_extent.height = height / 3;
+        image_extent.depth = 1;
+
+        // set up image copy info
+        std::vector<VkImageCopy> copy_regions;
+        for (uint32_t face = 0; face < cube_face_count; face++) {
+            glm::vec2 offset = face_offsets[face];
+
+            VkImageCopy region;
+            util::zero(region);
+
+            region.srcOffset.x = (int32_t)offset.x;
+            region.srcOffset.y = (int32_t)offset.y;
+            region.srcOffset.z = 0;
+            region.srcSubresource.aspectMask = source->get_image_aspect();
+            region.srcSubresource.mipLevel = 0;
+            region.srcSubresource.baseArrayLayer = 0;
+            region.srcSubresource.layerCount = 1;
+
+            region.dstOffset = { 0, 0, 0 };
+            region.dstSubresource.aspectMask = this->m_aspect;
+            region.dstSubresource.mipLevel = 0;
+            region.dstSubresource.baseArrayLayer = face;
+            region.dstSubresource.layerCount = 1;
+
+            region.extent = image_extent;
+            copy_regions.push_back(region);
+        }
+
+        // create image
+        VkImageCreateInfo image_create_info;
+        util::zero(image_create_info);
+        image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+        image_create_info.imageType = VK_IMAGE_TYPE_2D;
+        image_create_info.format = this->m_format;
+        image_create_info.mipLevels = 1;
+        image_create_info.arrayLayers = cube_face_count;
+        image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image_create_info.extent = image_extent;
+        image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        get_sharing_mode(image_create_info);
+
+        this->m_allocator.alloc(image_create_info, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                                this->m_allocation);
+
+        static constexpr VkImageLayout intermediate_source_layout =
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        static constexpr VkImageLayout intermediate_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        static constexpr VkImageLayout final_layout = VK_IMAGE_LAYOUT_GENERAL;
+
+        VkImage source_image = source->get_image();
+        VkImageLayout original_source_layout = source->get_layout();
+
+        // begin a command buffer for copying
+        auto cmdbuffer = renderer::create_single_time_command_buffer();
+        cmdbuffer->begin();
+
+        transition_image_layout(source_image, original_source_layout, intermediate_source_layout,
+                                source->get_image_aspect(), 1, cmdbuffer);
+        transition_image_layout(this->m_image, this->m_layout, intermediate_layout, this->m_aspect,
+                                cube_face_count, cmdbuffer);
+        vkCmdCopyImage(cmdbuffer->get(), source_image, intermediate_source_layout, this->m_image,
+                       intermediate_layout, copy_regions.size(), copy_regions.data());
+        transition_image_layout(this->m_image, intermediate_layout, final_layout, this->m_aspect,
+                                cube_face_count, cmdbuffer);
+        transition_image_layout(source_image, intermediate_source_layout, original_source_layout,
+                                source->get_image_aspect(), 1, cmdbuffer);
+
+        // flush the command buffer
+        cmdbuffer->end();
+        cmdbuffer->submit();
+        cmdbuffer->wait();
+        this->m_layout = final_layout;
+    }
+
+    void image_cube::from_ktx(const fs::path& path) {
+        ktxTexture* ktx_data;
+        std::string string_path = path.string();
+        if (ktxTexture_CreateFromNamedFile(string_path.c_str(),
+                                           KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                           &ktx_data) != KTX_SUCCESS) {
+            throw std::runtime_error("could not load cube map!");
+        }
+
+        this->m_format = ktxTexture_GetVkFormat(ktx_data);
+        uint32_t width = ktx_data->baseWidth;
+        uint32_t height = ktx_data->baseHeight;
+
+        uint8_t* image_data = ktxTexture_GetData(ktx_data);
+        size_t data_size = ktxTexture_GetDataSize(ktx_data);
+
+        // allocate buffer for copying data
+        VkBuffer staging_buffer;
+        VmaAllocation staging_allocation;
+        create_buffer(this->m_allocator, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                      VMA_MEMORY_USAGE_CPU_TO_GPU, staging_buffer, staging_allocation);
+
+        void* gpu_data = this->m_allocator.map(staging_allocation);
+        memcpy(gpu_data, image_data, data_size);
+        this->m_allocator.unmap(staging_allocation);
+
+        // setup buffer copy info
+        std::vector<VkBufferImageCopy> copy_regions;
+        for (uint32_t face = 0; face < cube_face_count; face++) {
+            size_t offset;
+            if (ktxTexture_GetImageOffset(ktx_data, 0, 0, face, &offset) != KTX_SUCCESS) {
+                throw std::runtime_error("could not get a memory offset for face " +
+                                         std::to_string(face));
+            }
+
+            VkBufferImageCopy region;
+            util::zero(region);
+
+            region.imageSubresource.aspectMask = this->m_aspect;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = face;
+            region.imageSubresource.layerCount = 1;
+
+            region.imageExtent.width = width;
+            region.imageExtent.height = height;
+            region.imageExtent.depth = 1;
+
+            region.bufferOffset = offset;
+            copy_regions.push_back(region);
+        }
+
+        ktxTexture_Destroy(ktx_data);
+
+        // create an image
+        VkImageCreateInfo image_create_info;
+        util::zero(image_create_info);
+        image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+        image_create_info.imageType = VK_IMAGE_TYPE_2D;
+        image_create_info.format = this->m_format;
+        image_create_info.mipLevels = 1;
+        image_create_info.arrayLayers = cube_face_count;
+        image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image_create_info.extent = { width, height, 1 };
+        image_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        get_sharing_mode(image_create_info);
+
+        this->m_allocator.alloc(image_create_info, VMA_MEMORY_USAGE_GPU_ONLY, this->m_image,
+                                this->m_allocation);
+
+        static constexpr VkImageLayout intermediate_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        static constexpr VkImageLayout final_layout = VK_IMAGE_LAYOUT_GENERAL;
+
+        // begin a command buffer
+        auto cmdbuffer = renderer::create_single_time_command_buffer();
+        cmdbuffer->begin();
+
+        // copy data and transition layout
+        transition_image_layout(this->m_image, this->m_layout, intermediate_layout, this->m_aspect,
+                                cube_face_count, cmdbuffer);
+        vkCmdCopyBufferToImage(cmdbuffer->get(), staging_buffer, this->m_image, intermediate_layout,
+                               copy_regions.size(), copy_regions.data());
+        transition_image_layout(this->m_image, intermediate_layout, final_layout, this->m_aspect,
+                                cube_face_count, cmdbuffer);
+
+        // flush the command buffer
+        cmdbuffer->end();
+        cmdbuffer->submit();
+        cmdbuffer->wait();
+        this->m_layout = final_layout;
+
+        this->m_allocator.free(staging_buffer, staging_allocation);
     }
 
     void image_cube::create_view() {

@@ -59,8 +59,7 @@ namespace vkrollercoaster {
 
         // define pipeline layout
         pipeline_spec spec;
-        spec.enable_blending = false;
-        spec.enable_depth_testing = true;
+        spec.enable_culling = false;
         spec.input_layout.stride = sizeof(glm::vec3);
         spec.input_layout.attributes = { { vertex_attribute_type::VEC3, 0 } };
 

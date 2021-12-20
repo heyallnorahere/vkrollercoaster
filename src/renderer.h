@@ -51,6 +51,7 @@ namespace vkrollercoaster {
         ref<pipeline> _pipeline;
         ref<vertex_buffer> vbo;
         ref<index_buffer> ibo;
+        ref<skybox> _skybox;
     };
     struct internal_cmdbuffer_data {
         std::vector<submitted_render_call> submitted_calls;
@@ -85,9 +86,12 @@ namespace vkrollercoaster {
         static VkQueue get_compute_queue();
         static VkDescriptorPool get_descriptor_pool();
         static ref<texture> get_white_texture();
-        static ref<uniform_buffer> get_camera_buffer();
 
+        static ref<uniform_buffer> get_camera_buffer();
         static void update_camera_buffer(ref<scene> _scene, ref<window> _window);
+
+        static ref<skybox> get_skybox();
+        static bool load_skybox(const fs::path& path);
 
         static void expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor,
                                           uint32_t& patch);

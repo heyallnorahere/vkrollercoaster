@@ -42,6 +42,9 @@ namespace vkrollercoaster {
         ref<texture> white_texture;
         ref<uniform_buffer> camera_buffer;
 
+        // current skybox
+        ref<skybox> _skybox;
+
         // temp
         ref<model> track_model;
 
@@ -406,6 +409,7 @@ namespace vkrollercoaster {
         spdlog::info("initializing renderer... (with vulkan version {0}.{1}.{2})", major, minor,
                      patch);
 
+        // initialize vulkan
         renderer_data.vulkan_version = vulkan_version;
         choose_extensions();
         create_instance();
@@ -417,6 +421,7 @@ namespace vkrollercoaster {
         create_sync_objects();
         allocator::init();
 
+        // create white texture
         image_data white_data;
         int32_t channels = 4;
         white_data.data.resize(channels, 255);
@@ -424,6 +429,7 @@ namespace vkrollercoaster {
         white_data.width = white_data.height = 1;
         renderer_data.white_texture = ref<texture>::create(ref<image2d>::create(white_data));
 
+        // create global camera buffer
         renderer_data.camera_buffer = ref<uniform_buffer>::create(0, 0, sizeof(camera_buffer_data));
     }
 
@@ -454,6 +460,7 @@ namespace vkrollercoaster {
     }
 
     void renderer::shutdown() {
+        renderer_data._skybox.reset();
         renderer_data.camera_buffer.reset();
         renderer_data.white_texture.reset();
         if (renderer_data.track_model) {
@@ -541,6 +548,7 @@ namespace vkrollercoaster {
             submitted_call._pipeline = _pipeline;
             submitted_call.vbo = buffer_data.vertices;
             submitted_call.ibo = ibo;
+            submitted_call._skybox = renderer_data._skybox;
             internal_data->submitted_calls.push_back(submitted_call);
         }
     }
@@ -626,8 +634,8 @@ namespace vkrollercoaster {
     VkQueue renderer::get_compute_queue() { return renderer_data.compute_queue; }
     VkDescriptorPool renderer::get_descriptor_pool() { return renderer_data.descriptor_pool; }
     ref<texture> renderer::get_white_texture() { return renderer_data.white_texture; }
-    ref<uniform_buffer> renderer::get_camera_buffer() { return renderer_data.camera_buffer; }
 
+    ref<uniform_buffer> renderer::get_camera_buffer() { return renderer_data.camera_buffer; }
     void renderer::update_camera_buffer(ref<scene> _scene, ref<window> _window) {
         const auto& cameras = _scene->view<camera_component>();
         camera_buffer_data data;
@@ -655,6 +663,18 @@ namespace vkrollercoaster {
             data.position = transform.translation;
         }
         renderer_data.camera_buffer->set_data(data);
+    }
+
+    ref<skybox> renderer::get_skybox() { return renderer_data._skybox; }
+    bool renderer::load_skybox(const fs::path& path) {
+        if (!fs::exists(path)) {
+            return false;
+        }
+
+        auto img = ref<image_cube>::create(path);
+        renderer_data._skybox = ref<skybox>::create(img);
+
+        return true;
     }
 
     void renderer::expand_vulkan_version(uint32_t version, uint32_t& major, uint32_t& minor,

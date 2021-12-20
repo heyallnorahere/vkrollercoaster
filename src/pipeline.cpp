@@ -245,16 +245,20 @@ namespace vkrollercoaster {
             throw std::runtime_error("invalid polygon mode!");
         }
         rasterizer.lineWidth = 1.f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        switch (this->m_spec.front_face) {
-        case pipeline_front_face::clockwise:
-            rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-            break;
-        case pipeline_front_face::counter_clockwise:
-            rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-            break;
-        default:
-            throw std::runtime_error("invalid front face!");
+        if (this->m_spec.enable_culling) {
+            rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+            switch (this->m_spec.front_face) {
+            case pipeline_front_face::clockwise:
+                rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+                break;
+            case pipeline_front_face::counter_clockwise:
+                rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+                break;
+            default:
+                throw std::runtime_error("invalid front face!");
+            }
+        } else {
+            rasterizer.cullMode = VK_CULL_MODE_NONE;
         }
         rasterizer.depthBiasEnable = false;
         VkPipelineMultisampleStateCreateInfo multisampling;

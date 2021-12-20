@@ -44,6 +44,7 @@ namespace vkrollercoaster {
         pipeline_spec() = default;
         bool enable_depth_testing = true;
         bool enable_blending = true;
+        bool enable_culling = true;
         pipeline_polygon_mode polygon_mode = pipeline_polygon_mode::fill;
         pipeline_front_face front_face = pipeline_front_face::clockwise;
         vertex_input_data input_layout;

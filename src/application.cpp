@@ -124,6 +124,9 @@ namespace vkrollercoaster {
         ref<framebuffer> render_framebuffer = viewport::get_instance()->get_framebuffer();
         cmdbuffer->begin_render_pass(render_framebuffer, glm::vec4(glm::vec3(0.1f), 1.f));
 
+        ref<skybox> _skybox = renderer::get_skybox();
+        _skybox->render(cmdbuffer);
+
         // probably should optimize and batch render
         for (entity ent : app_data->global_scene->view<transform_component, model_component>()) {
             renderer::render_entity(cmdbuffer, ent);
@@ -173,8 +176,11 @@ namespace vkrollercoaster {
         // create light uniform buffers
         light::init();
 
-        // load skybox mesh and create pipeline
+        // load skybox mesh
         skybox::init();
+
+        // load default skybox
+        renderer::load_skybox("assets/skybox.png");
 
         // create scene and player
         app_data->global_scene = ref<scene>::create();
