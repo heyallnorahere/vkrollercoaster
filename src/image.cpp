@@ -72,6 +72,10 @@ namespace vkrollercoaster {
             stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             access_mask = 0;
             break;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+            break;
         case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
             stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -444,7 +448,7 @@ namespace vkrollercoaster {
         this->create_view();
     }
 
-    image_cube::image_cube(VkFormat format, uint32_t width, uint32_t height, uint32_t depth,
+    image_cube::image_cube(VkFormat format, uint32_t width, uint32_t height,
                            VkImageUsageFlags usage, VkImageAspectFlags image_aspect) {
         renderer::add_ref();
         this->init_basic();

@@ -33,9 +33,16 @@ namespace vkrollercoaster {
         skybox& operator=(const skybox&) = delete;
 
         void render(ref<command_buffer> cmdbuffer, bool bind_pipeline = true);
+
     private:
+        void create_irradiance_map();
+
+        // skybox render call objects
         ref<uniform_buffer> m_uniform_buffer;
         ref<pipeline> m_pipeline;
         ref<texture> m_skybox;
+
+        // pbr textures
+        ref<texture> m_irradiance_map;
     };
 } // namespace vkrollercoaster

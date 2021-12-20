@@ -17,13 +17,13 @@
 
 #include "base/filter_cube.hlsl"
 #stage pixel
-[[vk::binding(0, 1)]] TextureCube environment_texture;
-[[vk::binding(0, 1)]] SamplerState environment_sampler;
+[[vk::binding(0, 0)]] TextureCube environment_texture;
+[[vk::binding(0, 0)]] SamplerState environment_sampler;
 
-struct push_constants_t {
+struct sampling_deltas_t {
     float delta_phi, delta_theta;
 };
-[[vk::push_constant]] ConstantBuffer<push_constants_t> push_constants;
+[[vk::binding(1, 0)]] ConstantBuffer<sampling_deltas_t> sampling_deltas;
 
 #define PI 3.1415926535897932384626433832795
 #define TWO_PI PI * 2.f
@@ -38,8 +38,8 @@ float4 main([[vk::location(0)]] float3 uvw : TEXCOORD0) : SV_TARGET {
 
     float3 color = float3(0.f);
     int sample_count = 0;
-    for (float phi = 0.f; phi < TWO_PI; phi += push_constants.delta_phi) {
-        for (float theta = 0.f; theta < HALF_PI; theta += push_constants.delta_theta) {
+    for (float phi = 0.f; phi < TWO_PI; phi += sampling_deltas.delta_phi) {
+        for (float theta = 0.f; theta < HALF_PI; theta += sampling_deltas.delta_theta) {
             float3 temp_vector = cos(phi) * right + sin(phi) * up;
             float3 sample_vector = cos(theta) * normal + sin(theta) * temp_vector;
 
