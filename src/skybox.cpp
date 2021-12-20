@@ -289,8 +289,8 @@ namespace vkrollercoaster {
             float delta_phi, delta_theta;
         } sampling_deltas;
 
-        sampling_deltas.delta_phi = (float)M_PI / 90.f;
-        sampling_deltas.delta_theta = (float)M_PI / 128.f;
+        sampling_deltas.delta_phi = (float)glm::pi<float>() / 90.f;
+        sampling_deltas.delta_theta = (float)glm::pi<float>() / 128.f;
 
         uint32_t set, binding;
         if (!reflection_data.find_resource("sampling_deltas", set, binding)) {
