@@ -198,8 +198,6 @@ namespace vkrollercoaster {
     }
 
     void application::run() {
-        auto sb = ref<skybox>::create(ref<image_cube>::create("../sascha-willems-vulkan/data/textures/hdr/pisa_cube.ktx"));
-
         if (app_data->running) {
             throw std::runtime_error("the application is already running!");
         }
