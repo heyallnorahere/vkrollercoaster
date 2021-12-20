@@ -83,6 +83,19 @@ namespace vkrollercoaster {
 
             ImGui::Unindent();
         }
+        if (ImGui::CollapsingHeader("Skybox")) {
+            ref<skybox> _skybox = renderer::get_skybox();
+
+            float gamma = _skybox->get_gamma();
+            if (ImGui::InputFloat("Gamma", &gamma, 0.1f)) {
+                _skybox->set_gamma(gamma);
+            }
+
+            float exposure = _skybox->get_exposure();
+            if (ImGui::InputFloat("Exposure", &exposure, 0.1f)) {
+                _skybox->set_exposure(exposure);
+            }
+        }
         ImGui::End();
     }
 } // namespace vkrollercoaster

@@ -70,17 +70,24 @@ namespace vkrollercoaster {
         ~uniform_buffer();
         uniform_buffer(const uniform_buffer&) = delete;
         uniform_buffer& operator=(const uniform_buffer&) = delete;
+
         void bind(ref<pipeline> _pipeline);
+
         template <typename T> void set_data(const T& data, size_t offset = 0) {
             this->set_data(&data, sizeof(T), offset);
         }
         template <typename T> void get_data(T& data, size_t offset = 0) {
             this->get_data(&data, sizeof(T), offset);
         }
+
         void set_data(const void* data, size_t size, size_t offset = 0);
         void get_data(void* data, size_t size, size_t offset = 0);
+
         void zero();
+
         size_t get_size() { return this->m_size; }
+        uint32_t get_set() { return this->m_set; }
+        uint32_t get_binding() { return this->m_binding; }
 
     private:
         VkBuffer m_buffer;

@@ -39,7 +39,7 @@ namespace vkrollercoaster {
         for (const auto& _vertex : vertices) {
             positions.push_back(_vertex.position);
         }
-        skybox_data.vertices = ref<vertex_buffer>::create(vertices);
+        skybox_data.vertices = ref<vertex_buffer>::create(positions);
 
         // indices
         const auto& indices = _model->get_indices();
@@ -60,7 +60,7 @@ namespace vkrollercoaster {
 
         // define pipeline layout
         pipeline_spec spec;
-        spec.enable_culling = false;
+        spec.front_face = pipeline_front_face::counter_clockwise;
         spec.input_layout.stride = sizeof(glm::vec3);
         spec.input_layout.attributes = { { vertex_attribute_type::VEC3, 0 } };
 
@@ -88,6 +88,7 @@ namespace vkrollercoaster {
         // bind objects to pipeline
         this->m_skybox->bind(this->m_pipeline, "environment_texture");
         this->m_uniform_buffer->bind(this->m_pipeline);
+        renderer::get_camera_buffer()->bind(this->m_pipeline);
 
         // create pbr textures
         this->create_irradiance_map();
@@ -113,37 +114,36 @@ namespace vkrollercoaster {
             viewport.height *= -1.f;
             vkCmdSetViewport(vkcmdbuffer, 0, 1, &viewport);
 
-            struct {
-                glm::mat4 projection = glm::mat4(1.f);
-                glm::mat4 model = glm::mat4(1.f);
-            } camera_data;
-
-            {
-                // dark magic
-                ref<scene> _scene = application::get_scene();
-                entity main_camera = _scene->find_main_camera();
-
-                if (main_camera) {
-                    ref<render_target> rendertarget = this->m_pipeline->get_render_target();
-                    VkExtent2D size = rendertarget->get_extent();
-                    float aspect_ratio = (float)size.width / (float)size.height;
-
-                    glm::mat4 view;
-                    renderer::calculate_camera_matrices(main_camera, aspect_ratio,
-                                                        camera_data.projection, view);
-                    camera_data.model = glm::mat4(glm::mat3(view));
-                }
-            }
-
-            vkCmdPushConstants(vkcmdbuffer, this->m_pipeline->get_layout(),
-                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(camera_data), &camera_data);
-
             // finally, bind the damn pipeline
             this->m_pipeline->bind(cmdbuffer);
         }
 
         // draw
         vkCmdDrawIndexed(vkcmdbuffer, skybox_data.indices->get_index_count(), 1, 0, 0, 0);
+    }
+
+    float skybox::get_gamma() {
+        size_t offset = this->find_ubo_offset("gamma");
+        float gamma;
+        this->m_uniform_buffer->get_data(gamma, offset);
+        return gamma;
+    }
+
+    void skybox::set_gamma(float gamma) {
+        size_t offset = this->find_ubo_offset("gamma");
+        this->m_uniform_buffer->set_data(gamma, offset);
+    }
+
+    float skybox::get_exposure() {
+        size_t offset = this->find_ubo_offset("exposure");
+        float exposure;
+        this->m_uniform_buffer->get_data(exposure, offset);
+        return exposure;
+    }
+
+    void skybox::set_exposure(float exposure) {
+        size_t offset = this->find_ubo_offset("exposure");
+        this->m_uniform_buffer->set_data(exposure, offset);
     }
 
     static ref<image_cube> create_cube_map(
@@ -338,5 +338,17 @@ namespace vkrollercoaster {
             create_cube_map(VK_FORMAT_R16G16B16A16_SFLOAT, 512, this->m_skybox, _shader,
                             cube_settings_ubo, render_callback);
         this->m_prefiltered_cube = ref<texture>::create(prefiltered_cube);
+    }
+
+    size_t skybox::find_ubo_offset(const std::string& field_name) {
+        ref<shader> _shader = this->m_pipeline->get_shader();
+        auto& reflection_data = _shader->get_reflection_data();
+
+        uint32_t set = this->m_uniform_buffer->get_set();
+        uint32_t binding = this->m_uniform_buffer->get_binding();
+        size_t type_index = reflection_data.resources[set][binding].type;
+
+        const auto& type = reflection_data.types[type_index];
+        return type.find_offset(field_name);
     }
 } // namespace vkrollercoaster

@@ -34,9 +34,16 @@ namespace vkrollercoaster {
 
         void render(ref<command_buffer> cmdbuffer, bool bind_pipeline = true);
 
+        float get_gamma();
+        void set_gamma(float gamma);
+
+        float get_exposure();
+        void set_exposure(float exposure);
+
     private:
         void create_irradiance_map();
         void create_prefiltered_cube();
+        size_t find_ubo_offset(const std::string& field_name);
 
         // skybox render call objects
         ref<uniform_buffer> m_uniform_buffer;
