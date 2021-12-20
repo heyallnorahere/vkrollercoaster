@@ -51,6 +51,7 @@ namespace vkrollercoaster {
         void reevaluate_first_track_node();
 
         std::vector<entity> find_tag(const std::string& tag);
+        entity find_main_camera();
         template <typename... Components> std::vector<entity> view() {
             std::vector<entity> entities;
             auto view = this->m_registry.view<Components...>();

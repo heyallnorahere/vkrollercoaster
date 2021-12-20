@@ -21,6 +21,7 @@
 #include "renderer.h"
 #include "util.h"
 #include "menus/menus.h"
+#include "application.h"
 namespace vkrollercoaster {
     static struct {
         ref<vertex_buffer> vertices;
@@ -85,9 +86,8 @@ namespace vkrollercoaster {
         this->m_skybox = ref<texture>::create(skybox_texture);
 
         // bind objects to pipeline
-        this->m_skybox->bind(this->m_pipeline, 1, 0);
+        this->m_skybox->bind(this->m_pipeline, "environment_texture");
         this->m_uniform_buffer->bind(this->m_pipeline);
-        renderer::get_camera_buffer()->bind(this->m_pipeline);
 
         // create pbr textures
         this->create_irradiance_map();
@@ -96,6 +96,7 @@ namespace vkrollercoaster {
 
     void skybox::render(ref<command_buffer> cmdbuffer, bool bind_pipeline) {
         auto target = this->m_pipeline->get_render_target();
+        VkCommandBuffer vkcmdbuffer = cmdbuffer->get();
 
         // mesh data
         skybox_data.vertices->bind(cmdbuffer);
@@ -104,20 +105,45 @@ namespace vkrollercoaster {
         if (bind_pipeline) {
             // set scissor
             VkRect2D scissor = this->m_pipeline->get_scissor();
-            vkCmdSetScissor(cmdbuffer->get(), 0, 1, &scissor);
+            vkCmdSetScissor(vkcmdbuffer, 0, 1, &scissor);
 
             // set viewport
             VkViewport viewport = this->m_pipeline->get_viewport();
             viewport.y = (float)target->get_extent().height - viewport.y;
             viewport.height *= -1.f;
-            vkCmdSetViewport(cmdbuffer->get(), 0, 1, &viewport);
+            vkCmdSetViewport(vkcmdbuffer, 0, 1, &viewport);
+
+            struct {
+                glm::mat4 projection = glm::mat4(1.f);
+                glm::mat4 model = glm::mat4(1.f);
+            } camera_data;
+
+            {
+                // dark magic
+                ref<scene> _scene = application::get_scene();
+                entity main_camera = _scene->find_main_camera();
+
+                if (main_camera) {
+                    ref<render_target> rendertarget = this->m_pipeline->get_render_target();
+                    VkExtent2D size = rendertarget->get_extent();
+                    float aspect_ratio = (float)size.width / (float)size.height;
+
+                    glm::mat4 view;
+                    renderer::calculate_camera_matrices(main_camera, aspect_ratio,
+                                                        camera_data.projection, view);
+                    camera_data.model = glm::mat4(glm::mat3(view));
+                }
+            }
+
+            vkCmdPushConstants(vkcmdbuffer, this->m_pipeline->get_layout(),
+                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(camera_data), &camera_data);
 
             // finally, bind the damn pipeline
             this->m_pipeline->bind(cmdbuffer);
         }
 
         // draw
-        vkCmdDrawIndexed(cmdbuffer->get(), skybox_data.indices->get_index_count(), 1, 0, 0, 0);
+        vkCmdDrawIndexed(vkcmdbuffer, skybox_data.indices->get_index_count(), 1, 0, 0, 0);
     }
 
     static ref<image_cube> create_cube_map(
@@ -308,7 +334,9 @@ namespace vkrollercoaster {
             this->render(cmdbuffer, false);
         };
 
-        ref<image> prefiltered_cube = create_cube_map(VK_FORMAT_R16G16B16A16_SFLOAT, 512, this->m_skybox, _shader, cube_settings_ubo, render_callback);
+        ref<image> prefiltered_cube =
+            create_cube_map(VK_FORMAT_R16G16B16A16_SFLOAT, 512, this->m_skybox, _shader,
+                            cube_settings_ubo, render_callback);
         this->m_prefiltered_cube = ref<texture>::create(prefiltered_cube);
     }
 } // namespace vkrollercoaster

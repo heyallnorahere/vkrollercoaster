@@ -73,6 +73,16 @@ namespace vkrollercoaster {
 
     bool window::should_close() const { return glfwWindowShouldClose(this->m_window); }
 
+    void window::get_size(int32_t* width, int32_t* height) {
+        glfwGetFramebufferSize(this->m_window, width, height);
+    }
+
+    float window::get_aspect_ratio() {
+        int32_t width, height;
+        this->get_size(&width, &height);
+        return (float)width / (float)height;
+    }
+
     void window::glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height) {
         window* _window = window_data.window_map[glfw_window];
         for (auto swap_chain : _window->m_swapchains) {

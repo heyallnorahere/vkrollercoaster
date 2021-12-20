@@ -31,9 +31,8 @@ namespace vkrollercoaster {
         window& operator=(const window&) = delete;
         bool should_close() const;
         GLFWwindow* get() const { return this->m_window; }
-        void get_size(int32_t* width, int32_t* height) {
-            glfwGetFramebufferSize(this->m_window, width, height);
-        }
+        void get_size(int32_t* width, int32_t* height);
+        float get_aspect_ratio();
 
     private:
         static void glfw_resize_callback(GLFWwindow* glfw_window, int32_t width, int32_t height);

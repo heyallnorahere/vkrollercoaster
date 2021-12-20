@@ -84,4 +84,20 @@ namespace vkrollercoaster {
         }
         return entities;
     }
+    entity scene::find_main_camera() {
+        const auto& cameras = this->view<camera_component>();
+        entity main_camera;
+        if (!cameras.empty()) {
+            for (entity camera : cameras) {
+                if (camera.get_component<camera_component>().primary) {
+                    main_camera = camera;
+                    break;
+                }
+            }
+            if (!main_camera) {
+                main_camera = cameras[0];
+            }
+        }
+        return main_camera;
+    }
 } // namespace vkrollercoaster

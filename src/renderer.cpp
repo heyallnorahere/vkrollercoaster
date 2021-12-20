@@ -637,32 +637,27 @@ namespace vkrollercoaster {
 
     ref<uniform_buffer> renderer::get_camera_buffer() { return renderer_data.camera_buffer; }
     void renderer::update_camera_buffer(ref<scene> _scene, ref<window> _window) {
-        const auto& cameras = _scene->view<camera_component>();
         camera_buffer_data data;
-        if (!cameras.empty()) {
-            entity main_camera;
-            for (entity camera : cameras) {
-                if (camera.get_component<camera_component>().primary) {
-                    main_camera = camera;
-                    break;
-                }
-            }
-            if (!main_camera) {
-                main_camera = cameras[0];
-            }
-            int32_t width, height;
-            _window->get_size(&width, &height);
-            float aspect_ratio = (float)width / (float)height;
-            const auto& camera = main_camera.get_component<camera_component>();
+        entity main_camera = _scene->find_main_camera();
+        if (main_camera) {
+            float aspect_ratio = _window->get_aspect_ratio();
+            calculate_camera_matrices(main_camera, aspect_ratio, data.projection, data.view);
+
             const auto& transform = main_camera.get_component<transform_component>();
-            data.projection = glm::perspective(glm::radians(camera.fov), aspect_ratio, 0.1f, 100.f);
-            glm::vec3 direction =
-                glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
-            data.view = glm::lookAt(transform.translation,
-                                    transform.translation + glm::normalize(direction), camera.up);
             data.position = transform.translation;
         }
         renderer_data.camera_buffer->set_data(data);
+    }
+
+    void renderer::calculate_camera_matrices(entity camera, float aspect_ratio,
+                                             glm::mat4& projection, glm::mat4& view) {
+        const auto& camera_data = camera.get_component<camera_component>();
+        const auto& transform = camera.get_component<transform_component>();
+        projection = glm::perspective(glm::radians(camera_data.fov), aspect_ratio, 0.1f, 256.f);
+        glm::vec3 direction =
+            glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.f, 0.f, 1.f, 1.f);
+        view = glm::lookAt(transform.translation, transform.translation + glm::normalize(direction),
+                           camera_data.up);
     }
 
     ref<skybox> renderer::get_skybox() { return renderer_data._skybox; }

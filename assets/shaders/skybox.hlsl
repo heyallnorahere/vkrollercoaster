@@ -20,25 +20,28 @@ struct vs_output {
     [[vk::location(0)]] float3 uvw : TEXCOORD0;
 };
 
-#include "base/vertex_resources.hlsl"
+struct camera_data {
+    float4x4 projection;
+    float4x4 model;
+};
+[[vk::push_constant]] ConstantBuffer<camera_data> camera;
 
 vs_output main(float3 position : POSITION0) {
     vs_output output;
 
-    float4x4 model = float4x4(float3x3(camera_data.view));
-    output.position = mul(camera_data.projection, mul(model, float4(position, 1.f)));
+    output.position = mul(camera.projection, mul(camera.model, float4(position, 1.f)));
     output.uvw = position * float3(1.f, -1.f, 1.f);
 
     return output;
 }
 #stage pixel
-[[vk::binding(0, 1)]] TextureCube environment_texture;
-[[vk::binding(0, 1)]] SamplerState environment_sampler;
+[[vk::binding(0, 0)]] TextureCube environment_texture;
+[[vk::binding(0, 0)]] SamplerState environment_sampler;
 
 struct skybox_data_t {
     float exposure, gamma;
 };
-[[vk::binding(1, 1)]] ConstantBuffer<skybox_data_t> skybox_data;
+[[vk::binding(1, 0)]] ConstantBuffer<skybox_data_t> skybox_data;
 
 // http://filmicworlds.com/blog/filmic-tonemapping-operators/
 const float a = 0.15f;

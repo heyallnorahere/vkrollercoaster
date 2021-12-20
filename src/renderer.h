@@ -89,6 +89,7 @@ namespace vkrollercoaster {
 
         static ref<uniform_buffer> get_camera_buffer();
         static void update_camera_buffer(ref<scene> _scene, ref<window> _window);
+        static void calculate_camera_matrices(entity camera, float aspect_ratio, glm::mat4& projection, glm::mat4& view);
 
         static ref<skybox> get_skybox();
         static bool load_skybox(const fs::path& path);
