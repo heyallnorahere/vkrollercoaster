@@ -329,8 +329,6 @@ namespace vkrollercoaster {
         }
     }
 
-    static constexpr uint32_t cube_face_count = 6;
-
     image_cube::image_cube(const fs::path& ktx_path) {
         renderer::add_ref();
         this->init_basic();

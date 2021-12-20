@@ -23,7 +23,8 @@ namespace vkrollercoaster {
                       VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                       VmaMemoryUsage memory_usage, VkImage& image, VmaAllocation& allocation);
     void transition_image_layout(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
-                                 VkImageAspectFlags image_aspect, uint32_t layer_count, ref<command_buffer> cmdbuffer = nullptr);
+                                 VkImageAspectFlags image_aspect, uint32_t layer_count,
+                                 ref<command_buffer> cmdbuffer = nullptr);
 #endif
 
     enum class image_type {
@@ -42,6 +43,12 @@ namespace vkrollercoaster {
         virtual VkImageLayout get_layout() = 0;
         virtual VkImageView get_view() = 0;
         virtual image_type get_type() = 0;
+
+#ifndef EXPOSE_IMAGE_UTILS
+    protected:
+#endif
+        virtual VkImage get_image() = 0;
+        virtual VmaAllocation get_allocation() = 0;
 
     protected:
         void update_dependent_imgui_textures();
@@ -63,7 +70,7 @@ namespace vkrollercoaster {
 
         image2d(const image_data& data);
         image2d(VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usage,
-              VkImageAspectFlags image_aspect);
+                VkImageAspectFlags image_aspect);
         virtual ~image2d() override;
 
         virtual void transition(VkImageLayout new_layout) override;
@@ -72,6 +79,12 @@ namespace vkrollercoaster {
         virtual VkImageView get_view() override { return this->m_view; }
         virtual VkImageLayout get_layout() override { return this->m_layout; }
         virtual image_type get_type() override { return image_type::image2d; }
+
+#ifndef EXPOSE_IMAGE_UTILS
+    protected:
+#endif
+        virtual VkImage get_image() override { return this->m_image; }
+        virtual VmaAllocation get_allocation() override { return this->m_allocation; }
 
     private:
         void init_basic();
@@ -89,6 +102,8 @@ namespace vkrollercoaster {
 
     class image_cube : public image {
     public:
+        static constexpr uint32_t cube_face_count = 6;
+
         image_cube(const fs::path& ktx_path);
         image_cube(VkFormat format, uint32_t width, uint32_t height, uint32_t depth,
                    VkImageUsageFlags usage, VkImageAspectFlags image_aspect);
@@ -100,6 +115,12 @@ namespace vkrollercoaster {
         virtual VkImageView get_view() override { return this->m_view; }
         virtual VkImageLayout get_layout() override { return this->m_layout; }
         virtual image_type get_type() override { return image_type::image_cube; }
+
+#ifndef EXPOSE_IMAGE_UTILS
+    protected:
+#endif
+        virtual VkImage get_image() override { return this->m_image; }
+        virtual VmaAllocation get_allocation() override { return this->m_allocation; }
 
     private:
         void init_basic();

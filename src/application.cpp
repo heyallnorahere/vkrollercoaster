@@ -172,6 +172,9 @@ namespace vkrollercoaster {
         // create light uniform buffers
         light::init();
 
+        // load skybox mesh and create pipeline
+        skybox::init();
+
         // create scene and player
         app_data->global_scene = ref<scene>::create();
         {
@@ -183,6 +186,7 @@ namespace vkrollercoaster {
 
     void application::shutdown() {
         // shut down subsystems
+        skybox::shutdown();
         light::shutdown();
         imgui_controller::shutdown();
         shader_library::clear();

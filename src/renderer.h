@@ -21,6 +21,7 @@
 #include "texture.h"
 #include "buffers.h"
 #include "pipeline.h"
+#include "skybox.h"
 namespace vkrollercoaster {
 #ifdef EXPOSE_RENDERER_INTERNALS
     struct queue_family_indices {

@@ -25,7 +25,8 @@ struct vs_output {
 vs_output main(float3 position : POSITION0) {
     vs_output output;
 
-    output.position = mul(camera_data.projection, mul(object_data.model, float4(position, 1.f)));
+    float4x4 model = float4x4(float3x3(camera_data.view));
+    output.position = mul(camera_data.projection, mul(model, float4(position, 1.f)));
     output.uvw = position;
 
     return output;
