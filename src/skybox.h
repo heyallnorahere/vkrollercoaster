@@ -18,20 +18,24 @@
 #include "image.h"
 #include "buffers.h"
 #include "pipeline.h"
+#include "texture.h"
+#include "command_buffer.h"
 namespace vkrollercoaster {
     class skybox : public ref_counted {
     public:
         static void init();
         static void shutdown();
 
-        skybox(ref<image_cube> cube_map);
-        ~skybox();
+        skybox(ref<image_cube> skybox_texture);
+        ~skybox() = default;
 
         skybox(const skybox&) = delete;
         skybox& operator=(const skybox&) = delete;
 
+        void render(ref<command_buffer> cmdbuffer, bool bind_pipeline = true);
     private:
         ref<uniform_buffer> m_uniform_buffer;
         ref<pipeline> m_pipeline;
+        ref<texture> m_skybox;
     };
 } // namespace vkrollercoaster

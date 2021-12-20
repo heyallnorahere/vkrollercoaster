@@ -18,6 +18,7 @@
 #define EXPOSE_IMAGE_UTILS
 #include "skybox.h"
 #include "model.h"
+#include "renderer.h"
 #include "menus/menus.h"
 namespace vkrollercoaster {
     static struct {
@@ -52,7 +53,7 @@ namespace vkrollercoaster {
         float exposure, gamma;
     };
 
-    skybox::skybox(ref<image_cube> cube_map) {
+    skybox::skybox(ref<image_cube> skybox_texture) {
         auto _shader = shader_library::get("skybox");
 
         // define pipeline layout
@@ -79,5 +80,39 @@ namespace vkrollercoaster {
         initial_data.exposure = 4.5f;
         initial_data.gamma = 2.2f;
         this->m_uniform_buffer->set_data(initial_data);
+
+        // create texture for rendering
+        this->m_skybox = ref<texture>::create(skybox_texture);
+
+        // bind objects to pipeline
+        this->m_skybox->bind(this->m_pipeline, 1, 0);
+        this->m_uniform_buffer->bind(this->m_pipeline);
+        renderer::get_camera_buffer()->bind(this->m_pipeline);
+    }
+
+    void skybox::render(ref<command_buffer> cmdbuffer, bool bind_pipeline) {
+        auto target = this->m_pipeline->get_render_target();
+
+        // set scissor
+        VkRect2D scissor = this->m_pipeline->get_scissor();
+        vkCmdSetScissor(cmdbuffer->get(), 0, 1, &scissor);
+
+        // set viewport
+        VkViewport viewport = this->m_pipeline->get_viewport();
+        viewport.y = (float)target->get_extent().height - viewport.y;
+        viewport.height *= -1.f;
+        vkCmdSetViewport(cmdbuffer->get(), 0, 1, &viewport);
+
+        // mesh data
+        skybox_data.vertices->bind(cmdbuffer);
+        skybox_data.indices->bind(cmdbuffer);
+
+        // bind pipeline if requested
+        if (bind_pipeline) {
+            this->m_pipeline->bind(cmdbuffer);
+        }
+
+        // draw
+        vkCmdDrawIndexed(cmdbuffer->get(), skybox_data.indices->get_index_count(), 1, 0, 0, 0);
     }
 } // namespace vkrollercoaster

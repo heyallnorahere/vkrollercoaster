@@ -27,7 +27,7 @@ vs_output main(float3 position : POSITION0) {
 
     float4x4 model = float4x4(float3x3(camera_data.view));
     output.position = mul(camera_data.projection, mul(model, float4(position, 1.f)));
-    output.uvw = position;
+    output.uvw = position * float3(1.f, -1.f, 1.f);
 
     return output;
 }

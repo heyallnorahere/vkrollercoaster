@@ -27,6 +27,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <ktx.h>
+#include <ktxvulkan.h>
 namespace vkrollercoaster {
     static void get_sharing_mode(VkImageCreateInfo& create_info) {
         VkPhysicalDevice physical_device = renderer::get_physical_device();
@@ -188,7 +189,7 @@ namespace vkrollercoaster {
 
             data.width = (int32_t)ktx_data->baseWidth;
             data.height = (int32_t)ktx_data->baseHeight;
-            data.channels = (int32_t)(ktxTexture_GetRowPitch(ktx_data, 0) / ktx_data->baseWidth);
+            data.channels = 4; // we'll just have to assume
 
             size_t data_size = (size_t)data.width * data.height * data.channels;
             data.data.resize(data_size);
@@ -333,7 +334,6 @@ namespace vkrollercoaster {
         renderer::add_ref();
         this->init_basic();
         this->m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-        this->m_format = VK_FORMAT_R8G8B8A8_UINT;
 
         {
             if (ktx_path.extension() != ".ktx") {
@@ -350,6 +350,8 @@ namespace vkrollercoaster {
                                                &ktx_data) != KTX_SUCCESS) {
                 throw std::runtime_error("could not load cube map!");
             }
+
+            this->m_format = ktxTexture_GetVkFormat(ktx_data);
 
             uint32_t width = ktx_data->baseWidth;
             uint32_t height = ktx_data->baseHeight;
