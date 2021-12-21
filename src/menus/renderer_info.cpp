@@ -87,6 +87,7 @@ namespace vkrollercoaster {
         static std::string image_path;
         static bool file_doesnt_exist = false;
         if (ImGui::CollapsingHeader("Skybox")) {
+            ImGui::Indent();
             ref<skybox> _skybox = renderer::get_skybox();
 
             float gamma = _skybox->get_gamma();
@@ -116,6 +117,8 @@ namespace vkrollercoaster {
                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                    "The passed file path does not exist!");
             }
+
+            ImGui::Unindent();
         } else {
             if (!image_path.empty()) {
                 image_path.clear();
