@@ -83,6 +83,9 @@ namespace vkrollercoaster {
 
             ImGui::Unindent();
         }
+
+        static std::string image_path;
+        static bool file_doesnt_exist = false;
         if (ImGui::CollapsingHeader("Skybox")) {
             ref<skybox> _skybox = renderer::get_skybox();
 
@@ -95,6 +98,29 @@ namespace vkrollercoaster {
             if (ImGui::InputFloat("Exposure", &exposure, 0.1f)) {
                 _skybox->set_exposure(exposure);
             }
+
+            ImGui::InputText("##image-path", &image_path);
+            ImGui::SameLine();
+
+            if (ImGui::Button("Load")) {
+                fs::path skybox_path = image_path;
+                if (!fs::exists(skybox_path) || image_path.empty()) {
+                    file_doesnt_exist = true;
+                } else {
+                    file_doesnt_exist = false;
+                    renderer::load_skybox(skybox_path);
+                }
+            }
+
+            if (file_doesnt_exist) {
+                ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
+                                   "The passed file path does not exist!");
+            }
+        } else {
+            if (!image_path.empty()) {
+                image_path.clear();
+            }
+            file_doesnt_exist = false;
         }
         ImGui::End();
     }
