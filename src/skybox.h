@@ -25,6 +25,7 @@ namespace vkrollercoaster {
     public:
         static void init();
         static void shutdown();
+        static ref<texture> get_brdf_lookup_table();
 
         skybox(ref<image_cube> skybox_texture);
         ~skybox() = default;
@@ -33,6 +34,8 @@ namespace vkrollercoaster {
         skybox& operator=(const skybox&) = delete;
 
         void render(ref<command_buffer> cmdbuffer, bool bind_pipeline = true);
+        ref<texture> get_irradiance_map() { return this->m_irradiance_map; }
+        ref<texture> get_prefiltered_cube() { return this->m_prefiltered_cube; }
 
         float get_gamma();
         void set_gamma(float gamma);

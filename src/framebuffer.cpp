@@ -122,7 +122,7 @@ namespace vkrollercoaster {
                 continue;
             }
 
-            VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+            VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
             VkImageAspectFlags image_aspect = 0;
             switch (type) {
             case attachment_type::color:

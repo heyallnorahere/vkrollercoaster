@@ -21,12 +21,55 @@
 #include "renderer.h"
 #include "util.h"
 #include "menus/menus.h"
-#include "application.h"
 namespace vkrollercoaster {
     static struct {
         ref<vertex_buffer> vertices;
         ref<index_buffer> indices;
+        ref<texture> brdflut;
     } skybox_data;
+
+    static void generate_brdf_lookup_table() {
+        constexpr uint32_t size = 512;
+        ref<shader> _shader = shader_library::get("gen_brdflut");
+
+        // create framebuffer to render to
+        framebuffer_spec fb_spec;
+        fb_spec.width = size;
+        fb_spec.height = size;
+        fb_spec.requested_attachments[attachment_type::color] = VK_FORMAT_R16G16_SFLOAT;
+        auto fb = ref<framebuffer>::create(fb_spec);
+
+        // get color attachment from framebuffer
+        auto attachment = fb->get_attachment(attachment_type::color);
+
+        // create pipeline for rendering
+        pipeline_spec _pipeline_spec;
+        auto _pipeline = ref<pipeline>::create(fb, _shader, _pipeline_spec);
+
+        {
+            // begin a command buffer
+            auto cmdbuffer = renderer::create_single_time_command_buffer();
+            cmdbuffer->begin();
+            cmdbuffer->begin_render_pass(fb, glm::vec4(0.f, 0.f, 0.f, 1.f));
+            VkCommandBuffer vkcmdbuffer = cmdbuffer->get();
+
+            // set viewport and scissor
+            vkCmdSetScissor(vkcmdbuffer, 0, 1, &_pipeline->get_scissor());
+            vkCmdSetViewport(vkcmdbuffer, 0, 1, &_pipeline->get_viewport());
+
+            // bind pipeline and draw
+            _pipeline->bind(cmdbuffer);
+            vkCmdDraw(vkcmdbuffer, 3, 1, 0, 0);
+
+            // flush command buffer
+            cmdbuffer->end_render_pass();
+            cmdbuffer->end();
+            cmdbuffer->submit();
+            cmdbuffer->wait();
+        }
+
+        skybox_data.brdflut = ref<texture>::create(attachment);
+    }
 
     void skybox::init() {
         // load the mesh
@@ -44,11 +87,15 @@ namespace vkrollercoaster {
         // indices
         const auto& indices = _model->get_indices();
         skybox_data.indices = ref<index_buffer>::create(indices);
+
+        // generate brdf lookup table
+        generate_brdf_lookup_table();
     }
 
     void skybox::shutdown() {
         skybox_data.vertices.reset();
         skybox_data.indices.reset();
+        skybox_data.brdflut.reset();
     }
 
     struct skybox_data_t {
@@ -159,19 +206,15 @@ namespace vkrollercoaster {
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         result->transition(result_transfer_image_layout);
 
-        // create color attachment for rendering framebuffer
-        auto attachment = ref<image2d>::create(format, size, size,
-                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                                   VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                               VK_IMAGE_ASPECT_COLOR_BIT);
-        attachment->transition(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
         // create framebuffer to render to
         framebuffer_spec fb_spec;
         fb_spec.width = size;
         fb_spec.height = size;
-        fb_spec.provided_attachments[attachment_type::color] = attachment;
+        fb_spec.requested_attachments[attachment_type::color] = format;
         auto fb = ref<framebuffer>::create(fb_spec);
+
+        // get color attachment from framebuffer
+        auto attachment = fb->get_attachment(attachment_type::color);
 
         // create pipeline for rendering
         pipeline_spec _pipeline_spec;

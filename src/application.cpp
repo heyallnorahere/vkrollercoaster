@@ -156,6 +156,7 @@ namespace vkrollercoaster {
         shader_library::add("skybox");
         shader_library::add("irradiance_map");
         shader_library::add("prefiltered_cube");
+        shader_library::add("gen_brdflut");
     }
 
     void application::init() {
@@ -176,7 +177,7 @@ namespace vkrollercoaster {
         // create light uniform buffers
         light::init();
 
-        // load skybox mesh
+        // load skybox mesh and create brdf lookup table
         skybox::init();
 
         // load default skybox

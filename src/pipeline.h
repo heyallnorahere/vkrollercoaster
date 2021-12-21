@@ -68,8 +68,8 @@ namespace vkrollercoaster {
         ref<render_target> get_render_target() { return this->m_render_target; }
         VkPipeline get() { return this->m_pipeline; }
         VkPipelineLayout get_layout() { return this->m_layout; }
-        VkViewport get_viewport() { return this->m_viewport; }
-        VkRect2D get_scissor() { return this->m_scissor; }
+        const VkViewport& get_viewport() { return this->m_viewport; }
+        const VkRect2D& get_scissor() { return this->m_scissor; }
         const std::map<uint32_t, descriptor_set>& get_descriptor_sets() {
             return this->m_descriptor_sets;
         }

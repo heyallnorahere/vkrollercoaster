@@ -31,7 +31,16 @@ struct vs_output {
     [[vk::location(3)]] float3 camera_position : NORMAL2;
 };
 
-#include "base/vertex_resources.hlsl"
+struct camera_data_t {
+    float4x4 projection, view;
+    float3 position;
+};
+[[vk::binding(0, 0)]] ConstantBuffer<camera_data_t> camera_data;
+
+struct push_constants {
+    float4x4 model, normal;
+};
+[[vk::push_constant]] ConstantBuffer<push_constants> object_data;
 
 vs_output main(vs_input input) {
     vs_output output;

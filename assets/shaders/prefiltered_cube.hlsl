@@ -26,45 +26,7 @@ struct cube_settings_t {
 };
 [[vk::binding(1, 0)]] ConstantBuffer<cube_settings_t> cube_settings;
 
-#define PI 3.1415926535897932384626433832795
-
-// http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
-float random(float2 co) {
-    const float a = 12.9898;
-    const float b = 78.233;
-    const float c = 43758.5433;
-
-    float dt = dot(co, float2(a, b));
-    float sn = fmod(dt, PI);
-    return frac(sin(sn) * c);
-}
-
-// based on http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-float2 hammersley2d(uint i) {
-	uint bits = (i << 16) | (i >> 16);
-	bits = ((bits & 0x55555555u) << 1) | ((bits & 0xAAAAAAAAu) >> 1);
-	bits = ((bits & 0x33333333u) << 2) | ((bits & 0xCCCCCCCCu) >> 2);
-	bits = ((bits & 0x0F0F0F0Fu) << 4) | ((bits & 0xF0F0F0F0u) >> 4);
-	bits = ((bits & 0x00FF00FFu) << 8) | ((bits & 0xFF00FF00u) >> 8);
-	float rdi = float(bits) * 2.3283064365386963e-10;
-	return float2(float(i) / float(cube_settings.sample_count), rdi);
-}
-
-// based on http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_slides.pdf
-float3 importance_sample(float2 Xi, float3 normal) {
-    float phi = 2.f * PI * Xi.x + random(normal.xz) * 0.1f;
-    float cos_theta = sqrt((1.f - Xi.y) / (1.0 + (pow(cube_settings.roughness, 4) - 1.f) * Xi.y));
-    float sin_theta = sqrt(1.f - pow(cos_theta, 2));
-    float3 H = float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
-
-    // in tangent space
-    float3 up = abs(normal.z) < 0.999f ? float3(0.f, 0.f, 1.f) : float3(1.f, 0.f, 0.f);
-    float3 tangent_x = normalize(cross(up, normal));
-    float3 tangent_y = normalize(cross(normal, tangent_x));
-
-    // return as world space
-    return normalize(tangent_x * H.x + tangent_y * H.y + normal * H.z);
-}
+#include "base/shader_utils.hlsl"
 
 float normal_distribution(float dot_nh) {
     float roughness_4 = pow(cube_settings.roughness, 4);
@@ -84,8 +46,8 @@ float3 prefilter_env_map(float3 normal) {
     float env_map_size = float(env_map_dimensions.x);
 
     for (uint i = 0; i < cube_settings.sample_count; i++) {
-        float2 Xi = hammersley2d(i);
-        float3 H = importance_sample(Xi, N);
+        float2 Xi = hammersley2d(i, cube_settings.sample_count);
+        float3 H = importance_sample(Xi, cube_settings.roughness, N);
         float3 L = 2.f * dot(V, H) * H - V;
 
         float dot_nl = clamp(dot(N, L), 0.f, 1.f);

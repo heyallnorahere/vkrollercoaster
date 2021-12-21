@@ -164,8 +164,10 @@ namespace vkrollercoaster {
         binding.binding = 0;
         binding.stride = this->m_spec.input_layout.stride;
         binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        vertex_input_info.vertexBindingDescriptionCount = 1;
-        vertex_input_info.pVertexBindingDescriptions = &binding;
+        if (binding.stride != 0) {
+            vertex_input_info.vertexBindingDescriptionCount = 1;
+            vertex_input_info.pVertexBindingDescriptions = &binding;
+        }
         for (uint32_t i = 0; i < this->m_spec.input_layout.attributes.size(); i++) {
             const auto& attribute = this->m_spec.input_layout.attributes[i];
             auto& attribute_desc = attributes.emplace_back();

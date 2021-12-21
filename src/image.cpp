@@ -419,32 +419,28 @@ namespace vkrollercoaster {
         uint32_t width = source->get_width();
         uint32_t height = source->get_height();
 
-        glm::vec2 source_size;
-        source_size.x = (float)width;
-        source_size.y = (float)height;
-        if (glm::abs(source_size.x / source_size.y - 4.f / 3.f) > 0.001f) {
+        if (glm::abs((float)width / (float)height - 4.f / 3.f) > 0.001f) {
             throw std::runtime_error("the aspect ratio of the passed image is not 4:3!");
         }
 
-        static constexpr float third = 1.f / 3.f;
-        std::array<glm::vec2, cube_face_count> face_offsets = {
+        std::array<glm::ivec2, cube_face_count> face_offsets = {
             // right (x-positive)
-            glm::vec2(0.5f, third) * source_size,
+            glm::ivec2(width / 2, height / 3),
 
             // left (x-negative)
-            glm::vec2(0.f, third) * source_size,
+            glm::ivec2(0, height / 3),
 
             // top (y-positive)
-            glm::vec2(0.25f, 0.f) * source_size,
+            glm::ivec2(width / 4, 0),
 
             // bottom (y-negative)
-            glm::vec2(0.25f, third * 2.f) * source_size,
+            glm::ivec2(width / 4, height * 2 / 3),
 
             // front (z-positive)
-            glm::vec2(0.25f, third) * source_size,
+            glm::ivec2(width / 4, height / 3),
 
             // back (z-negative)
-            glm::vec2(0.75f, third) * source_size,
+            glm::ivec2(width * 3 / 4, height / 3),
         };
 
         VkExtent3D image_extent;
@@ -455,13 +451,13 @@ namespace vkrollercoaster {
         // set up image copy info
         std::vector<VkImageCopy> copy_regions;
         for (uint32_t face = 0; face < cube_face_count; face++) {
-            glm::vec2 offset = face_offsets[face];
+            glm::ivec2 offset = face_offsets[face];
 
             VkImageCopy region;
             util::zero(region);
 
-            region.srcOffset.x = (int32_t)offset.x;
-            region.srcOffset.y = (int32_t)offset.y;
+            region.srcOffset.x = offset.x;
+            region.srcOffset.y = offset.y;
             region.srcOffset.z = 0;
             region.srcSubresource.aspectMask = source->get_image_aspect();
             region.srcSubresource.mipLevel = 0;
