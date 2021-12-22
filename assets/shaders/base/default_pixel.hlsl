@@ -55,9 +55,8 @@ struct light_data_t {
 
 // material data
 struct material_data_t {
-    float specular, metallic, roughness;
-    float opacity;
-    float3 albedo_color;
+    float shininess, opacity;
+    float3 albedo_color, specular_color;
 };
 [[vk::binding(1, 1)]] ConstantBuffer<material_data_t> material_data;
 
@@ -69,6 +68,10 @@ struct material_data_t {
 [[vk::binding(3, 1)]] Texture2D specular_texture;
 [[vk::binding(3, 1)]] SamplerState specular_sampler;
 
+// normal map
+[[vk::binding(4, 1)]] Texture2D normal_map;
+[[vk::binding(4, 1)]] SamplerState normal_sampler;
+
 struct color_data_t {
     float3 albedo, specular;
 };
@@ -76,11 +79,10 @@ color_data_t get_color_data(float2 uv) {
     color_data_t data;
 
     data.albedo = albedo_texture.Sample(albedo_sampler, uv).rgb * material_data.albedo_color;
-    data.specular = specular_texture.Sample(specular_sampler, uv).rgb * material_data.specular;
+    data.specular = specular_texture.Sample(specular_sampler, uv).rgb * material_data.specular_color;
 
     return data;
 }
-
 
 //=== obsolete lighting ====
 float calculate_attenuation(attenuation_settings attenuation, float3 light_position, ps_input stage_input) {
@@ -89,22 +91,22 @@ float calculate_attenuation(attenuation_settings attenuation, float3 light_posit
     return 1.f / (attenuation._constant + attenuation._linear * distance_ + attenuation._quadratic * distance_2);
 }
 
-float calculate_specular(float3 light_direction, ps_input stage_input) {
+float calculate_specular(float3 light_direction, ps_input stage_input, float3 normal) {
     float3 view_direction = normalize(stage_input.camera_position - stage_input.fragment_position);
-    float3 reflect_direction = reflect(-light_direction, stage_input.normal);
-    return pow(max(dot(view_direction, reflect_direction), 0.f), 32.f); // shininess replaced with 32 because im working on making pbr happen
+    float3 reflect_direction = reflect(-light_direction, normal);
+    return pow(max(dot(view_direction, reflect_direction), 0.f), material_data.shininess);
 }
-float calculate_diffuse(float3 light_direction, ps_input stage_input) {
-    return max(dot(stage_input.normal, light_direction), 0.f);
+float calculate_diffuse(float3 light_direction, float3 normal) {
+    return max(dot(normal, light_direction), 0.f);
 }
 
-float3 calculate_spotlight(int index, color_data_t color_data, ps_input stage_input) {
+float3 calculate_spotlight(int index, color_data_t color_data, ps_input stage_input, float3 normal) {
     spotlight light = light_data.spotlights[index];
     float3 light_direction = normalize(light.position - stage_input.fragment_position);
 
     float3 ambient = light.ambient_color;
-    float3 specular = calculate_specular(light_direction, stage_input) * light.specular_color;
-    float3 diffuse = calculate_diffuse(light_direction, stage_input) * light.diffuse_color;
+    float3 specular = calculate_specular(light_direction, stage_input, normal) * light.specular_color;
+    float3 diffuse = calculate_diffuse(light_direction, normal) * light.diffuse_color;
 
     float3 color = ((ambient + diffuse) * color_data.albedo) + (specular * color_data.specular);
     float attenuation = calculate_attenuation(light.attenuation, light.position, stage_input);
@@ -115,36 +117,48 @@ float3 calculate_spotlight(int index, color_data_t color_data, ps_input stage_in
     
     return color * attenuation * intensity;
 }
-float3 calculate_point_light(int index, color_data_t color_data, ps_input stage_input) {
+float3 calculate_point_light(int index, color_data_t color_data, ps_input stage_input, float3 normal) {
     point_light light = light_data.point_lights[index];
     float3 light_direction = normalize(light.position - stage_input.fragment_position);
 
     float3 ambient = light.ambient_color;
-    float3 specular = calculate_specular(light_direction, stage_input) * light.specular_color;
-    float3 diffuse = calculate_diffuse(light_direction, stage_input) * light.diffuse_color;
+    float3 specular = calculate_specular(light_direction, stage_input, normal) * light.specular_color;
+    float3 diffuse = calculate_diffuse(light_direction, normal) * light.diffuse_color;
 
     float3 color = ((ambient + diffuse) * color_data.albedo) + (specular * color_data.specular);
     float attenuation = calculate_attenuation(light.attenuation, light.position, stage_input);
 
     return color * attenuation;
 }
-float3 calculate_directional_light(int index, color_data_t color_data, ps_input stage_input) {
+float3 calculate_directional_light(int index, color_data_t color_data, ps_input stage_input, float3 normal) {
     directional_light light = light_data.directional_lights[index];
     // todo: calculate directional light
     return float3(0.f);
 }
 
+float3 calculate_normal(ps_input input) {
+    float3 tangent_normal = normal_map.Sample(normal_sampler, input.uv).xyz * 2.f - 1.f;
+
+    float3 n = input.normal; // already normalized
+    float3 t = input.tangent; // also already normalized
+    float3 b = normalize(cross(n, t));
+    float3x3 tbn = transpose(float3x3(t, b, n));
+
+    return normalize(mul(tbn, tangent_normal));
+}
+
 float4 main(ps_input input) : SV_TARGET {
     color_data_t color_data = get_color_data(input.uv);
+    float3 normal = calculate_normal(input);
     float3 fragment_color = float3(0.f);
     for (int i = 0; i < light_data.spotlight_count; i++) {
-        fragment_color += calculate_spotlight(i, color_data, input);
+        fragment_color += calculate_spotlight(i, color_data, input, normal);
     }
     for (int i = 0; i < light_data.point_light_count; i++) {
-        fragment_color += calculate_point_light(i, color_data, input);
+        fragment_color += calculate_point_light(i, color_data, input, normal);
     }
     for (int i = 0; i < light_data.directional_light_count; i++) {
-        fragment_color += calculate_directional_light(i, color_data, input);
+        fragment_color += calculate_directional_light(i, color_data, input, normal);
     }
     return float4(fragment_color, material_data.opacity);
 }
