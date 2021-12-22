@@ -17,9 +17,10 @@
 struct ps_input {
     [[vk::location(0)]] float3 normal : NORMAL0;
     [[vk::location(1)]] float2 uv : TEXCOORD0;
+    [[vk::location(2)]] float3 tangent : TANGENT0;
 
-    [[vk::location(2)]] float3 fragment_position : NORMAL1;
-    [[vk::location(3)]] float3 camera_position : NORMAL2;
+    [[vk::location(3)]] float3 fragment_position : NORMAL1;
+    [[vk::location(4)]] float3 camera_position : NORMAL2;
 };
 
 // light data

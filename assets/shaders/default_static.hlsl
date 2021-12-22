@@ -19,6 +19,7 @@ struct vs_input {
     [[vk::location(0)]] float3 position : POSITION0;
     [[vk::location(1)]] float3 normal : NORMAL0;
     [[vk::location(2)]] float3 uv : TEXCOORD0;
+    [[vk::location(3)]] float3 tangent : TANGENT0;
 };
 
 struct vs_output {
@@ -26,9 +27,10 @@ struct vs_output {
 
     [[vk::location(0)]] float3 normal : NORMAL0;
     [[vk::location(1)]] float2 uv : TEXCOORD0;
+    [[vk::location(2)]] float3 tangent : TANGENT0;
 
-    [[vk::location(2)]] float3 fragment_position : NORMAL1;
-    [[vk::location(3)]] float3 camera_position : NORMAL2;
+    [[vk::location(3)]] float3 fragment_position : NORMAL1;
+    [[vk::location(4)]] float3 camera_position : NORMAL2;
 };
 
 struct camera_data_t {
@@ -51,8 +53,10 @@ vs_output main(vs_input input) {
     // vertex screen-space position
     output.position = mul(camera_data.projection, mul(camera_data.view, world_position));
 
-    // vertex normal
-    output.normal = normalize(mul(float3x3(object_data.normal), input.normal));
+    // vertex normal and tangent
+    float3x3 normal = float3x3(object_data.normal);
+    output.normal = normalize(mul(normal, input.normal));
+    output.tangent = normalize(mul(normal, input.tangent));
 
     // copy other data
     output.uv = input.uv;

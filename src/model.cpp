@@ -67,10 +67,10 @@ namespace vkrollercoaster {
         }
         this->reload();
     }
-    static constexpr uint32_t import_flags = aiProcess_Triangulate | aiProcess_GenNormals |
-                                             aiProcess_GenUVCoords | aiProcess_OptimizeMeshes |
-                                             aiProcess_JoinIdenticalVertices |
-                                             aiProcess_ValidateDataStructure | aiProcess_FlipUVs;
+    static constexpr uint32_t import_flags =
+        aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords |
+        aiProcess_OptimizeMeshes | aiProcess_JoinIdenticalVertices |
+        aiProcess_ValidateDataStructure | aiProcess_FlipUVs | aiProcess_CalcTangentSpace;
     void model_source::reload() {
         this->m_importer = std::make_unique<Assimp::Importer>();
         this->m_vertices.clear();
@@ -103,7 +103,7 @@ namespace vkrollercoaster {
             aiMesh* mesh_ = this->m_scene->mMeshes[node->mMeshes[i]];
             this->process_mesh(mesh_, node, &transform);
         }
-        
+
         for (size_t i = 0; i < node->mNumChildren; i++) {
             aiNode* child = node->mChildren[i];
             this->process_node(child, &transform);
@@ -133,6 +133,9 @@ namespace vkrollercoaster {
             } else {
                 v.uv = glm::vec2(0.f);
             }
+
+            // tangent
+            v.tangent = convert<3>(normal_transform * mesh_->mTangents[i]);
 
             vertices.push_back(v);
         }
@@ -275,6 +278,7 @@ namespace vkrollercoaster {
             { vertex_attribute_type::VEC3, offsetof(vertex, position) },
             { vertex_attribute_type::VEC3, offsetof(vertex, normal) },
             { vertex_attribute_type::VEC2, offsetof(vertex, uv) },
+            { vertex_attribute_type::VEC3, offsetof(vertex, tangent) },
         };
     }
 

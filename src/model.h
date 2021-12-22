@@ -25,6 +25,7 @@ namespace vkrollercoaster {
     struct vertex {
         glm::vec3 position, normal;
         glm::vec2 uv;
+        glm::vec3 tangent;
     };
     class model;
 
