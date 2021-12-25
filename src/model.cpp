@@ -201,16 +201,19 @@ namespace vkrollercoaster {
             }
 
             // normal map
+            bool normal_map_created = false;
             if (ai_material->GetTexture(aiTextureType_NORMALS, 0, &ai_string) == aiReturn_SUCCESS) {
                 auto path = this->get_resource_path(ai_string);
                 auto img = image2d::from_file(path);
                 if (img) {
                     auto tex = ref<texture>::create(img);
                     _material->set_texture("normal_map", tex);
+                    normal_map_created = true;
                 } else {
                     spdlog::warn("normal map \"{0}\" does not exist!", path.string());
                 }
             }
+            _material->set_data("use_normal_map", normal_map_created);
 
             // opacity
             float opacity;

@@ -55,6 +55,7 @@ struct light_data_t {
 
 // material data
 struct material_data_t {
+    bool use_normal_map;
     float shininess, opacity;
     float3 albedo_color, specular_color;
 };
@@ -137,6 +138,10 @@ float3 calculate_directional_light(int index, color_data_t color_data, ps_input 
 }
 
 float3 calculate_normal(ps_input input) {
+    if (!material_data.use_normal_map) {
+        return input.normal;
+    }
+
     float3 tangent_normal = normal_map.Sample(normal_sampler, input.uv).xyz * 2.f - 1.f;
 
     float3 n = input.normal; // already normalized
