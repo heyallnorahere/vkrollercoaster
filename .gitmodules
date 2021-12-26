@@ -31,3 +31,6 @@
 [submodule "vendor/KTX-Software"]
 	path = vendor/KTX-Software
 	url = https://github.com/KhronosGroup/KTX-Software.git
+[submodule "vendor/json"]
+	path = vendor/json
+	url = https://github.com/nlohmann/json.git
