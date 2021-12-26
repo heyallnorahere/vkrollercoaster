@@ -21,13 +21,45 @@ namespace vkrollercoaster {
     class entity {
     public:
         entity() {
-            this->m_id = entt::null;
             this->m_scene = nullptr;
+            this->reset();
         }
         entity(entt::entity id, scene* scene_) {
             this->m_scene = scene_;
             this->m_id = id;
+            if (this->m_scene) {
+                this->add_to_entity_set();
+            }
         }
+        ~entity() {
+            if (this->m_scene) {
+                this->remove_from_entity_set();
+            }
+        }
+        entity(const entity& other) {
+            this->m_scene = other.m_scene;
+            this->m_id = other.m_id;
+            if (this->m_scene) {
+                this->add_to_entity_set();
+            }
+        }
+        entity& operator=(const entity& other) {
+            this->m_scene = other.m_scene;
+            this->m_id = other.m_id;
+            if (this->m_scene) {
+                this->add_to_entity_set();
+            }
+            return *this;
+        }
+
+        void reset() {
+            if (this->m_scene) {
+                this->remove_from_entity_set();
+            }
+            this->m_id = entt::null;
+            this->m_scene = nullptr;
+        }
+
         template <typename T, typename... Args> T& add_component(Args&&... args);
         template <typename T> T& get_component() const;
         template <typename T> bool has_component() const;
@@ -40,13 +72,22 @@ namespace vkrollercoaster {
         bool operator!=(const entity& other) const { return !(*this == other); }
 
     private:
+        void add_to_entity_set();
+        void remove_from_entity_set();
+
         scene* m_scene;
         entt::entity m_id;
+        friend class scene;
         template <typename T> friend struct ::std::hash;
     };
+    class scene_serializer;
     class scene : public ref_counted {
     public:
+        ~scene() { this->reset(); }
+
+        void reset();
         void update();
+        void for_each(std::function<void(entity)> callback);
         entity create(const std::string& tag = "Entity");
         void reevaluate_first_track_node();
 
@@ -68,7 +109,9 @@ namespace vkrollercoaster {
         template <typename T> void on_component_removed(entity ent);
         entt::registry m_registry;
         entity m_first_track_node;
+        std::set<entity*> m_entities;
         friend class entity;
+        friend class scene_serializer;
     };
     template <typename T, typename... Args> inline T& entity::add_component(Args&&... args) {
         if (this->has_component<T>()) {

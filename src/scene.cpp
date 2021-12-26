@@ -18,6 +18,16 @@
 #include "scene.h"
 #include "components.h"
 namespace vkrollercoaster {
+    void entity::add_to_entity_set() { this->m_scene->m_entities.insert(this); }
+    void entity::remove_from_entity_set() { this->m_scene->m_entities.erase(this); }
+    void scene::reset() {
+        {
+            auto copy = this->m_entities;
+            for (entity* ent : copy) {
+                ent->reset();
+            }
+        }
+    }
     void scene::update() {
         // light data
         std::unordered_map<ref<light>, std::vector<entity>> lights;
@@ -38,6 +48,12 @@ namespace vkrollercoaster {
                 }
                 _script->update();
             }
+        }
+    }
+    void scene::for_each(std::function<void(entity)> callback) {
+        for (size_t i = 0; i < this->m_registry.size(); i++) {
+            entity ent = entity((entt::entity)i, this);
+            callback(ent);
         }
     }
     entity scene::create(const std::string& tag) {

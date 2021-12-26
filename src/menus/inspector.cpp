@@ -18,6 +18,7 @@
 #include "menus.h"
 #include "../application.h"
 #include "../components.h"
+#include "scene_serializer.h"
 namespace vkrollercoaster {
     static void attenuation_editor(attenuation_settings& attenuation) {
         // based off of https://wiki.ogre3d.org/Light+Attenuation+Shortcut
@@ -353,6 +354,26 @@ namespace vkrollercoaster {
     void inspector::update() {
         ImGui::Begin("Inspector", &this->m_open);
         ref<scene> _scene = application::get_scene();
+
+        {
+            scene_serializer serializer(_scene);
+
+            static std::string write_path;
+            ImGui::InputText("##write-path", &write_path);
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                fs::path path = write_path;
+                
+                if (path.has_parent_path()) {
+                    fs::path directory = path.parent_path();
+                    if (!fs::exists(directory)) {
+                        fs::create_directories(directory);
+                    }
+                }
+
+                serializer.serialize(path);
+            }
+        }
 
         bool reset_name = false;
         if (ImGui::Button("Add entity")) {
