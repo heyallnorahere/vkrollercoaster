@@ -17,6 +17,7 @@
 #include "pch.h"
 #include "menus.h"
 #include "renderer.h"
+#include "../imgui_extensions.h"
 namespace vkrollercoaster {
     void renderer_info::update() {
         ImGui::Begin("Renderer info", &this->m_open);
@@ -84,7 +85,7 @@ namespace vkrollercoaster {
             ImGui::Unindent();
         }
 
-        static std::string image_path;
+        static fs::path image_path;
         static bool file_doesnt_exist = false;
         if (ImGui::CollapsingHeader("Skybox")) {
             ImGui::Indent();
@@ -100,16 +101,15 @@ namespace vkrollercoaster {
                 _skybox->set_exposure(exposure);
             }
 
-            ImGui::InputText("##image-path", &image_path);
+            ImGui::InputPath("##image-path", &image_path);
             ImGui::SameLine();
 
             if (ImGui::Button("Load")) {
-                fs::path skybox_path = image_path;
-                if (!fs::exists(skybox_path) || image_path.empty()) {
+                if (!fs::exists(image_path) || image_path.empty()) {
                     file_doesnt_exist = true;
                 } else {
                     file_doesnt_exist = false;
-                    renderer::load_skybox(skybox_path);
+                    renderer::load_skybox(image_path);
                 }
             }
 

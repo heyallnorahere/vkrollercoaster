@@ -19,6 +19,7 @@
 #include "../application.h"
 #include "../components.h"
 #include "scene_serializer.h"
+#include "../imgui_extensions.h"
 namespace vkrollercoaster {
     static void attenuation_editor(attenuation_settings& attenuation) {
         // based off of https://wiki.ogre3d.org/Light+Attenuation+Shortcut
@@ -218,8 +219,8 @@ namespace vkrollercoaster {
                 model_material->set_data("shininess", shininess);
             }
         } else {
-            static std::string model_path;
-            ImGui::InputText("Model path", &model_path);
+            static fs::path model_path;
+            ImGui::InputPath("Model path", &model_path);
             std::string error_message;
             switch (model_error) {
             case model_loading_error::no_path:
@@ -358,20 +359,18 @@ namespace vkrollercoaster {
         {
             scene_serializer serializer(_scene);
 
-            static std::string write_path;
-            ImGui::InputText("##write-path", &write_path);
+            static fs::path write_path;
+            ImGui::InputPath("##write-path", &write_path);
             ImGui::SameLine();
             if (ImGui::Button("Save")) {
-                fs::path path = write_path;
-                
-                if (path.has_parent_path()) {
-                    fs::path directory = path.parent_path();
+                if (write_path.has_parent_path()) {
+                    fs::path directory = write_path.parent_path();
                     if (!fs::exists(directory)) {
                         fs::create_directories(directory);
                     }
                 }
 
-                serializer.serialize(path);
+                serializer.serialize(write_path);
             }
         }
 

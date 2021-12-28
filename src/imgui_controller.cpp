@@ -23,6 +23,7 @@
 #include "application.h"
 #include "input_manager.h"
 #include "components.h"
+#include "imgui_extensions.h"
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
 namespace vkrollercoaster {
@@ -186,7 +187,7 @@ namespace vkrollercoaster {
         ImGui_ImplVulkan_Init(&init_info, imgui_data.swap_chain->get_render_pass());
 
         // load fonts
-        io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto-Medium.ttf", 16.f);
+        ImGui::LoadApplicationFonts();
 
         // create font atlas
         auto cmdbuffer = renderer::create_single_time_command_buffer();
